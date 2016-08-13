@@ -64,6 +64,10 @@ for i in range(len(path_dgs)):
 
 data_df['NoiseOpacityInt']=(data_df['NoiseOpacity']*100).astype(int)
 data_df['NoiseFixed']=(data_df['IndexNoise']>=0)
-PyNeuroPlot.PyNeuroPlot(data_df, 'status','NoiseOpacityInt')
+# PyNeuroPlot.PyNeuroPlot(data_df, 'status','NoiseOpacityInt')
+# PyNeuroPlot.PyNeuroPlot(data_df, 'status','NoiseOpacityInt','BwMaskDur')
+# PyNeuroPlot.PyNeuroPlot(data_df[data_df['side']==1], 'status','NoiseOpacityInt','BwMaskDur')
+PyNeuroPlot.PyNeuroPlot(data_df[data_df['SampleFamiliarized']==1], 'status','NoiseOpacityInt','BwMaskOnset')
+PyNeuroPlot.PyNeuroPlot(data_df[data_df['SampleFamiliarized']==0], 'status','NoiseOpacityInt','BwMaskOnset')
 plt.show()
 print("finish")

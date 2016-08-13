@@ -22,14 +22,18 @@ def dg2df(dgfile):
 
 def remove_short_columns(data_dg, f_verbose=False):
     # ===== remove irregular columns of dg, make it ready to be converted to pandas df =====
-    # ----- get number of rows by majority vote of all columns -----
     dg_keys = data_dg.keys()
-    num_rows = []  # a list of number of rows for every column
-    for dg_key in dg_keys:
-        num_rows.append(len(data_dg[dg_key]))
-        if f_verbose:
-            print('filed {} has {} rows'.format(dg_key, len(data_dg[dg_key]) ))
-    N = stats.mode(num_rows)[0][0]  # get number of rows by majority vote
+    if data_dg.has_key('ids'):
+        # ----- get number of rows by key "ids" -----
+        N = len(data_dg['ids'])
+    else:
+        # ----- get number of rows by majority vote of all columns -----
+        num_rows = []  # a list of number of rows for every column
+        for dg_key in dg_keys:
+            num_rows.append(len(data_dg[dg_key]))
+            if f_verbose:
+                print('filed {} has {} rows'.format(dg_key, len(data_dg[dg_key]) ))
+        N = stats.mode(num_rows)[0][0]  # get number of rows by majority vote
 
     # ----- remove columns with different numbers of rows -----
     for dg_key in dg_keys:
