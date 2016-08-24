@@ -46,3 +46,10 @@ def ErpPlot(array_erp, ts, depth_start=0, depth_incr=0.1):
 
 
     return 1
+
+def RasterPlot(array_raster)
+    # array_raster:   1D object array; every entry is a 1D array of spike times
+    x = np.zeros(0)
+    y = np.zeros(0)
+    for i in len(array_raster):
+        x = array_raster[i]
