@@ -63,14 +63,15 @@ indx_grouped = data_df.groupby(groupby_column).indices
 LFP_grouped = dict( (key, LFP_aligned[ value, :, : ] ) for key, value in indx_grouped.items() )
 
 ch = 0
+fig = plt.figure( figsize=(16,9) )
 for ch in range(16):
-    fig = plt.figure( figsize=(16,9) )
-    fig.canvas.set_window_title( '{}'.format(ch) )
+    # fig.canvas.set_window_title( '{}'.format(ch) )
     i = 1
     for key in sorted([key for key in indx_grouped]) :
         plt.subplot(2,3,i)
         plt.plot(time_aligned, np.mean(LFP_grouped[key][:,:,ch]*10**6, axis=0) )
         plt.show()
+        plt.xlim((-0.1,0.5))
         plt.ylim((-300,300))
         plt.title(key)
         i = i+1
@@ -122,3 +123,10 @@ for ch in range(N_chan):
         i = i+1
     fig.canvas.manager.window.raise_()
     fig.show()
+
+
+# spikes using the signal_array_align_to_evt
+signal_array_aligned = signal_align.signal_array_align_to_evt(blk.segments[0], ts_StimOn, [-0.100, 0.500], type_filter='spike.*',spike_bin_rate=1000)
+groupby_column = ['stim_familiarized','mask_opacity']
+indx_grouped = data_df.groupby(groupby_column).indices
+psth_grouped = dict( (key, signal_array_aligned['data'][ value, :, : ] ) for key, value in indx_grouped.items() )

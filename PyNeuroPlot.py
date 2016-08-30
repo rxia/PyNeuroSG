@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 matplotlib.style.use('ggplot')
 import pandas as pd
 import numpy as np
-try:
-    import seaborn as sns
-except:
-    print ('no seaborn module installed for plotting, use matplotlib default')
+# try:
+#     import seaborn as sns
+# except:
+#     print ('no seaborn module installed for plotting, use matplotlib default')
+
 
 def PyNeuroPlot(df, y, x, c=[], p=[]):
     df_plot = pd.DataFrame()
@@ -44,12 +45,24 @@ def ErpPlot(array_erp, ts, depth_start=0, depth_incr=0.1):
     fig.show()
     fig.savefig('PyNeuroPlot_temp_fig.png')
 
-
     return 1
 
-def RasterPlot(array_raster)
-    # array_raster:   1D object array; every entry is a 1D array of spike times
-    x = np.zeros(0)
-    y = np.zeros(0)
-    for i in len(array_raster):
-        x = array_raster[i]
+def NeuroPlot(data_neuro, layout='ccs'):
+    if 'cdtn' in data_neuro.keys():
+        fig = plt.figure( figsize=(16,9) )
+        plt.plot(data_neuro['ts'], np.mean(data_neuro['data'], axis=0) )
+        plt.show()
+        # plt.ylim((0,60))
+        plt.title(key)
+    else:
+        fig = plt.figure( figsize=(16,9) )
+        plt.plot(data_neuro['ts'], data_neuro['data'] )
+        plt.show()
+        # plt.ylim((0,60))
+        plt.title(key)
+
+
+
+# to test:
+if 0:
+    import PyNeuroPlot as pnp; reload(pnp); pnp.NeuroPlot(data_neuro)

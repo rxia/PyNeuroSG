@@ -9,9 +9,9 @@ import numpy as np
 import quantities as pq
 import neo
 import warnings
+import re
 
-
-def signal_align_to_evt(signal, evt_align_ts, window_offset):
+def signal_align_to_evt(signal, evt_align_ts, window_offset, spike_bin_rate=1000):
 
     # if evt_align_ts or window_offset does not have a unit, assume it is 'sec'
     # if pq.Quantity(evt_align_ts).simplified.units == pq.Quantity(1):
@@ -33,8 +33,8 @@ def signal_align_to_evt(signal, evt_align_ts, window_offset):
 
         # align using tool function
         result_aligned = align_continuous(signal, t_start, sampling_rate, evt_align_ts, window_offset)
-        signal_aligned = result_aligned['signal_aligned']*pq.V
-        time_aligned   = result_aligned['time_aligned']  *pq.s
+
+        signal_aligned = pq.Quantity( result_aligned['signal_aligned'], 'V' )
 
     elif type(signal) == neo.core.spiketrain.SpikeTrain:
         if 0: # old, if return real time stamps, rather than binned counts
@@ -48,21 +48,83 @@ def signal_align_to_evt(signal, evt_align_ts, window_offset):
 
         t_start       = np.array(signal.t_start.simplified)
         t_stop        = np.array(signal.t_stop .simplified)
-        sampling_rate = np.array( (1000*pq.Hz).simplified)
+        sampling_rate = np.array( pq.Quantity(spike_bin_rate,  'Hz').simplified)
         evt_align_ts  = np.array(evt_align_ts.simplified)
         window_offset = np.array(window_offset.simplified)
+        signal        = np.array(signal.simplified)
 
-        sampling_interval = 1/sampling_rate
-        ts_bin = np.arange(t_start, t_stop, sampling_interval)
-        ts_bin_edge = np.append(ts_bin, ts_bin[-1]+sampling_interval )- sampling_interval/2
-        spk_binned  = np.histogram(signal, ts_bin_edge)[0]
+        num_bins = (t_stop * sampling_rate).astype('int')
+        spk_binned  = np.bincount(np.round((signal-t_start)*sampling_rate).astype('int'), minlength=num_bins)[0:num_bins]
+        if 0:   # old method, slow by using "histogram" compared with "bincount"
+            sampling_interval = 1/sampling_rate
+            ts_bin = np.arange(t_start, t_stop, sampling_interval)
+            ts_bin_edge = np.append(ts_bin, ts_bin[-1]+sampling_interval )- sampling_interval/2
+            spk_binned  = np.histogram(signal, ts_bin_edge)[0]
 
         result_aligned = align_continuous(spk_binned, t_start, sampling_rate, evt_align_ts, window_offset)
-        signal_aligned = result_aligned['signal_aligned']*sampling_rate*pq.Hz
-        time_aligned   = result_aligned['time_aligned']  *pq.s
+        signal_aligned = pq.Quantity( result_aligned['signal_aligned'], 'Hz' )
+
+    else:
+        print('input for function signal_align_to_evt is not recognizable, signal type: {}'.format(signal))
+
+    time_aligned   = pq.Quantity( result_aligned['time_aligned'], 's' )
+    sampling_rate  = pq.Quantity( sampling_rate, 'Hz' )
+
+    return {'data': signal_aligned, 'ts': time_aligned, 'sampling_rate': sampling_rate}
 
 
-    return {'signal_aligned': signal_aligned, 'time_aligned': time_aligned}
+def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter='.*', name_filter='.*', spike_bin_rate=1000):
+    """
+    function to align signal arrays to event, returns a 3D array ( N_trials * len_window * N_signals )
+    inputs:
+        segment       :  neo segment object
+        evt_align_ts  : timestamps to align signal with, default in sec, e.g. ts_StimOn=[0, 1.5, 1.7, ...]
+        window_offset : [start, stop] of window relative to event_align_ts, default in sec, eg., [-0.1, 0.5]
+        type_filter   : string of signal types to use, in regular expression, e.g., 'spiketrains' or '.*'
+        name_filter   : string of signal names to use, in regular expression, e.g., 'LFPs.*'
+        spike_bin_rate: frequency to bin spikes, default is 1000 Hz
+    outputs:
+        signal_array_align
+    """
+
+    signal_name = []
+    signal_type  = []
+    signal_aligned = []
+    signal_sampling_rate = []
+    data = np.array([], ndmin=3)
+    ts   = np.array([], ndmin=1)
+    neo_data_object_types = ['spiketrains', 'analogsignals']
+    for neo_data_object_type in neo_data_object_types:
+        if re.match(type_filter, neo_data_object_type) is not None:
+            neo_data_object = getattr(segment, neo_data_object_type)
+            for i in range(len(neo_data_object)):
+                cur_name = neo_data_object[i].name
+                if re.match(name_filter, cur_name) is not None:
+                    signal_name.append(cur_name)
+                    signal_type.append(neo_data_object_type)
+                    cur_signal_aligned = signal_align_to_evt(neo_data_object[i], evt_align_ts, window_offset, spike_bin_rate)
+                    signal_aligned.append( cur_signal_aligned['data'] )
+                    signal_sampling_rate.append( cur_signal_aligned['sampling_rate'] )
+    signal_info = zip(signal_name, signal_type, signal_sampling_rate)
+
+    if len(signal_aligned) == 0:
+        warnings.warn('no signals in the segment match the selection filter for alignment')
+        print('WARNING of function signal_array_align_to_evt: no signals in the segment match the selection filter for alignment')
+    elif len(np.unique(signal_sampling_rate)) > 1:   # if sampling rate is not unique, throw warning
+        warnings.warn('signals are of different sampling rates, can not be combined:')
+        print('WARNING of function signal_array_align_to_evt: signals are of different sampling rates, can not be combined:')
+        for item in signal_info:
+            print(item)
+    else:    # if sampling rate is unique
+        data = pq.Quantity( np.dstack(signal_aligned)   )
+        ts   = cur_signal_aligned['ts']
+
+    # spiketrain_names = [segment.spiketrains[i].name  for  ]
+    #
+    # signal_names = [segment.analogsignals[i].name for i in range(len(segment.analogsignals))]
+    # print signal_names
+    return {'data': data, 'ts': ts, 'signal_info': signal_info}
+
 
 def align_continuous(signal, t_start, sampling_rate, evt_align_ts, window_offset):
     # tool function to align continuous signals, all inputs do not have units
@@ -94,6 +156,29 @@ def align_continuous(signal, t_start, sampling_rate, evt_align_ts, window_offset
     return {'signal_aligned': signal_aligned, 'time_aligned': time_aligned}
 
 
+
+def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}, tf_plt=False):
+    """
+    :param neuro:  neural data, a dict, neuro['data'] is a 3D array ( N_trials * len_window * N_signals )
+    :param tlbl:   trial label, information of every trial, a pandas data frame
+    :param grpby:  group by   , list of string that specifies the columns to sort and group
+    :param fltr:   filter     , binary array of length N_trials for keeping/discarding the trials
+    :return:
+    """
+
+    # process inputs
+    if type(grpby) is str:
+        grpby = [grpby]
+    if len(fltr) == 0:
+        fltr = np.ones(len(tlbl), dtype=bool)
+    cdtn_indx = tlbl.groupby(grpby).indices
+    # psth_grouped = dict( (key, neuro['data'][ value, :, : ] ) for key, value in cdtn_indx.items() )
+    neuro.update({'grpby': grpby, 'fltr': fltr, 'cdtn': cdtn_indx.keys(), 'cdtn_indx': cdtn_indx})
+
+    return neuro
+
+
+# ==================== Some test script  ====================
 # to test
 if 0:
     import time
@@ -102,3 +187,11 @@ if 0:
     test_evt_align_ts  = np.random.rand(100)*20 *pq.sec
     test_window_offset = [-0.1,0.2] * pq.sec
     t = time.time(); ch=0; temp =  signal_align_to_evt(test_analog_signal, test_evt_align_ts, test_window_offset); elapsed = time.time() - t; print(elapsed)
+
+# to test signal_array_align_to_evt
+if 0:
+    import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.signal_array_align_to_evt(blk.segments[0], ts_StimOn, [-0.100, 0.500], type_filter='spiketrains.*',spike_bin_rate=1000); print(time.time()-t)
+
+# to test neuro_sort
+if 0:
+    import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity'], [], data_neuro); print(time.time()-t)

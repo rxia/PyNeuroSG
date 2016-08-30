@@ -23,8 +23,9 @@ import PyNeuroPlot; reload(PyNeuroPlot)
 dir_dg  = '/Volumes/Labfiles/projects/analysis/shaobo/data_dg'
 
 if False:
-    file_dg = 'd_MTS_bin_051916007.dg'
-    file_dgs = ['d_MTS_bin_051916005.dg','d_MTS_bin_051916006.dg', 'd_MTS_bin_051916007.dg', 'd_MTS_bin_051916008.dg']
+    # file_dg = 'd_MTS_bin_051916007.dg'
+    # file_dgs = ['d_MTS_bin_051916005.dg','d_MTS_bin_051916006.dg', 'd_MTS_bin_051916007.dg', 'd_MTS_bin_051916008.dg']
+    file_dgs = ['d_MTS_bin_0817004.dg','d_MTS_bin_0817005.dg']
 
 
     for i in range(0,len(file_dgs)):
@@ -67,7 +68,8 @@ data_df['NoiseFixed']=(data_df['IndexNoise']>=0)
 # PyNeuroPlot.PyNeuroPlot(data_df, 'status','NoiseOpacityInt')
 # PyNeuroPlot.PyNeuroPlot(data_df, 'status','NoiseOpacityInt','BwMaskDur')
 # PyNeuroPlot.PyNeuroPlot(data_df[data_df['side']==1], 'status','NoiseOpacityInt','BwMaskDur')
-PyNeuroPlot.PyNeuroPlot(data_df[data_df['SampleFamiliarized']==1], 'status','NoiseOpacityInt','BwMaskOnset')
-PyNeuroPlot.PyNeuroPlot(data_df[data_df['SampleFamiliarized']==0], 'status','NoiseOpacityInt','BwMaskOnset')
+# PyNeuroPlot.PyNeuroPlot(data_df[data_df['SampleFamiliarized']==1], 'status','NoiseOpacityInt','BwMaskOnset')
+# PyNeuroPlot.PyNeuroPlot(data_df[data_df['SampleFamiliarized']==0], 'status','NoiseOpacityInt','BwMaskOnset')
+PyNeuroPlot.PyNeuroPlot(data_df, 'status','NoiseOpacityInt','SampleFamiliarized')
 plt.show()
 print("finish")
