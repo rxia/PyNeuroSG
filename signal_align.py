@@ -55,6 +55,7 @@ def signal_align_to_evt(signal, evt_align_ts, window_offset, spike_bin_rate=1000
 
         num_bins = (t_stop * sampling_rate).astype('int')
         spk_binned  = np.bincount(np.round((signal-t_start)*sampling_rate).astype('int'), minlength=num_bins)[0:num_bins]
+        spk_binned = spk_binned * sampling_rate
         if 0:   # old method, slow by using "histogram" compared with "bincount"
             sampling_interval = 1/sampling_rate
             ts_bin = np.arange(t_start, t_stop, sampling_interval)
@@ -70,7 +71,7 @@ def signal_align_to_evt(signal, evt_align_ts, window_offset, spike_bin_rate=1000
     time_aligned   = pq.Quantity( result_aligned['time_aligned'], 's' )
     sampling_rate  = pq.Quantity( sampling_rate, 'Hz' )
 
-    return {'data': signal_aligned, 'ts': time_aligned, 'sampling_rate': sampling_rate}
+    return {'data': signal_aligned, 'ts': time_aligned, 'sampling_rate': sampling_rate, 'time_aligned': time_aligned, 'signal_aligned': signal_aligned}
 
 
 def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter='.*', name_filter='.*', spike_bin_rate=1000):
@@ -106,6 +107,7 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
                     signal_aligned.append( cur_signal_aligned['data'] )
                     signal_sampling_rate.append( cur_signal_aligned['sampling_rate'] )
     signal_info = zip(signal_name, signal_type, signal_sampling_rate)
+    signal_info = np.array( signal_info, dtype=[('name', 'S32'), ('type', 'S32'), ('sampling_rate', float)]  )
 
     if len(signal_aligned) == 0:
         warnings.warn('no signals in the segment match the selection filter for alignment')
@@ -128,7 +130,7 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
 
 def align_continuous(signal, t_start, sampling_rate, evt_align_ts, window_offset):
     # tool function to align continuous signals, all inputs do not have units
-
+    signal = np.squeeze(signal)  # make sure it is 1D array
     indx_align = (( evt_align_ts - t_start ) * sampling_rate) .round().astype(int)
 
     # get the offset indexes of start and stop
@@ -171,9 +173,18 @@ def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}, tf_plt=False):
         grpby = [grpby]
     if len(fltr) == 0:
         fltr = np.ones(len(tlbl), dtype=bool)
+
+    # use pandas to group
     cdtn_indx = tlbl.groupby(grpby).indices
-    # psth_grouped = dict( (key, neuro['data'][ value, :, : ] ) for key, value in cdtn_indx.items() )
-    neuro.update({'grpby': grpby, 'fltr': fltr, 'cdtn': cdtn_indx.keys(), 'cdtn_indx': cdtn_indx})
+
+    # filter the results by the binary mask of fltr
+    indx_fltrd = np.where(fltr)[0]
+
+    for cdtn_name in cdtn_indx.keys():
+        cdtn_indx[cdtn_name] = np.intersect1d(cdtn_indx[cdtn_name], indx_fltrd)
+        if len(cdtn_indx[cdtn_name]) == 0:
+            del cdtn_indx[cdtn_name]
+    neuro.update({'grpby': grpby, 'fltr': fltr, 'cdtn': sorted(cdtn_indx.keys()), 'cdtn_indx': cdtn_indx})
 
     return neuro
 

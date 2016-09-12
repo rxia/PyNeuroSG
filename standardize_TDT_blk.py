@@ -20,7 +20,7 @@ blk (neo block, corresponding to tdt tank):
 
 """
 import numpy as np
-from neo.core import (Block, Segment, RecordingChannelGroup, RecordingChannel, AnalogSignal, Unit)
+from neo.core import (Block, Segment, ChannelIndex, AnalogSignal, Unit)
 
 # ----------- get_chan_indexes() ----------
 def get_chan_indexes(blk):
