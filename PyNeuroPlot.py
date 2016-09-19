@@ -35,11 +35,33 @@ def ErpPlot(array_erp, ts, depth_start=0, depth_incr=0.1):
 
     offset_plot_chan = (array_erp.max()-array_erp.min())/5
 
-    fig = plt.figure(figsize=(6,8))
-    plt.plot(ts, ( array_erp - np.array( np.arange(array_erp.shape[0]), ndmin=2).transpose() * offset_plot_chan) .transpose() )
+    [N_chan, N_ts] = array_erp.shape
+    array_erp_offset = (array_erp - np.array(np.arange(array_erp.shape[0]), ndmin=2).transpose() * offset_plot_chan).transpose()
+
+    name_colormap = 'rainbow'
+    cycle_color = plt.cm.get_cmap(name_colormap)(np.linspace(0, 1, N_chan))
+
+    fig = plt.figure(figsize=(12,8))
+    plt.subplot(1,2,1)
+    for i in range(N_chan):
+        plt.plot(ts, array_erp_offset[:,i], c=cycle_color[i]*0.9, lw=2)
+    plt.gca().set_axis_bgcolor([0.95, 0.95, 0.95])
+    plt.xlim(ts[0],ts[-1])
     plt.title('ERPs')
     plt.xlabel('time from event onset (s)')
     plt.ylabel('Voltage (V)')
+
+    plt.subplot(1, 2, 2)
+    plt.pcolormesh(center2edge(ts), center2edge(np.arange(N_chan)+1) , np.array(array_erp), cmap=plt.get_cmap('coolwarm'))
+    color_max = np.max(np.abs(np.array(array_erp)))
+    plt.clim(-color_max, color_max)
+    plt.xlim(ts[0], ts[-1])
+    plt.ylim( center2edge(np.arange(N_chan)+1)[0], center2edge(np.arange(N_chan)+1)[-1]  )
+    plt.gca().invert_yaxis()
+    plt.title('ERPs')
+    plt.xlabel('time from event onset (s)')
+    plt.ylabel('channel index')
+    # plt.colorbar()
 
     # plt.get_current_fig_manager().window.raise_()
     fig.canvas.manager.window.raise_()
@@ -48,8 +70,17 @@ def ErpPlot(array_erp, ts, depth_start=0, depth_incr=0.1):
 
     return 1
 
-def NeuroPlot(data_neuro, layout=[], sk_std=np.nan):
-    fig = plt.figure( figsize=(16,9) )
+def NeuroPlot(data_neuro, layout=[], sk_std=np.nan, tf_seperate_window=False, tf_legend=True):
+
+    [_,_,N_sgnl] = data_neuro['data'].shape
+
+    if tf_seperate_window:
+        lh_fig = []
+        for i in range(N_sgnl):
+            lh_fig.append(plt.figure(figsize=(16,9)))
+    else:
+        fig = plt.figure(figsize=(16, 9))
+
     if 'cdtn' in data_neuro.keys():
         N_cndt = len(data_neuro['cdtn'])
         if len(layout) == 0:
@@ -61,10 +92,21 @@ def NeuroPlot(data_neuro, layout=[], sk_std=np.nan):
         axes1 = plt.subplot(N_row, N_col, 1)
         for i in range(N_cndt):
             cdtn = data_neuro['cdtn'][i]
-            plt.subplot(N_row,N_col,i+1, sharey=axes1)
-            hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'][data_neuro['cdtn_indx'][cdtn],:,:], sk_std )
-            # plt.legend(hl_plot, data_neuro['signal_info']['name'].tolist(), labelspacing=0.1, prop={'size':8})
-            plt.title(cdtn)
+            if tf_seperate_window:
+                for j in range(N_sgnl):
+                    plt.figure(lh_fig[j].number)
+                    plt.subplot(N_row, N_col, i + 1, sharey=axes1)
+                    hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'][data_neuro['cdtn_indx'][cdtn], :, [j]], sk_std)
+                    plt.title(cdtn)
+                    if i==0:
+                        lh_fig[j].suptitle(data_neuro['signal_info']['name'][j])
+            else:
+                plt.figure(fig.number)
+                plt.subplot(N_row, N_col, i + 1, sharey=axes1)
+                hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'][data_neuro['cdtn_indx'][cdtn], :, :], sk_std)
+                if tf_legend:
+                    plt.legend(hl_plot, data_neuro['signal_info']['name'].tolist(), labelspacing=0.1, prop={'size':8})
+                    plt.title(cdtn)
     else:
         hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'], sk_std )
         # plt.legend(hl_plot, data_neuro['signal_info']['name'].tolist())
@@ -83,6 +125,14 @@ def SignalPlot(ts, data3D, sk_std=np.nan):
     """
 
     tf_smooth_every_trial = False    # very slow if set to true
+
+    if data3D.ndim==2:
+        data2D = data3D
+        (N_tr, N_ts) = data2D.shape
+        data3D = np.ones([N_tr,N_ts,1])
+        data3D[:,:,0] = data2D
+
+
     (_, N_ts, N_sign) = data3D.shape
 
     if sk_std is not np.nan:   # condition for using smoothness kernel
@@ -113,10 +163,24 @@ def SignalPlot(ts, data3D, sk_std=np.nan):
     hl_plot = []   # handle list
     for i in range(N_sign):
         plt.plot()
-        h_plot, = plt.plot(ts, data_plot[:,i], c=cycle_color[i%len(cycle_color)], linestyle=cycle_linestyle[i%len(cycle_linestyle)], linewidth=2 )
+        h_plot, = plt.plot(ts, data_plot[:,i], c=cycle_color[i%len(cycle_color)]*0.9, linestyle=cycle_linestyle[i%len(cycle_linestyle)], linewidth=2 )
         hl_plot.append(h_plot)
+        plt.xlim(ts[0], ts[-1])
 
     return hl_plot
+
+
+def center2edge(centers):
+    # tool function to get edges from centers for plt.pcolormesh
+    centers = np.array(centers,dtype='float')
+    edges = np.zeros(len(centers)+1)
+    if len(centers) is 1:
+        dx = 1.0
+    else:
+        dx = centers[-1]-centers[-2]
+    edges[0:-1] = centers - dx/2
+    edges[-1] = centers[-1]+dx/2
+    return edges
 
 
 # to test:
