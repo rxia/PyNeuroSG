@@ -595,3 +595,40 @@ groupby_column = ['stim_familiarized','mask_opacity']
 indx_grouped = data_df.groupby(groupby_column).indices
 psth_grouped = dict( (key, signal_array_aligned['data'][ value, :, : ] ) for key, value in indx_grouped.items() )
 """
+
+
+
+""" test of reading two segments """
+
+# read tdt
+dir_tdt_tank  = '/Users/Summit/Documents/neural_data/2016-0817_Dante_U16/U16-160817-135857'
+name_tdt_blocks = ['d_srv_mask_081716002', 'd_srv_mask_081716003']
+blk = Block()
+reader = neo.io.TdtIO(dirname=dir_tdt_tank)
+for name_tdt_block in name_tdt_blocks:
+    seg = reader.read_segment(blockname=name_tdt_block, sortname='PLX')
+    blk.segments.append(seg)
+
+# read dg
+dir_dg  = '/Users/Summit/Documents/neural_data/2016-0817_Dante_U16'
+file_dgs = ['d_srv_mask_081716002.dg', 'd_srv_mask_081716003.dg']
+data_dfs = []
+for file_dg in file_dgs:
+    path_dg = os.path.join(dir_dg, file_dg)
+    data_df = dg2df.dg2df(path_dg)
+    data_dfs.append(data_df)
+data_df = pd.concat(data_dfs)
+data_df = data_df['stim_names'].reset_index(range(len(data_df)))
+data_df['mask_opacity_int'] = np.round(data_df['mask_opacity']*100).astype(int)
+
+# get ts_align
+blk_StimOn = []
+for i in range(len(data_dfs)):
+    data_df_segment = data_dfs[i]
+    id_Obsv = np.array(data_df_segment['obsid'])      # !!! needs to be modified if multiple dg files are read
+    tos_StimOn = np.array(data_df_segment['stimon'])  # tos: time of offset
+    ts_ObsvOn = select_obj_by_attr(blk.segments[i].events, attr='name', value='obsv')[0].times
+    ts_StimOn = ts_ObsvOn[np.array(id_Obsv)] + tos_StimOn * pq.ms
+    blk_StimOn.append(ts_StimOn)
+
+reload(signal_align); data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.1, 0.5], type_filter='spiketrains.*', name_filter='.*Code[1-9]', spike_bin_rate=50)
