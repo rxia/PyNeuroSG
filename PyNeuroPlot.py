@@ -97,7 +97,7 @@ def NeuroPlot(data_neuro, layout=[], sk_std=np.nan, tf_seperate_window=False, tf
                     plt.figure(lh_fig[j].number)
                     plt.subplot(N_row, N_col, i + 1, sharey=axes1)
                     hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'][data_neuro['cdtn_indx'][cdtn], :, [j]], sk_std)
-                    plt.title(cdtn)
+                    plt.title(prettyfloat(cdtn))
                     if i==0:
                         lh_fig[j].suptitle(data_neuro['signal_info']['name'][j])
             else:
@@ -106,11 +106,11 @@ def NeuroPlot(data_neuro, layout=[], sk_std=np.nan, tf_seperate_window=False, tf
                 hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'][data_neuro['cdtn_indx'][cdtn], :, :], sk_std)
                 if tf_legend:
                     plt.legend(hl_plot, data_neuro['signal_info']['name'].tolist(), labelspacing=0.1, prop={'size':8})
-                    plt.title(cdtn)
+                    plt.title(prettyfloat(cdtn))
     else:
         hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'], sk_std )
         # plt.legend(hl_plot, data_neuro['signal_info']['name'].tolist())
-        plt.title(cdtn)
+        plt.title(prettyfloat(cdtn))
     plt.show()
 
     return 1
@@ -181,6 +181,21 @@ def center2edge(centers):
     edges[0:-1] = centers - dx/2
     edges[-1] = centers[-1]+dx/2
     return edges
+
+
+def prettyfloat(input, precision=2):
+    """
+    function to cut the long float numbers for print
+    """
+    if hasattr(input, '__iter__'):
+        output = []
+        for x in input:
+             output.append( prettyfloat(x, precision) )
+    elif isinstance(input, float):
+        output = round(input, precision)
+    else:
+        output = input
+    return output
 
 
 # to test:

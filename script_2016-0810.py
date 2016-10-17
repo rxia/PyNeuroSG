@@ -56,7 +56,7 @@ type_StimOn = data_df['mask_opacity']
 
 
 # ERP plot
-import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.signal_array_align_to_evt(blk.segments[0], ts_StimOn, [-0.100, 0.600], type_filter='ana.*', name_filter='LFPs.*'); print(time.time()-t)
+import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.signal_array_align_to_evt(blk.segments[0], blk_StimOn, [-0.100, 0.600], type_filter='ana.*', name_filter='LFPs.*'); print(time.time()-t)
 reload(pnp); pnp.ErpPlot(np.mean(data_neuro['data'], axis=0).transpose(), data_neuro['ts'])
 
 # spike waveforms:
@@ -85,7 +85,7 @@ for i in range(len(blk.segments[0].spiketrains)):
     plt.xticks([]); plt.yticks([]); plt.title(blk.segments[0].spiketrains[i].name)
 
 # align
-import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.signal_array_align_to_evt(blk.segments[0], ts_StimOn, [-0.100, 0.600], type_filter='spiketrains.*', name_filter='.*Code[1-9]', spike_bin_rate=1000); print(time.time()-t)
+import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.100, 0.600], type_filter='spiketrains.*', name_filter='.*Code[1-9]', spike_bin_rate=1000); print(time.time()-t)
 # group
 data_df['mask_opacity_int'] = np.round(data_df['mask_opacity']*100).astype(int)
 import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro); print(time.time()-t)
@@ -93,9 +93,9 @@ import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_alig
 import PyNeuroPlot as pnp; reload(pnp); t=time.time(); pnp.NeuroPlot(data_neuro, sk_std=0.005); print(time.time()-t)
 
 # spikes
-import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.signal_array_align_to_evt(blk.segments[0], ts_StimOn, [-0.100, 0.600], type_filter='spiketrains.*', name_filter='.*Code[1-9]', spike_bin_rate=1000); print(time.time()-t)
+import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.100, 0.600], type_filter='spiketrains.*', name_filter='.*Code[1-9]', spike_bin_rate=1000); print(time.time()-t)
 # LFPs
-# import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.signal_array_align_to_evt(blk.segments[0], ts_StimOn, [-0.100, 0.600], type_filter='ana.*', name_filter='LFPs.*'); print(time.time()-t)
+# import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.100, 0.600], type_filter='ana.*', name_filter='LFPs.*'); print(time.time()-t)
 import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.neuro_sort(data_df, ['stim_names'], (data_df['mask_opacity_int']==0) & (data_df['stim_familiarized']==0), data_neuro); print(time.time()-t)
 pnp.NeuroPlot(data_neuro, layout=[5,2], sk_std=0.005, tf_legend=True)
 import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.neuro_sort(data_df, ['stim_names'], (data_df['mask_opacity_int']==0) & (data_df['stim_familiarized']==1), data_neuro); print(time.time()-t)
@@ -103,7 +103,7 @@ pnp.NeuroPlot(data_neuro, layout=[5,2], sk_std=0.005, tf_legend=False)
 
 reload(signal_align)
 reload(pnp)
-data_neuro=signal_align.signal_array_align_to_evt(blk.segments[0], ts_StimOn, [-0.100, 0.500], type_filter='spiketrains.*', name_filter='.*Code[1-9]', spike_bin_rate=50)
+data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.100, 0.500], type_filter='spiketrains.*', name_filter='.*Code[1-9]', spike_bin_rate=50)
 # data_neuro=signal_align.signal_array_align_to_evt(blk.segments[0], ts_StimOn, [-0.100, 0.600], name_filter='LFPs.*')
 data_neuro=signal_align.neuro_sort(data_df, ['stim_categories', 'mask_opacity_int'], [], data_neuro); pnp.NeuroPlot(data_neuro)
 # data_neuro=signal_align.neuro_sort(data_df, ['mask_orientation', 'mask_opacity_int'], [], data_neuro); pnp.NeuroPlot(data_neuro)
@@ -175,7 +175,7 @@ from sklearn import cross_validation
 from sklearn.preprocessing import normalize
 
 
-data_neuro=signal_align.signal_array_align_to_evt(blk.segments[0], ts_StimOn, [-0.100, 0.500], type_filter='spiketrains.*', name_filter='.*Code[1-9]', spike_bin_rate=50)
+data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.100, 0.500], type_filter='spiketrains.*', name_filter='.*Code[1-9]', spike_bin_rate=50)
 # data_neuro=signal_align.signal_array_align_to_evt(blk.segments[0], ts_StimOn, [-0.100, 0.600], name_filter='LFPs.*')
 data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized', 'mask_opacity_int'], [], data_neuro); pnp.NeuroPlot(data_neuro)
 
@@ -618,7 +618,7 @@ for file_dg in file_dgs:
     data_df = dg2df.dg2df(path_dg)
     data_dfs.append(data_df)
 data_df = pd.concat(data_dfs)
-data_df = data_df['stim_names'].reset_index(range(len(data_df)))
+data_df = data_df.reset_index(range(len(data_df)))
 data_df['mask_opacity_int'] = np.round(data_df['mask_opacity']*100).astype(int)
 
 # get ts_align
@@ -631,4 +631,4 @@ for i in range(len(data_dfs)):
     ts_StimOn = ts_ObsvOn[np.array(id_Obsv)] + tos_StimOn * pq.ms
     blk_StimOn.append(ts_StimOn)
 
-reload(signal_align); data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.1, 0.5], type_filter='spiketrains.*', name_filter='.*Code[1-9]', spike_bin_rate=50)
+reload(signal_align); data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.1, 0.5], type_filter='spiketrains.*', name_filter='.*Code[1-9]', spike_bin_rate=1000)
