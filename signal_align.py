@@ -74,7 +74,7 @@ def signal_align_to_evt(signal, evt_align_ts, window_offset, spike_bin_rate=1000
     return {'data': signal_aligned, 'ts': time_aligned, 'sampling_rate': sampling_rate, 'time_aligned': time_aligned, 'signal_aligned': signal_aligned}
 
 
-def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter='.*', name_filter='.*', spike_bin_rate=1000):
+def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter='.*', name_filter='.*', chan_filter=[], spike_bin_rate=1000):
     """
     function to align signal arrays to event, returns a 3D array ( N_trials * len_window * N_signals )
     inputs:
@@ -98,14 +98,17 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
     for neo_data_object_type in neo_data_object_types:
         if re.match(type_filter, neo_data_object_type) is not None:
             neo_data_object = getattr(segment, neo_data_object_type)
+            if len(chan_filter)==0:
+                chan_filter = range( len(neo_data_object)*10 )
             for i in range(len(neo_data_object)):
                 cur_name = neo_data_object[i].name
                 if re.match(name_filter, cur_name) is not None:
-                    signal_name.append(cur_name)
-                    signal_type.append(neo_data_object_type)
-                    cur_signal_aligned = signal_align_to_evt(neo_data_object[i], evt_align_ts, window_offset, spike_bin_rate)
-                    signal_aligned.append( cur_signal_aligned['data'] )
-                    signal_sampling_rate.append( cur_signal_aligned['sampling_rate'] )
+                    if neo_data_object[i].annotations['channel_index'] in chan_filter:
+                        signal_name.append(cur_name)
+                        signal_type.append(neo_data_object_type)
+                        cur_signal_aligned = signal_align_to_evt(neo_data_object[i], evt_align_ts, window_offset, spike_bin_rate)
+                        signal_aligned.append( cur_signal_aligned['data'] )
+                        signal_sampling_rate.append( cur_signal_aligned['sampling_rate'] )
     signal_info = zip(signal_name, signal_type, signal_sampling_rate)
     signal_info = np.array( signal_info, dtype=[('name', 'S32'), ('type', 'S32'), ('sampling_rate', float)]  )
 
@@ -127,12 +130,12 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
     # print signal_names
     return {'data': data, 'ts': ts, 'signal_info': signal_info}
 
-def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', name_filter='.*', spike_bin_rate=1000):
+def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', name_filter='.*', chan_filter=[],spike_bin_rate=1000):
     data_neuro_list = []
     for i in range(len(blk.segments)):
         segment = blk.segments[i]
         evt_align_ts = blk_evt_align_ts[i]
-        data_neuro = signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=type_filter, name_filter=name_filter, spike_bin_rate=spike_bin_rate)
+        data_neuro = signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=type_filter, name_filter=name_filter, chan_filter=chan_filter, spike_bin_rate=spike_bin_rate)
         data_neuro_list.append(data_neuro)
         """ to be worked on """
     data_neuro = data_concatenate(data_neuro_list)

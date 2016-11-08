@@ -1,9 +1,11 @@
-import matplotlib
+import matplotlib as mpl
 import matplotlib.pyplot as plt
-matplotlib.style.use('ggplot')
+mpl.style.use('ggplot')
+import mpl_toolkits
 import pandas as pd
 import numpy as np
 from scipy import signal as sgn
+import re
 # try:
     # import seaborn as sns
 # except:
@@ -21,10 +23,49 @@ def PyNeuroPlot(df, y, x, c=[], p=[]):
         for i in range(len(catg)):
             df_plot[catg[i]] = df [df[c]==catg[i]].groupby(x) [y].agg(np.mean)
         df_plot.plot(kind='bar',title= y )
-    plt.legend(bbox_to_anchor=(1.1, 1.1))
+    plt.legend(bbox_to_anchor=(1.1, 1.1), fancybox=True, framealpha=0.5)
     plt.gca().get_legend().set_title(c)
 
     return 1
+
+
+def SpkWfPlot(seg, ncols=8):
+    """
+    Plot spk waveforms of a segment, one channel per axes
+    """
+    N_chan = max([item.annotations['channel_index'] for item in seg.spiketrains])   # ! depend on the frame !
+    nrows  = int(np.ceil(1.0 * N_chan / ncols))
+    # spike waveforms:
+    fig, axes2d = plt.subplots(nrows=nrows, ncols=ncols, sharex=True, sharey=True)
+    plt.tight_layout()
+    fig.subplots_adjust(hspace=0.05, wspace=0.05)
+    axes1d = [item for sublist in axes2d for item in sublist]  # flatten axis
+    sortcode_color = {0: np.array([225, 217, 111]) / 255.0,
+                      1: np.array([149, 196, 128]) / 255.0,
+                      2: np.array([112, 160, 234]) / 255.0,
+                      3: np.array([142, 126, 194]) / 255.0,
+                      4: np.array([202, 066, 045]) / 255.0,
+                      5: np.array([229, 145, 066]) / 255.0}
+    for i, axes in enumerate(axes1d):
+        plt.sca(axes)
+        plt.xticks([])
+        plt.yticks([])
+        plt.text(0.1, 0.8, 'C{}'.format(i + 1), transform=axes.transAxes)
+        axes.set_axis_bgcolor([0.98,0.98,0.98])
+    for i in range(len(seg.spiketrains)):
+        cur_chan = int(re.match('Chan(\d*) .*', seg.spiketrains[i].name).group(1))  # ! depend on the naming !
+        cur_code = int(re.match('.* Code(\d*)', seg.spiketrains[i].name).group(1))  # ! depend on the naming !
+        if cur_code >= 1:
+            axes_cur = axes1d[cur_chan - 1];
+            plt.sca(axes_cur)
+            h_text = plt.text(0.5, 0.12 * cur_code, 'N={}'.format(len(seg.spiketrains[i])), transform=axes_cur.transAxes, fontsize='smaller')
+            h_waveform = plt.plot(np.squeeze(np.mean(seg.spiketrains[i].waveforms, axis=0)))
+            if cur_code >= 0 and cur_code <= 5:
+                h_waveform[0].set_color(sortcode_color[cur_code])
+                h_text.set_color(sortcode_color[cur_code])
+    axes.set_ylim( np.max(np.abs(np.array(axes.get_ylim())))*np.array([-1,1]) )    # make y_lim symmetrical
+    fig.suptitle('spike waveforms, y_range={} uV'.format(np.round(np.diff(np.array(axes.get_ylim())) * 1000000)[0] ))
+
 
 def ErpPlot(array_erp, ts, depth_start=0, depth_incr=0.1):
     # array_erp   : a 2d numpy array ( N_chan * N_timepoints ):
@@ -70,6 +111,119 @@ def ErpPlot(array_erp, ts, depth_start=0, depth_incr=0.1):
 
     return 1
 
+
+def RfPlot(data_neuro, indx_sgnl=0, x_scale=0.1, y_scale=50):
+    """
+    plot RF using one single plot, the data_neuro['cdtn'] contains 'x' and 'y', which represents the location of stimulus
+    """
+    plt.figure()
+    plt.suptitle(data_neuro['signal_info'][indx_sgnl]['name'])
+    for i, xy in enumerate(data_neuro['cdtn']):
+        plt.fill_between( xy[0]+np.array(data_neuro['ts'])/x_scale, xy[1], xy[1]+np.mean( data_neuro['data'][ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] ,:,indx_sgnl], axis=0 )/y_scale, color=[0,0,0,0.5] )
+        plt.plot(xy[0],xy[1],'ro', linewidth=10)
+
+
+def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, tf_legend=False):
+    """
+    funciton to plot psth and raster
+    :param data: 2D np array, (N_trail * N_ts)
+    :param ts:
+    :param cdtn:
+    :param limit:
+    :return:
+    """
+
+    M = 1
+    [N, T] = np.shape(data2D)
+    ts = np.array(ts)
+    if ts is None:
+        ts = np.arange( np.size(data2D, axis=1) )
+    if cdtn is None:
+        cdtn = ['']*N
+    cdtn = np.array(cdtn)
+    if limit is not None:
+        limit = np.array(limit)
+        data2D = data2D[limit, :]
+        cdtn   = cdtn[limit]
+        [N, T] = np.shape(data2D)
+    cdtn_unq  = get_unique_elements(cdtn)
+    M = len(cdtn_unq)
+
+    psth_cdtn = np.zeros([M, T])
+    N_cdtn     = np.zeros(M).astype(int)
+    N_cdtn_cum = np.zeros(M+1).astype(int)
+    for k, cdtn_k in enumerate(cdtn_unq):
+        N_cdtn[k] = np.sum(cdtn==cdtn_k)
+        if N_cdtn[k] == 0:
+            psth_cdtn[k, :] = psth_cdtn[k, :]
+        else:
+            psth_cdtn[k, :] = np.mean(data2D[cdtn==cdtn_k], axis=0)
+    N_cdtn_cum[1:] = np.cumsum(N_cdtn)
+
+    if sk_std is not np.nan:  # condition for using smoothness kernel
+        ts_interval = np.diff(np.array(ts)).mean()  # get sampling interval
+        kernel_std = sk_std / ts_interval  # std in frames
+        kernel_len = int(np.ceil(kernel_std) * 3 * 2 + 1)  # num of frames, 3*std on each side, an odd number
+        smooth_kernel = sgn.gaussian(kernel_len, kernel_std)
+        smooth_kernel = smooth_kernel / smooth_kernel.sum()  # normalized smooth kernel
+        for k in range(M):
+            psth_cdtn[k, :] = np.convolve(psth_cdtn[k, :], smooth_kernel, 'same')
+
+    colors = gen_distinct_colors(M, luminance=0.7)
+
+    hl_lines = []
+    for k, cdtn_k in enumerate(cdtn_unq):
+        hl_line, = plt.plot(ts, psth_cdtn[k, :], c=colors[k])  # temp
+        hl_lines.append(hl_line)
+
+    plt.gca().set_xlim([ts[0], ts[-1]])
+    if tf_legend:
+        plt.legend(cdtn_unq, labelspacing=0.1, prop={'size': 8},
+                   fancybox=True, framealpha=0.5)
+
+
+    ax_raster = add_axes_on_top(plt.gca(), r=0.4)
+    plt.axes(ax_raster)
+    for k, cdtn_k in enumerate(cdtn_unq):
+        try:
+            plt.eventplot([ts[data2D[i, :] > 0] for i in np.flatnonzero(cdtn==cdtn_k)],
+                      lineoffsets=range(N_cdtn_cum[k], N_cdtn_cum[k+1]),
+                      linewidths=2, color=[colors[k]]*N_cdtn[k])
+        except:
+            print('function PsthPlot(), can not plot raster')
+
+    ax_raster.set_ylim([0,N])
+    ax_raster.yaxis.set_ticks(N_cdtn_cum)
+
+
+    # data_plot = np.zeros([N_ts, N_sign])
+    # for i in range(N_sign):
+    #     data_plot[:, i] = np.convolve(np.mean(data3D, axis=0)[:, i], smooth_kernel, 'same')
+
+
+def get_unique_elements(labels):
+    return sorted(list(set(labels)))
+
+def add_axes_on_top(h_axes, r=0.25):
+    """
+    tool funciton to add an axes on the top of the existing axis
+    :param h_axes: the curret axex handle
+    :param r:      ratio of the height of the newly added axes
+    :return:
+    """
+    # get axes position
+    axes_rect = h_axes.get_position()
+    # make the curretn axes smaller
+    h_axes.set_position([axes_rect.x0, axes_rect.y0, axes_rect.width, axes_rect.height * (1-r)])
+    # add a new axes
+    h_axes_top = h_axes.figure.add_axes([axes_rect.x0, axes_rect.y0+axes_rect.height*(1-r), axes_rect.width, axes_rect.height*r], sharex=h_axes)
+    h_axes_top.invert_yaxis()
+    # h_axes_top.set_xticklabels({})
+    h_axes_top.set_axis_bgcolor([0.95,0.95,0.95])
+
+
+    return h_axes_top
+
 def NeuroPlot(data_neuro, layout=[], sk_std=np.nan, tf_seperate_window=False, tf_legend=True):
 
     [_,_,N_sgnl] = data_neuro['data'].shape
@@ -105,7 +259,7 @@ def NeuroPlot(data_neuro, layout=[], sk_std=np.nan, tf_seperate_window=False, tf
                 plt.subplot(N_row, N_col, i + 1, sharey=axes1)
                 hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'][data_neuro['cdtn_indx'][cdtn], :, :], sk_std)
                 if tf_legend:
-                    plt.legend(hl_plot, data_neuro['signal_info']['name'].tolist(), labelspacing=0.1, prop={'size':8})
+                    plt.legend(hl_plot, data_neuro['signal_info']['name'].tolist(), labelspacing=0.1, prop={'size':8}, fancybox=True, framealpha=0.5)
                     plt.title(prettyfloat(cdtn))
     else:
         hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'], sk_std )
@@ -190,13 +344,24 @@ def prettyfloat(input, precision=2):
     if hasattr(input, '__iter__'):
         output = []
         for x in input:
-             output.append( prettyfloat(x, precision) )
+             output.append( prettyfloat(x, precision) )  # through recursion
     elif isinstance(input, float):
         output = round(input, precision)
     else:
         output = input
     return output
 
+
+def gen_distinct_colors(n, luminance=0.9):
+    """
+    tool funciton to generate n distinct colors for plotting
+    :param n:          num of colors
+    :param luminance:  num between [0,1]
+    :return:           n*4 rgba color matrix
+    """
+    magic_number = 0.618   # from the golden ratio, to make colors evely distributed
+    initial_number = 0.25
+    return plt.cm.rainbow( (initial_number+np.arange(n))*magic_number %1 )*luminance
 
 # to test:
 if 0:
