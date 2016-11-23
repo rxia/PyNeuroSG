@@ -123,7 +123,7 @@ def RfPlot(data_neuro, indx_sgnl=0, x_scale=0.1, y_scale=50):
         plt.plot(xy[0],xy[1],'ro', linewidth=10)
 
 
-def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, tf_legend=False):
+def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
     """
     funciton to plot psth and raster
     :param data: 2D np array, (N_trail * N_ts)
@@ -132,7 +132,8 @@ def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, tf_legend=Fa
     :param limit:
     :return:
     """
-
+    ax_psth = plt.gca()
+    data2D = np.array(data2D)
     M = 1
     [N, T] = np.shape(data2D)
     ts = np.array(ts)
@@ -171,34 +172,68 @@ def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, tf_legend=Fa
 
     colors = gen_distinct_colors(M, luminance=0.7)
 
+    # ========== plot psth ==========
     hl_lines = []
     for k, cdtn_k in enumerate(cdtn_unq):
         hl_line, = plt.plot(ts, psth_cdtn[k, :], c=colors[k])  # temp
         hl_lines.append(hl_line)
 
-    plt.gca().set_xlim([ts[0], ts[-1]])
+    ax_psth.set_xlim([ts[0], ts[-1]])
     if tf_legend:
         plt.legend(cdtn_unq, labelspacing=0.1, prop={'size': 8},
                    fancybox=True, framealpha=0.5)
 
+    if subpanel is not '':
+        # ========== sub-panel for raster or p-color  ==========
+        ax_raster = add_axes_on_top(ax_psth, r=0.4)
+        plt.axes(ax_raster)
 
-    ax_raster = add_axes_on_top(plt.gca(), r=0.4)
-    plt.axes(ax_raster)
-    for k, cdtn_k in enumerate(cdtn_unq):
-        try:
-            plt.eventplot([ts[data2D[i, :] > 0] for i in np.flatnonzero(cdtn==cdtn_k)],
-                      lineoffsets=range(N_cdtn_cum[k], N_cdtn_cum[k+1]),
-                      linewidths=2, color=[colors[k]]*N_cdtn[k])
-        except:
-            print('function PsthPlot(), can not plot raster')
+        if subpanel is 'raster':       # ---------- plot raster (spike trains) ----------
+            for k, cdtn_k in enumerate(cdtn_unq):
+                try:
+                    plt.eventplot([ts[data2D[i, :] > 0] for i in np.flatnonzero(cdtn==cdtn_k)],
+                              lineoffsets=range(N_cdtn_cum[k], N_cdtn_cum[k+1]),
+                              linewidths=2, color=[colors[k]]*N_cdtn[k])
+                except:
+                    print('function PsthPlot(), can not plot raster')
 
-    ax_raster.set_ylim([0,N])
-    ax_raster.yaxis.set_ticks(N_cdtn_cum)
+        elif subpanel is 'pcolor':    # ---------- plot_pcolor (LFP) ----------
+            y_axis_abs = np.abs(np.array(ax_psth.get_ylim())).max()
+            index_reorder = np.concatenate([np.flatnonzero(np.array(cdtn) == cdtn_k) for cdtn_k in cdtn_unq])
+            data2D_reorder = data2D[index_reorder,:]
+            plt.pcolormesh( center2edge(ts), range(N+1), data2D_reorder, vmin=-y_axis_abs, vmax=y_axis_abs, cmap=plt.get_cmap('coolwarm'))
+            for k, cdtn_k in enumerate(cdtn_unq):
+                plt.plot( ts[[0,0]]+(ts[-1]-ts[0])/20,   N_cdtn_cum[k:k+2], color=colors[k], linewidth=5 )
+                # ax_raster.add_patch(plt.Rectangle([ts[0], N_cdtn_cum[k]], 0, 1, facecolor=colors[k]))
+                plt.plot( [ts[0], ts[-1]], [N_cdtn_cum[k],N_cdtn_cum[k]], color='k', linewidth=2)
+        ax_raster.set_ylim([0,N])
+        ax_raster.set_xlim([ts[0], ts[-1]])
+        ax_raster.yaxis.set_ticks( keep_less_than(N_cdtn_cum[1:]) )
 
 
     # data_plot = np.zeros([N_ts, N_sign])
     # for i in range(N_sign):
     #     data_plot[:, i] = np.convolve(np.mean(data3D, axis=0)[:, i], smooth_kernel, 'same')
+
+
+def PsthPlotArray(data2D, ts=None, cdtn=None, cdtn_l_name=None, cdtn_p_name=None, limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
+    cdtn0_name = 'stim_familiarized'
+    cdtn1_name = 'mask_opacity_int'
+    cdtn_l_name = 'stim_names'
+    N_cdtn0 = len(data_df[cdtn0_name].unique())
+    N_cdtn1 = len(data_df[cdtn1_name].unique())
+    for i_neuron in range(len(data_neuro['signal_info'])):
+        data2D = data_neuro['data'][:, :, i_neuron]
+        ts = data_neuro['ts']
+        [h_fig, h_ax] = plt.subplots(N_cdtn0, N_cdtn1, figsize=[12, 9], sharex=True, sharey=True)
+        for i_cdtn0, cdtn0 in enumerate(sorted(data_df[cdtn0_name].unique())):
+            for i_cdtn1, cdtn1 in enumerate(sorted(data_df[cdtn1_name].unique())):
+                plt.axes(h_ax[i_cdtn0, i_cdtn1])
+                pnp.PsthPlot(data2D, ts, data_df[cdtn_l_name],
+                             np.logical_and(data_df[cdtn0_name] == cdtn0, data_df[cdtn1_name] == cdtn1),
+                             tf_legend=False, sk_std=0.020, subpanel='raster')
+                plt.title([cdtn0, cdtn1])
+        plt.suptitle(data_neuro['signal_info'][i_neuron]['name'])
 
 
 def get_unique_elements(labels):
@@ -362,6 +397,21 @@ def gen_distinct_colors(n, luminance=0.9):
     magic_number = 0.618   # from the golden ratio, to make colors evely distributed
     initial_number = 0.25
     return plt.cm.rainbow( (initial_number+np.arange(n))*magic_number %1 )*luminance
+
+
+def keep_less_than(list_in, n=6):
+    """
+    keep less than n element, through recursion
+    :param list_in: input list, 1D
+    :param n:       criterion
+    :return:        list of a subset of the original list with elemetns smaller than n
+    """
+    m = len(list_in)
+    if m<=n:
+        return list_in
+    else:
+        list_in = [ list_in[i] for i in range(0, m, 2) ]
+        return keep_less_than(list_in, n)
 
 # to test:
 if 0:
