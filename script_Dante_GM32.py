@@ -35,9 +35,16 @@ import misc_tools
 # name_tdt_blocks = ['d_V4_spot_102916002']
 # name_tdt_blocks = ['d_srv_mask_102916003','d_srv_mask_102916004']
 # name_tdt_blocks = ['d_matchnot_102916005', 'd_matchnot_102916006', 'd_matchnot_102916007']
-dir_tdt_tank  = '/Volumes/Labfiles/projects/encounter/data/TDT/GM32_U16-161118-132556'
-# name_tdt_blocks = ['d_V4_spot_111816003']
-name_tdt_blocks = ['d_matchnot_111816004', 'd_matchnot_111816005','d_matchnot_111816006','d_matchnot_111816007','d_matchnot_111816008']
+# dir_tdt_tank  = '/Volumes/Labfiles/projects/encounter/data/TDT/GM32_U16-161118-132556'
+# # name_tdt_blocks = ['d_V4_spot_111816003']
+# name_tdt_blocks = ['d_matchnot_111816004', 'd_matchnot_111816005','d_matchnot_111816006','d_matchnot_111816007','d_matchnot_111816008']
+# dir_tdt_tank  = '/Volumes/Labfiles/projects/encounter/data/TDT/GM32_U16-161125-144728'
+# name_tdt_blocks = ['d_matchnot_112516004', 'd_matchnot_112516005','d_matchnot_112516006','d_matchnot_112516007','d_matchnot_112516008','d_matchnot_112516009','d_matchnot_112516010']
+dir_tdt_tank  = '/Volumes/Labfiles/projects/encounter/data/TDT/GM32_U16-161206-130828'
+name_tdt_blocks = ['d_matchnot_120616004', 'd_matchnot_120616005','d_matchnot_120616006','d_matchnot_120616007','d_matchnot_120616008','d_matchnot_120616009','d_matchnot_120616010']
+
+
+
 
 blk = Block()
 reader = neo.io.TdtIO(dirname=dir_tdt_tank)
@@ -58,7 +65,9 @@ dir_dg  = '/Volumes/Labfiles/projects/analysis/shaobo/data_dg'
 # file_dgs  = ['d_srv_mask_102916003.dg', 'd_srv_mask_102916004.dg']
 # file_dgs  = ['d_matchnot_102916005.dg', 'd_matchnot_102916006.dg', 'd_matchnot_102916007.dg']
 # file_dgs  = ['d_V4_spot_111816003.dg']
-file_dgs = ['d_matchnot_111816004.dg', 'd_matchnot_111816005.dg','d_matchnot_111816006.dg','d_matchnot_111816007.dg','d_matchnot_111816008.dg']
+# file_dgs = ['d_matchnot_111816004.dg', 'd_matchnot_111816005.dg','d_matchnot_111816006.dg','d_matchnot_111816007.dg','d_matchnot_111816008.dg']
+# file_dgs = ['d_matchnot_112516004.dg', 'd_matchnot_112516005.dg','d_matchnot_112516006.dg','d_matchnot_112516007.dg','d_matchnot_112516008.dg','d_matchnot_112516009.dg','d_matchnot_112516010.dg']
+file_dgs = ['d_matchnot_120616004.dg', 'd_matchnot_120616005.dg','d_matchnot_120616006.dg','d_matchnot_120616007.dg','d_matchnot_120616008.dg','d_matchnot_120616009.dg','d_matchnot_120616010.dg']
 
 data_dfs = []
 for file_dg in file_dgs:
@@ -154,7 +163,7 @@ for i_neuron in range(len(data_neuro['signal_info'] )):
             plt.axes(h_ax[i_cdtn0,i_cdtn1])
             pnp.PsthPlot(data2D, ts, data_df[cdtn_l_name],
                          np.logical_and(data_df[cdtn0_name] == cdtn0, data_df[cdtn1_name] == cdtn1),
-                         tf_legend=False, sk_std=0.020, subpanel='pcolor')
+                         tf_legend=False, sk_std=0.020, subpanel='raster')
             plt.title( [cdtn0, cdtn1] )
 
     plt.suptitle(data_neuro['signal_info'][i_neuron]['name'])
@@ -200,7 +209,7 @@ from sklearn import cross_validation
 from sklearn.preprocessing import normalize
 
 
-data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.100, 1.000], type_filter='spiketrains.*', name_filter='.*Code[1-9]', chan_filter=range(1,32+1), spike_bin_rate=50)
+data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.200, 1.000], type_filter='spiketrains.*', name_filter='.*Code[1-9]', chan_filter=range(1,32+1), spike_bin_rate=50)
 data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized', 'mask_opacity_int'], [], data_neuro); pnp.NeuroPlot(data_neuro, tf_legend=True)
 
 Y_train = np.array(data_df['stim_names'].tolist())
@@ -225,7 +234,7 @@ for C in [1]:
     for i in range(N_cd):
         cdtn = data_neuro['cdtn'][i]
         indx = np.array(data_neuro['cdtn_indx'][cdtn])
-        print(cdtn)
+        print((cdtn, len(indx)))
         for t in range(N_ts):
             cfl_scores = cross_validation.cross_val_score(clf, X_normalize[indx, t, :], Y_train[indx], cv=5)
             clf_score[i, t] = np.mean(cfl_scores)
@@ -247,37 +256,52 @@ for C in [1]:
 
 # ==========
 # spectroagram
-data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.100, 0.500], type_filter='ana.*', name_filter='LFPs.*', spike_bin_rate=50)
+data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.100, 1.000], type_filter='ana.*', name_filter='LFPs.*', spike_bin_rate=50)
 data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized', 'mask_opacity_int'], [], data_neuro); pnp.NeuroPlot(data_neuro)
 [spcg_f,spcg_t,spcg] = signal.spectrogram(data_neuro['data'], window=signal.hann(128), nperseg=128, nfft=256,fs=data_neuro['signal_info'][0][2], axis=1, noverlap=96)
 spcg_t = np.array(spcg_t) + np.array( data_neuro['ts'][0] )
-plt.pcolormesh(spcg_t, spcg_f, np.mean(spcg,axis=0)[:,0,:])
-plt.ylim(0,100)
+time_baseline = [-1.0, 0.05]
+tf_baseline = True
+spcg = np.log10(spcg)
+# plt.pcolormesh(spcg_t, spcg_f, np.mean(spcg,axis=0)[:,0,:])
+# plt.ylim(0,100)
 
 N_sgnl = len(data_neuro['signal_info'])
 spcg_cdtn = []
 for i in range(len(data_neuro['cdtn'])):
     spcg_cdtn.append(np.mean(spcg[data_neuro['cdtn_indx'][data_neuro['cdtn'][i]],:,:,:],axis=0))
 clim_max = [np.stack(spcg_cdtn,axis=-1)[:,j,:,:].max() for j in range(N_sgnl)]
+plt.ioff()
 for j in range(N_sgnl):
     fig = plt.figure(figsize=(16,9))
     fig.canvas.set_window_title('chan_{}'.format(j+1))
     fig.suptitle(data_neuro['grpby'])
     for i in range(len(data_neuro['cdtn'])):
-        plt.subplot(2,3,i+1)
-        plt.pcolormesh(center2edge(spcg_t), center2edge(spcg_f), spcg_cdtn[i][:,j,:], cmap=plt.get_cmap('inferno'))
-        plt.clim(0, clim_max[j])
-        if True:
+        plt.subplot(2, 3, i + 1)
+        if tf_baseline:
+            spcg_baseline = np.mean(spcg_cdtn[i][: ,j,np.logical_and(spcg_t>time_baseline[0],spcg_t<time_baseline[1])],axis=1, keepdims=True)
+            spcg_plot = spcg_cdtn[i][:,j,:] - spcg_baseline
+            plt.pcolormesh(center2edge(spcg_t), center2edge(spcg_f), spcg_plot, cmap=plt.get_cmap('coolwarm'))
+            # plt.clim(-clim_max[j], clim_max[j])
+        else:
+            spcg_plot = spcg_cdtn[i][:, j, :]
+            plt.pcolormesh(center2edge(spcg_t), center2edge(spcg_f), spcg_plot, cmap=plt.get_cmap('inferno'))
+            plt.clim(0, clim_max[j])
+
+
+        if False:
             plt.pcolormesh(center2edge(spcg_t), center2edge(spcg_f), 10*np.log10(spcg_cdtn[i][:, j, :]/clim_max[j]), cmap=plt.get_cmap('inferno'))
             # plt.colorbar()
             plt.clim(-30, 0)
-        plt.ylim(0, 80)
+        plt.ylim(0, 120)
         plt.title(data_neuro['cdtn'][i])
         # if i==len(data_neuro['cdtn'])-1:
         #     plt.colorbar()
-    plt.get_current_fig_manager().window.raise_()
-    plt.show()
-
+    # plt.get_current_fig_manager().window.raise_()
+    # plt.show()
+    plt.savefig('{}/{} spectragram {}.png'.format(dir_temp_fig, filename_common, data_neuro['signal_info'][j]['name']))
+    plt.close()
+plt.ion()
 
 
 # ==========
