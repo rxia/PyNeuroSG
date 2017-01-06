@@ -129,7 +129,7 @@ def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='',
     :param data: 2D np array, (N_trail * N_ts)
     :param ts:
     :param cdtn:
-    :param limit:
+    :param limit:   index array for selecting trials
     :return:
     """
     ax_psth = plt.gca()
@@ -188,6 +188,12 @@ def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='',
         ax_raster = add_axes_on_top(ax_psth, r=0.4)
         plt.axes(ax_raster)
 
+        if subpanel == 'auto':      # if auto, use the data features to determine raster (spk) plot or pcolor (LFP) plot
+            if len(np.unique(data2D)) <=5:
+                subpanel = 'raster'
+            else:
+                subpanel = 'pcolor'
+
         if subpanel is 'raster':       # ---------- plot raster (spike trains) ----------
             for k, cdtn_k in enumerate(cdtn_unq):
                 try:
@@ -216,24 +222,23 @@ def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='',
     #     data_plot[:, i] = np.convolve(np.mean(data3D, axis=0)[:, i], smooth_kernel, 'same')
 
 
-def PsthPlotArray(data2D, ts=None, cdtn=None, cdtn_l_name=None, cdtn_p_name=None, limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
-    cdtn0_name = 'stim_familiarized'
-    cdtn1_name = 'mask_opacity_int'
-    cdtn_l_name = 'stim_names'
+def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_name='', limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
     N_cdtn0 = len(data_df[cdtn0_name].unique())
     N_cdtn1 = len(data_df[cdtn1_name].unique())
-    for i_neuron in range(len(data_neuro['signal_info'])):
-        data2D = data_neuro['data'][:, :, i_neuron]
-        ts = data_neuro['ts']
+    if N_cdtn1 > 1:
         [h_fig, h_ax] = plt.subplots(N_cdtn0, N_cdtn1, figsize=[12, 9], sharex=True, sharey=True)
-        for i_cdtn0, cdtn0 in enumerate(sorted(data_df[cdtn0_name].unique())):
-            for i_cdtn1, cdtn1 in enumerate(sorted(data_df[cdtn1_name].unique())):
-                plt.axes(h_ax[i_cdtn0, i_cdtn1])
-                pnp.PsthPlot(data2D, ts, data_df[cdtn_l_name],
-                             np.logical_and(data_df[cdtn0_name] == cdtn0, data_df[cdtn1_name] == cdtn1),
-                             tf_legend=False, sk_std=0.020, subpanel='raster')
-                plt.title([cdtn0, cdtn1])
-        plt.suptitle(data_neuro['signal_info'][i_neuron]['name'])
+    else:
+        [N_rows, N_cols] = cal_rc(N_cdtn0)
+        [h_fig, h_ax] = plt.subplots(N_rows, N_cols, figsize=[12, 9], sharex=True, sharey=True)
+    h_ax = np.array([h_ax]).flatten()
+    for i_cdtn0, cdtn0 in enumerate(sorted(data_df[cdtn0_name].unique())):
+        for i_cdtn1, cdtn1 in enumerate(sorted(data_df[cdtn1_name].unique())):
+            plt.axes(h_ax[i_cdtn0 * N_cdtn1 + i_cdtn1])
+            PsthPlot(data2D, ts, data_df[cdtn_l_name],
+                         limit = np.logical_and(data_df[cdtn0_name] == cdtn0, data_df[cdtn1_name] == cdtn1),
+                         tf_legend=tf_legend, sk_std=sk_std, subpanel=subpanel)
+            plt.title([cdtn0, cdtn1])
+    # plt.suptitle(data_neuro['signal_info'][i_neuron]['name'])
 
 
 def get_unique_elements(labels):
@@ -300,7 +305,6 @@ def NeuroPlot(data_neuro, layout=[], sk_std=np.nan, tf_seperate_window=False, tf
         hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'], sk_std )
         # plt.legend(hl_plot, data_neuro['signal_info']['name'].tolist())
         plt.title(prettyfloat(cdtn))
-    plt.show()
 
     return 1
 
@@ -359,6 +363,19 @@ def SignalPlot(ts, data3D, sk_std=np.nan):
     return hl_plot
 
 
+def create_array_layout_subplots(array_layout):
+    """
+    create the subplots based on the electrode array's spatial layout
+    :param array_layout: electrode array's spatial layout, a dict, {chan: (row, column)}
+    :return: as the plt.subplots
+    """
+    [ch, r, c] = zip(*sorted([[ch, r, c] for ch, (r, c) in array_layout.items()]))
+    max_r = max(r)
+    max_c = max(c)
+
+    [h_fig, h_axes] = plt.subplots(max_r+1, max_c+1, sharex=True, sharey=True)
+    return [h_fig, h_axes]
+
 def center2edge(centers):
     # tool function to get edges from centers for plt.pcolormesh
     centers = np.array(centers,dtype='float')
@@ -412,6 +429,15 @@ def keep_less_than(list_in, n=6):
     else:
         list_in = [ list_in[i] for i in range(0, m, 2) ]
         return keep_less_than(list_in, n)
+
+def cal_rc(N):
+    """
+    calculate n_row, n_column automatically, for subplot layout
+    :return: [n_rows, n_cols]
+    """
+    n_rows = int(np.ceil(np.sqrt(N)))
+    n_cols = int(np.ceil(1.0 * N / n_rows))
+    return [n_rows, n_cols]
 
 # to test:
 if 0:
