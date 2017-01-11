@@ -241,6 +241,56 @@ def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_
     # plt.suptitle(data_neuro['signal_info'][i_neuron]['name'])
 
 
+def SpectrumPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time_baseline=None,
+                 t_lim = None, f_lim = None, c_lim = None, name_cmap='inferno',
+                 tf_colorbar= False):
+    """
+
+    :param spcg:       2D numpy array, [ N_t * N*f ]
+    :param spcg_t:     tick of time
+    :param spcg_f:     tick of frequency
+    :param name_cmap:  name of color map
+    :return:
+    """
+    if limit_trial is not None:
+        spcg = spcg[limit_trial,:,:]
+
+    if tf_log:                   # if use log scale
+        spcg = np.log(spcg)
+
+    spcg = np.mean(spcg, axis=0)
+
+    if tf_log is True:
+        c_lim = [np.min(spcg), np.max(spcg)]
+    else:
+        c_lim = [0, np.max(spcg)]
+
+    if time_baseline is not None:   # if use reference period for baseline
+        spcg_baseline = np.mean( spcg[:,np.logical_and(spcg_t >= time_baseline[0], spcg_t < time_baseline[1])],
+                                 axis=1, keepdims=True)
+        spcg = spcg - spcg_baseline
+        c_lim = np.max(np.abs(spcg))
+        c_lim = [-c_lim, c_lim]
+        name_cmap = 'coolwarm'
+    # plot
+    plt.pcolormesh(center2edge(spcg_t), center2edge(spcg_f),
+                   spcg, cmap=plt.get_cmap(name_cmap), shading= 'flat')
+    # plt.pcolormesh(spcg_t, spcg_f,
+    #                spcg, cmap=plt.get_cmap(name_cmap), shading='gouraud')
+
+    # set x, y limit
+    if t_lim is not None:
+        plt.xlim(t_lim)
+    if f_lim is not None:
+        plt.ylim(f_lim)
+    if c_lim is not None:
+        plt.clim(c_lim)
+    # color bar
+    if tf_colorbar:
+        plt.colorbar()
+
+    return [spcg, c_lim]
+
 def get_unique_elements(labels):
     return sorted(list(set(labels)))
 

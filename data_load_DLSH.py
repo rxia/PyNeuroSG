@@ -173,7 +173,7 @@ def get_ts_align(blk, data_df,
         ts_ObsvOn = np.array(select_obj_by_attr(blk.segments[i].events, attr='name', value=neo_name_obson)[0].times)
 
         """ stim dg """
-        data_df_segment = data_df[data_df['fileindex']==0]      # get the segment corresponding to a dg file
+        data_df_segment = data_df[data_df['fileindex']==i]      # get the segment corresponding to a dg file
         id_Obsv = np.array(data_df_segment[dg_name_obsid])      # get the obsid (id of observation period / trials)
 
         # get the time of alignment event onset relative to obs onset in stimdg in ms
@@ -190,7 +190,7 @@ def get_ts_align(blk, data_df,
             dur_obs_dg  = np.array(data_df_segment[dg_tof_obs])/1000.0   # obs duration from stim dg
             dur_misalign = np.max(np.abs(dur_obs_neo[id_Obsv] - dur_obs_dg))   # max diff for corresponding obs
             if dur_misalign > thrhld_misalign:
-                cur_file_name =  data_df[data_df['fileindex'] == 0]['filename'][0]
+                cur_file_name =  data_df[data_df['fileindex'] == i]['filename'][i]
                 print(red_text( 'maximum misalignment time is {} ms, in file {}'.format(dur_misalign*1000, cur_file_name) ))
     return blk_StimOn
 

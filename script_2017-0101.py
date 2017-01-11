@@ -20,6 +20,7 @@ import re
 import PyNeuroPlot as pnp
 import time
 from scipy import signal
+from scipy.signal import spectral
 from PyNeuroPlot import center2edge
 import misc_tools
 import data_load_DLSH
@@ -28,7 +29,8 @@ from GM32_layout import layout_GM32
 
 """ load data: (1) neural data: TDT blocks -> neo format; (2)behaverial data: stim dg -> pandas DataFrame """
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*spot.*', '.*GM32.*U16.*161228.*', tf_interactive=True,)
-[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv.*', '.*GM32.*U16.*161228.*', tf_interactive=True,)
+# [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv.*', '.*GM32.*U16.*161228.*', tf_interactive=True,)
+[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*match.*', '.*GM32.*U16.*161125.*', tf_interactive=True,)
 
 """ Get StimOn time stamps in neo time frame """
 ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
@@ -131,7 +133,8 @@ plt.savefig('{}/{}_LFP_U16.png'.format(dir_temp_fig, filename_common))
 
 
 
-# psth plot, spk
+""" ===== psth plot, spk ===== """
+
 window_offset = [-0.100, 0.6]
 data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(1,48+1))
 data2D = data_neuro['data'][:,:,0]
@@ -158,31 +161,120 @@ for i_neuron in range(len(data_neuro['signal_info'] )):
 
 
 
+""" LFP spectrum """
+data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.100, 1.000], type_filter='ana.*', name_filter='LFPs.*', spike_bin_rate=50)
+data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized', 'mask_opacity_int'], [], data_neuro)
+[spcg_f,spcg_t,spcg] = signal.spectrogram(data_neuro['data'], window=signal.hann(128), nperseg=128, nfft=256,fs=data_neuro['signal_info'][0][2], axis=1, noverlap=96)
+spcg_t = np.array(spcg_t) + np.array( data_neuro['ts'][0] )
+time_baseline = [-0.05, 0.05]
+tf_baseline = True
+N_sgnl = len(data_neuro['signal_info'])
+
+for j in range(N_sgnl):
+    fig = plt.figure(figsize=(16,9))
+    fig.canvas.set_window_title('chan_{}'.format(j+1))
+    c_lim = [+np.inf,-np.inf]
+    for i in range(len(data_neuro['cdtn'])):
+        plt.subplot(2, 3, i + 1)
+        [_, c_lim_new]=pnp.SpectrumPlot(spcg[data_neuro['cdtn_indx'][data_neuro['cdtn'][i]], :, j, :], spcg_t, spcg_f, time_baseline=time_baseline, tf_log=True, f_lim=[0, 100], tf_colorbar=True)
+        c_lim = [np.min([c_lim[0],c_lim_new[0]]), np.max([c_lim[1],c_lim_new[1]])]
+        plt.title(data_neuro['cdtn'][i])
+    for i in range(len(data_neuro['cdtn'])):
+        plt.subplot(2, 3, i + 1)
+        plt.clim(c_lim)
+    plt.suptitle('{} {}'.format(data_neuro['signal_info'][j]['name'], data_neuro['grpby']))
+    plt.savefig('{}/{} spectragram {}.png'.format(dir_temp_fig, filename_common, data_neuro['signal_info'][j]['name']), fontsize=20)
+    plt.close()
+
+
+""" by image """
+data_neuro=signal_align.neuro_sort(data_df, ['stim_names', 'mask_opacity_int'], [], data_neuro)
+j=12-1
+fig = plt.figure(figsize=(16, 9))
+fig.canvas.set_window_title('chan_{}'.format(j + 1))
+c_lim = [+np.inf, -np.inf]
+for i in range(len(data_neuro['cdtn'])):
+    plt.subplot(10, 6, i + 1)
+    [_, c_lim_new] = pnp.SpectrumPlot(spcg[data_neuro['cdtn_indx'][data_neuro['cdtn'][i]], :, j, :], spcg_t, spcg_f,
+                                      time_baseline=time_baseline, tf_log=True, f_lim=[0, 100], tf_colorbar=False)
+    c_lim = [np.min([c_lim[0], c_lim_new[0]]), np.max([c_lim[1], c_lim_new[1]])]
+    plt.title(data_neuro['cdtn'][i])
+for i in range(len(data_neuro['cdtn'])):
+    plt.subplot(10, 6, i + 1)
+    plt.clim(c_lim)
+
+plt.show()
+
+
+""" LFP coherence, all pairs """
+fig, axes2d = plt.subplots(nrows=12, ncols=12, sharex=True, sharey=True, figsize=(16,10))
+plt.tight_layout()
+fig.subplots_adjust(hspace=0.05, wspace=0.05)
+chan_gap = 4
+for ch_x in range(0,48,chan_gap):
+    for ch_y in range(0,48,chan_gap):
+        [spcg_f, spcg_t, spcg_xy] = spectral._spectral_helper(data_neuro['data'][:, :, ch_x],
+                                                              data_neuro['data'][:, :, ch_y], window=signal.hann(128),
+                                                              nperseg=128, nfft=256, fs=data_neuro['signal_info'][0][2],
+                                                              axis=1, noverlap=96)
+        spcg_t = np.array(spcg_t) + np.array(data_neuro['ts'][0])
+        spcg_xy_ave = np.mean(spcg_xy, axis=0)
+        plt.sca(axes2d[ch_x/chan_gap, ch_y/chan_gap])
+        if ch_x is 0:
+            axes2d[ch_x/chan_gap, ch_y/chan_gap].set_title('ch{}'.format(ch_y+1))
+        if ch_y is 0:
+            axes2d[ch_x/chan_gap, ch_y/chan_gap].set_ylabel('ch{}'.format(ch_x+1))
+
+        # plt.subplot2grid([16, 16], [ch_x, ch_y])
+
+        if ch_x == ch_y:
+            spcg_xy_ave = np.abs(spcg_xy_ave)
+            plt.pcolormesh(center2edge(spcg_t), center2edge(spcg_f), 10*np.log10(spcg_xy_ave), cmap=plt.get_cmap('inferno'))
+            # plt.title('ch{}'.format(ch_x + 1))
+        else:
+            [_, _, spcg_xx] = spectral._spectral_helper(data_neuro['data'][:, :, ch_x], data_neuro['data'][:, :, ch_x],
+                                                        window=signal.hann(128), nperseg=128, nfft=256,
+                                                        fs=data_neuro['signal_info'][0][2], axis=1, noverlap=96)
+            [_, _, spcg_yy] = spectral._spectral_helper(data_neuro['data'][:, :, ch_y], data_neuro['data'][:, :, ch_y],
+                                                        window=signal.hann(128), nperseg=128, nfft=256,
+                                                        fs=data_neuro['signal_info'][0][2], axis=1, noverlap=96)
+            spcg_xx_ave = np.mean(spcg_xx, axis=0)
+            spcg_yy_ave = np.mean(spcg_yy, axis=0)
+            spcg_coh = np.abs(np.abs(spcg_xy_ave) ** 2 / (spcg_xx_ave * spcg_yy_ave))
+
+            plt.pcolormesh( center2edge(spcg_t), center2edge(spcg_f), spcg_coh, cmap=plt.get_cmap('viridis'))
+            plt.clim(0, 0.5)
+            # plt.title( 'ch{} vs ch {}'.format(ch_x+1, ch_y+1) )
+        plt.ylim(0, 80)
+
+
+
 # psth by six conditions
-cdtn0_name = 'stim_familiarized'
-cdtn1_name = 'mask_opacity_int'
-cdtn_l_name = 'stim_names'
-N_cdtn0 = len(data_df[cdtn0_name].unique())
-N_cdtn1 = len(data_df[cdtn1_name].unique())
+if False:
+    cdtn0_name = 'stim_familiarized'
+    cdtn1_name = 'mask_opacity_int'
+    cdtn_l_name = 'stim_names'
+    N_cdtn0 = len(data_df[cdtn0_name].unique())
+    N_cdtn1 = len(data_df[cdtn1_name].unique())
 
-for i_neuron in range(len(data_neuro['signal_info'] )):
-    data2D = data_neuro['data'][:, :, i_neuron]
-    ts = data_neuro['ts']
-    [h_fig, h_ax] = plt.subplots( N_cdtn0, N_cdtn1, figsize=[12,9], sharex=True, sharey=True )
-    for i_cdtn0, cdtn0 in enumerate(sorted(data_df[cdtn0_name].unique())) :
-        for i_cdtn1, cdtn1 in enumerate(sorted(data_df[cdtn1_name].unique())):
-            plt.axes(h_ax[i_cdtn0,i_cdtn1])
-            pnp.PsthPlot(data2D, ts, data_df[cdtn_l_name],
-                         np.logical_and(data_df[cdtn0_name] == cdtn0, data_df[cdtn1_name] == cdtn1),
-                         tf_legend=False, sk_std=0.020, subpanel='raster')
-            plt.title( [cdtn0, cdtn1] )
+    for i_neuron in range(len(data_neuro['signal_info'] )):
+        data2D = data_neuro['data'][:, :, i_neuron]
+        ts = data_neuro['ts']
+        [h_fig, h_ax] = plt.subplots( N_cdtn0, N_cdtn1, figsize=[12,9], sharex=True, sharey=True )
+        for i_cdtn0, cdtn0 in enumerate(sorted(data_df[cdtn0_name].unique())) :
+            for i_cdtn1, cdtn1 in enumerate(sorted(data_df[cdtn1_name].unique())):
+                plt.axes(h_ax[i_cdtn0,i_cdtn1])
+                pnp.PsthPlot(data2D, ts, data_df[cdtn_l_name],
+                             np.logical_and(data_df[cdtn0_name] == cdtn0, data_df[cdtn1_name] == cdtn1),
+                             tf_legend=False, sk_std=0.020, subpanel='raster')
+                plt.title( [cdtn0, cdtn1] )
 
-    plt.suptitle(data_neuro['signal_info'][i_neuron]['name'])
-    try:
-        plt.savefig('{}/{} PSTH {}.png'.format(dir_temp_fig, filename_common, data_neuro['signal_info'][i_neuron]['name']))
-    except:
-        plt.savefig('./temp_figs/' + misc_tools.get_time_string() + '.png' )
-    plt.close(h_fig)
+        plt.suptitle(data_neuro['signal_info'][i_neuron]['name'])
+        try:
+            plt.savefig('{}/{} PSTH {}.png'.format(dir_temp_fig, filename_common, data_neuro['signal_info'][i_neuron]['name']))
+        except:
+            plt.savefig('./temp_figs/' + misc_tools.get_time_string() + '.png' )
+        plt.close(h_fig)
 
 
 # if rf mapping
