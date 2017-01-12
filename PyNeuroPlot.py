@@ -4,6 +4,7 @@ mpl.style.use('ggplot')
 import mpl_toolkits
 import pandas as pd
 import numpy as np
+import scipy as sp
 from scipy import signal as sgn
 import re
 # try:
@@ -241,48 +242,70 @@ def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_
     # plt.suptitle(data_neuro['signal_info'][i_neuron]['name'])
 
 
-def SpectrumPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time_baseline=None,
+def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time_baseline=None,
                  t_lim = None, f_lim = None, c_lim = None, name_cmap='inferno',
-                 tf_colorbar= False):
+                 rate_interp=None, tf_colorbar= False):
     """
-
-    :param spcg:       2D numpy array, [ N_t * N*f ]
-    :param spcg_t:     tick of time
-    :param spcg_f:     tick of frequency
-    :param name_cmap:  name of color map
+    plot spectrogram, input could be
+    :param spcg:          2D numpy array, [ N_t * N*f ] or 3D numpy array [ N_trial, N_t * N*f ]
+    :param spcg_t:        tick of time
+    :param spcg_f:        tick of frequency
+    :param limit_trial:   index array to specicy which trials to use
+    :param tf_log:        true/false, use log scale
+    :param time_baseline: baseline time period to be subtracted
+    :param name_cmap:     name of color map to use
+    :param rate_interp:   rate of interpolation for plotting
+    :param tf_colorbar:   true/false, plot colorbar
     :return:
     """
-    if limit_trial is not None:
-        spcg = spcg[limit_trial,:,:]
 
     if tf_log:                   # if use log scale
         spcg = np.log(spcg)
 
-    spcg = np.mean(spcg, axis=0)
+    if spcg.ndim == 3:           # if contains many trials, calculate average
+        if limit_trial is not None:
+            spcg = spcg[limit_trial,:,:]
+        spcg = np.mean(spcg, axis=0)
 
-    if tf_log is True:
-        c_lim = [np.min(spcg), np.max(spcg)]
-    else:
-        c_lim = [0, np.max(spcg)]
-
-    if time_baseline is not None:   # if use reference period for baseline
+    # if use reference period for baseline, subtract baseline
+    if time_baseline is not None:
         spcg_baseline = np.mean( spcg[:,np.logical_and(spcg_t >= time_baseline[0], spcg_t < time_baseline[1])],
                                  axis=1, keepdims=True)
         spcg = spcg - spcg_baseline
-        c_lim = np.max(np.abs(spcg))
-        c_lim = [-c_lim, c_lim]
-        name_cmap = 'coolwarm'
-    # plot
-    plt.pcolormesh(center2edge(spcg_t), center2edge(spcg_f),
-                   spcg, cmap=plt.get_cmap(name_cmap), shading= 'flat')
-    # plt.pcolormesh(spcg_t, spcg_f,
-    #                spcg, cmap=plt.get_cmap(name_cmap), shading='gouraud')
+        name_cmap = 'coolwarm'           # use divergence colormap
+
+    # set color limit
+    if c_lim is None:
+        if time_baseline is not None:    # if use reference period
+            c_lim = [-np.max(np.abs(spcg)), np.max(np.abs(spcg))]
+        else:
+            if tf_log is True:           # if log scale, set c_lim
+                c_lim = [np.min(spcg), np.max(spcg)]
+            else:                        # if not log scale, set c_lim with lower boundary to be 0
+                c_lim = [0, np.max(spcg)]
+
+    if rate_interp is not None:
+        f_interp = sp.interpolate.interp2d(spcg_t, spcg_f, spcg, kind='cubic')
+        spcg_t_plot = np.linspace(spcg_t[0], spcg_t[-1], (len(spcg_t)-1)*rate_interp+1 )
+        spcg_f_plot = np.linspace(spcg_f[0], spcg_f[-1], (len(spcg_f)-1)*rate_interp+1 )
+        spcg_plot   = f_interp(spcg_t_plot, spcg_f_plot)
+    else:
+        spcg_t_plot = spcg_t
+        spcg_f_plot = spcg_f
+        spcg_plot = spcg
+
+    # plot using pcolormesh
+    plt.pcolormesh(center2edge(spcg_t_plot), center2edge(spcg_f_plot),
+                   spcg_plot, cmap=plt.get_cmap(name_cmap), shading= 'flat')
 
     # set x, y limit
-    if t_lim is not None:
-        plt.xlim(t_lim)
-    if f_lim is not None:
-        plt.ylim(f_lim)
+    if t_lim is None:
+        t_lim = spcg_t[[0, -1]]
+    if f_lim is None:
+        f_lim = spcg_f[[0, -1]]
+    plt.xlim(t_lim)
+    plt.ylim(f_lim)
+
     if c_lim is not None:
         plt.clim(c_lim)
     # color bar
@@ -290,6 +313,8 @@ def SpectrumPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time_ba
         plt.colorbar()
 
     return [spcg, c_lim]
+
+
 
 def get_unique_elements(labels):
     return sorted(list(set(labels)))
