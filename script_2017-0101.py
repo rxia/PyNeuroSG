@@ -160,6 +160,8 @@ for i_neuron in range(len(data_neuro['signal_info'] )):
     plt.close()
 
 
+""" spectrogram """
+reload(pnp); pnp.SmartSubplot(data_neuro, (lambda x: pnp.SpectrogramPlot(x, spcg_t, spcg_f,  tf_log=True, f_lim=[0,100], time_baseline=[-0.05,0.05], rate_interp=8)), spcg[:,:,34,:]); plt.show()
 
 """ LFP spectrum """
 data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.100, 1.000], type_filter='ana.*', name_filter='LFPs.*', spike_bin_rate=50)

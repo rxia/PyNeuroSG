@@ -83,6 +83,6 @@ def GetNearestPow2(n):
     """
     Get the nearest power of 2, for FFT
     :param n:  input number
-    :return:   an int, power of 2, nearest to n
+    :return:   an int, power of 2 (e.g., 2,4,8,16,32...), nearest to n
     """
     return int(2**np.round(np.log2(n)))
