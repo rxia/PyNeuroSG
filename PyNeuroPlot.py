@@ -106,9 +106,9 @@ def ErpPlot(array_erp, ts, depth_start=0, depth_incr=0.1):
     # plt.colorbar()
 
     # plt.get_current_fig_manager().window.raise_()
-    fig.canvas.manager.window.raise_()
-    fig.show()
-    fig.savefig('PyNeuroPlot_temp_fig.png')
+    # fig.canvas.manager.window.raise_()
+    # fig.show()
+    # fig.savefig('PyNeuroPlot_temp_fig.png')
 
     return 1
 
@@ -122,6 +122,64 @@ def RfPlot(data_neuro, indx_sgnl=0, x_scale=0.1, y_scale=50):
     for i, xy in enumerate(data_neuro['cdtn']):
         plt.fill_between( xy[0]+np.array(data_neuro['ts'])/x_scale, xy[1], xy[1]+np.mean( data_neuro['data'][ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] ,:,indx_sgnl], axis=0 )/y_scale, color=[0,0,0,0.5] )
         plt.plot(xy[0],xy[1],'ro', linewidth=10)
+
+
+
+def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
+    """
+    Smart subplots based on the data_neuro['cdtn']; in each panel, plot using function 'functionPlot', on data 'dataPlot'
+        if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and dim1 as columns
+    :param data_neuro:    dictionary containing field 'cdtn' and 'cdtn_indx', which directing the subplot layout
+    :param functionPlot:  the plot function in each panel
+    :param dataPlot:      the data that plot function applies on; in each panel, its first dim is sliced using data_neuro['cdtn_indx']
+    :return:              [h_fig, h_ax]
+    """
+    if 'cdtn' not in data_neuro.keys():            # if the input data does not contain the field for sorting
+        raise Exception('data does not contain fields "cdtn" for subplot')
+    if isSingle(data_neuro['cdtn'][0]):            # if cdtn is 1D, automatically decide row and column
+        N_cdtn = len(data_neuro['cdtn'])
+        [n_rows, n_cols] = cal_rc(N_cdtn)
+        [h_fig, h_ax]= plt.subplots(n_rows, n_cols, sharex=True, sharey=True)      # creates subplots
+        h_ax = h_ax.flatten()
+        for i, cdtn in enumerate(data_neuro['cdtn']):
+            plt.axes(h_ax[i])
+            if (functionPlot is not None) and (dataPlot is not None):    # in each panel, plot
+                functionPlot(dataPlot.take(data_neuro['cdtn_indx'][cdtn], axis=0))
+            plt.title(cdtn)
+    elif len(data_neuro['cdtn'][0])==2:            # if cdtn is 2D,  use dim10 as rows and dim1 as columns
+        [cdtn0, cdtn1] = zip( *data_neuro['cdtn'] )
+        cdtn0 = list(set(cdtn0))
+        cdtn1 = list(set(cdtn1))
+        n_rows = len(cdtn0)
+        n_cols = len(cdtn1)
+        [h_fig, h_ax] = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)    # creates subplots
+        for cdtn in data_neuro['cdtn']:
+            i = cdtn0.index(cdtn[0])
+            j = cdtn1.index(cdtn[1])
+            plt.axes(h_ax[i,j])
+            if (functionPlot is not None) and (dataPlot is not None):    # in each panel, plot
+                functionPlot(dataPlot.take(data_neuro['cdtn_indx'][cdtn], axis=0))
+            plt.title(cdtn)
+    else:                                          # if cdtn is more than 2D, raise exception
+        raise Exception('cdtn structure does not meet the requirement of SmartSubplot')
+
+    # share clim across axes
+    try:
+        h_ax_all = np.array(h_ax).flatten()
+        c_lim = [+np.Inf, -np.Inf]
+        for ax in h_ax_all:                  # get clim
+            plt.axes(ax)
+            if plt.gci() is not None:
+                c_lim_new = plt.gci().get_clim()
+                c_lim = [np.min([c_lim[0],c_lim_new[0]]), np.max([c_lim[1],c_lim_new[1]])]
+        for ax in h_ax_all:                  # set clim
+            plt.axes(ax)
+            if plt.gci() is not None:
+                plt.clim(c_lim)
+    except:
+        print('share clim was not successful')
+
+    return [h_fig, h_ax]
 
 
 def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
@@ -260,7 +318,7 @@ def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time
     """
 
     if tf_log:                   # if use log scale
-        spcg = np.log(spcg)
+        spcg = np.log(spcg * 10**6 + 10**(-32)) - 6         # prevent log(0) error
 
     if spcg.ndim == 3:           # if contains many trials, calculate average
         if limit_trial is not None:
@@ -285,7 +343,7 @@ def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time
                 c_lim = [0, np.max(spcg)]
 
     if rate_interp is not None:
-        f_interp = sp.interpolate.interp2d(spcg_t, spcg_f, spcg, kind='cubic')
+        f_interp = sp.interpolate.interp2d(spcg_t, spcg_f, spcg, kind='linear')
         spcg_t_plot = np.linspace(spcg_t[0], spcg_t[-1], (len(spcg_t)-1)*rate_interp+1 )
         spcg_f_plot = np.linspace(spcg_f[0], spcg_f[-1], (len(spcg_f)-1)*rate_interp+1 )
         spcg_plot   = f_interp(spcg_t_plot, spcg_f_plot)
@@ -303,6 +361,7 @@ def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time
         t_lim = spcg_t[[0, -1]]
     if f_lim is None:
         f_lim = spcg_f[[0, -1]]
+
     plt.xlim(t_lim)
     plt.ylim(f_lim)
 
@@ -383,6 +442,8 @@ def NeuroPlot(data_neuro, layout=[], sk_std=np.nan, tf_seperate_window=False, tf
 
     return 1
 
+
+
 def SignalPlot(ts, data3D, sk_std=np.nan):
     """
     function to generate plot using data3D, (N_trial * N_ts * N_signal)
@@ -436,6 +497,8 @@ def SignalPlot(ts, data3D, sk_std=np.nan):
         plt.xlim(ts[0], ts[-1])
 
     return hl_plot
+
+
 
 
 def create_array_layout_subplots(array_layout):
@@ -513,6 +576,23 @@ def cal_rc(N):
     n_rows = int(np.ceil(np.sqrt(N)))
     n_cols = int(np.ceil(1.0 * N / n_rows))
     return [n_rows, n_cols]
+
+
+def isSingle(x):
+    """
+    Check whether input is does not contain multiple items, works for lists and tuples
+    e.g. 1, 3.0, 'a string', [1.0], or ('afe') returns True, [1,2] returns false
+    :param x:
+    :return:   Ture of False
+    """
+    if isinstance(x, (list, tuple)):
+        if len(x) > 1:
+            return False
+        else:
+            return isSingle(x[0])
+    else:
+        return True
+
 
 # to test:
 if 0:
