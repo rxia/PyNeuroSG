@@ -144,14 +144,25 @@ def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', nam
 def data_concatenate(list_data_neuro):
     data_neuro_all = {}
     for i, data_neuro in enumerate(list_data_neuro):
-        if i==0:
+        if i==0:                                 # if the first block, copy it
             data_neuro_all = data_neuro
-        else:
-            if len(data_neuro['ts']) == len(data_neuro_all['ts']) and len(data_neuro['signal_info']) == len(data_neuro_all['signal_info']):
-                data_neuro_all['data'] = np.concatenate( (data_neuro_all['data'], data_neuro['data']), axis=0 )
+        else:                                    # for next incoming blocks
+            if len(data_neuro['ts']) == len(data_neuro_all['ts']):   # check if ts length matches, otherwise raise error
+                # check if signals match, if not match, fill the missing signal with all zeros
+                if not np.array_equal( data_neuro['signal_info'], data_neuro_all['signal_info'] ):
+                    for indx_signal_new, signal_new in enumerate(data_neuro['signal_info']):      # if emerging signal
+                        if signal_new not in data_neuro_all['signal_info']:
+                            data_neuro_all['signal_info'] = np.insert(data_neuro_all['signal_info'], indx_signal_new, signal_new)
+                            data_neuro_all['data'] = np.insert(data_neuro_all['data'], indx_signal_new, 0.0, axis=2)
+                    for indx_signal_old, signal_old in enumerate(data_neuro_all['signal_info']):  # if mising signal
+                        if signal_old not in data_neuro['signal_info']:
+                            data_neuro['signal_info'] = np.insert(data_neuro['signal_info'], indx_signal_old, signal_old)
+                            data_neuro['data'] = np.insert(data_neuro['data'], indx_signal_old, 0.0, axis=2)
+                # concatenate
+                data_neuro_all['data'] = np.concatenate((data_neuro_all['data'], data_neuro['data']), axis=0)
             else:
-                print('function data_concatenate can not work with data of different "ts" or "signal_info"')
-                warnings.warn('function data_concatenate can not work with data of different "ts" or "signal_info"')
+                print('function data_concatenate can not work with data of different "ts" length')
+                warnings.warn('function data_concatenate can not work with data of different "ts" length')
 
     return data_neuro_all
 

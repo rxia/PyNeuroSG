@@ -21,7 +21,7 @@ def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=Non
     :return:         [spcg, spcg_t, spcg_f]
            spcg:     power spectogram, [ trials * timestamps * channels * frequencty]
            spcg_t:   timestamps of spectrogram
-           spcg_t:   frequency ticks of spectrogram
+           spcg_f:   frequency ticks of spectrogram
     """
 
     nperseg = GetNearestPow2( fs * t_bin )                    # number of points per segment, power of 2

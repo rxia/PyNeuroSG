@@ -29,9 +29,6 @@ from GM32_layout import layout_GM32
 
 
 """ load data: (1) neural data: TDT blocks -> neo format; (2)behaverial data: stim dg -> pandas DataFrame """
-# [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*spot.*', '.*GM32.*U16.*161228.*', tf_interactive=True,)
-# [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv.*', '.*GM32.*U16.*161228.*', tf_interactive=True,)
-# [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*match.*', '.*GM32.*U16.*161125.*', tf_interactive=True,)
 [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('x_.*detection_opto_011317.*', '.*Dexter_.*U16.*170113.*', tf_interactive=True,dir_dg='/Volumes/Labfiles/projects/analysis/ruobing')
 
 """ Get StimOn time stamps in neo time frame """
@@ -50,7 +47,7 @@ if re.match('.*matchnot.*', filename_common) is not None:
     data_df['stim_names'] = data_df.SampleFilename
     data_df['stim_familiarized'] = data_df.SampleFamiliarized
     data_df['mask_opacity'] = data_df['MaskOpacity']
-if re.match('.*matchnot.*', filename_common) is not None or re.match('.*masked.*', filename_common) is not None:
+if re.match('.*matchnot.*', filename_common) is not None or re.match('.*srv_mask.*', filename_common) is not None:
     data_df['mask_opacity_int'] = np.round(data_df['mask_opacity']*100).astype(int)
 
 
@@ -64,7 +61,7 @@ plt.savefig('{}/{}_spk_waveform.png'.format(dir_temp_fig, filename_common))
 
 
 """ ERP plot """
-t_plot = [-0.100, 0.500]
+t_plot = [-0.200, 1.200]
 
 data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='ana.*', name_filter='LFPs.*')
 ERP = np.mean(data_neuro['data'], axis=0).transpose()
@@ -96,60 +93,41 @@ except:
 """ ==================== """
 
 
-window_offset = [-0.100, 0.6]
+window_offset = [-0.200, 1.2]
 """ GM32 spike by condition  """
 # align
-data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(1,32+1))
+data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000)
 # group
-data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro)
+data_neuro=signal_align.neuro_sort(data_df, ['MatchNot'], [], data_neuro)
 # plot
 pnp.NeuroPlot(data_neuro, sk_std=0.010, tf_legend=True, tf_seperate_window=False)
-plt.suptitle('spk_GM32    {}'.format(filename_common), fontsize=20)
-plt.savefig('{}/{}_spk_GM32.png'.format(dir_temp_fig, filename_common))
+plt.suptitle('spk    {}'.format(filename_common), fontsize=20)
+plt.savefig('{}/{}_spk.png'.format(dir_temp_fig, filename_common))
 
-""" U16 spike by condition  """
-# align
-data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(33,48+1))
-# group
-data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro)
-# plot
-pnp.NeuroPlot(data_neuro, sk_std=0.010,tf_legend=True, tf_seperate_window=False)
-plt.suptitle('spk_U16    {}'.format(filename_common), fontsize=20)
-plt.savefig('{}/{}_spk_U16.png'.format(dir_temp_fig, filename_common))
-# import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.100, 1.000], type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1), spike_bin_rate=1000); print(time.time()-t)
 
 """ GM32 LFP by condition  """
 # align
 data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,32+1))
 # group
-data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro)
+data_neuro=signal_align.neuro_sort(data_df, ['MatchNot'], [], data_neuro)
 # plot
 pnp.NeuroPlot(data_neuro, tf_legend=True, tf_seperate_window=False)
-plt.suptitle('LFP_GM32    {}'.format(filename_common), fontsize=20)
-plt.savefig('{}/{}_LFP_GM32.png'.format(dir_temp_fig, filename_common))
+plt.suptitle('LFP    {}'.format(filename_common), fontsize=20)
+plt.savefig('{}/{}_LFP.png'.format(dir_temp_fig, filename_common))
 
-""" U16 LFP by condition  """
-# align
-data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(33,48+1))
-# group
-data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro)
-# plot
-pnp.NeuroPlot(data_neuro, tf_legend=True, tf_seperate_window=False)
-plt.suptitle('LFP_U16    {}'.format(filename_common), fontsize=20)
-plt.savefig('{}/{}_LFP_U16.png'.format(dir_temp_fig, filename_common))
 
 
 
 """ ===== psth plot, spk ===== """
 
-window_offset = [-0.100, 0.6]
+window_offset = [-0.200, 1.200]
 data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(1,48+1))
 data2D = data_neuro['data'][:,:,0]
 ts = data_neuro['ts']
 
 for i_neuron in range(len(data_neuro['signal_info'] )):
     name_signal = data_neuro['signal_info'][i_neuron]['name']
-    pnp.PsthPlotCdtn(data_neuro['data'][:, :, i_neuron], data_df, data_neuro['ts'], cdtn_l_name = 'mask_opacity_int', cdtn0_name = 'stim_names', cdtn1_name = '', subpanel='auto', sk_std=0.020, )
+    pnp.PsthPlotCdtn(data_neuro['data'][:, :, i_neuron], data_df, data_neuro['ts'], cdtn_l_name = 'MatchNot', cdtn0_name = '', cdtn1_name = '', subpanel='auto', sk_std=0.005, )
     plt.suptitle('file {},   signal {}'.format(filename_common, name_signal, fontsize=20))
     plt.savefig('{}/{} spk PSTH by stim {}.png'.format(dir_temp_fig, filename_common, name_signal))
     plt.close()
@@ -161,17 +139,17 @@ ts = data_neuro['ts']
 
 for i_neuron in range(len(data_neuro['signal_info'] )):
     name_signal = data_neuro['signal_info'][i_neuron]['name']
-    pnp.PsthPlotCdtn(data_neuro['data'][:, :, i_neuron], data_df, data_neuro['ts'], cdtn_l_name = 'mask_opacity_int', cdtn0_name = 'stim_names', cdtn1_name = '', subpanel='auto')
+    pnp.PsthPlotCdtn(data_neuro['data'][:, :, i_neuron], data_df, data_neuro['ts'], cdtn_l_name = 'MatchNot', cdtn0_name = '', cdtn1_name = '', subpanel='auto')
     plt.suptitle('file {},   signal {}'.format(filename_common, name_signal, fontsize=20))
     plt.savefig('{}/{} LFPs by stim {}.png'.format(dir_temp_fig, filename_common, name_signal))
     plt.close()
 
 
 """ LFP spectrum """
-data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.100, 1.000], type_filter='ana.*', name_filter='LFPs.*', spike_bin_rate=50)
-data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized', 'mask_opacity_int'], [], data_neuro)
+data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.200, 1.200], type_filter='ana.*', name_filter='LFPs.*', spike_bin_rate=50)
+data_neuro=signal_align.neuro_sort(data_df, ['MatchNot'], [], data_neuro)
 
-[spcg, spcg_t, spcg_f] = pna.ComputeSpectrogram(data_neuro['data'], fs=data_neuro['signal_info'][0][2], t_ini=np.array( data_neuro['ts'][0] ), t_bin=0.1, t_step=None, t_axis=1)
+[spcg, spcg_t, spcg_f] = pna.ComputeSpectrogram(data_neuro['data'], fs=data_neuro['signal_info'][0][2], t_ini=np.array( data_neuro['ts'][0]), t_bin=0.1, t_step=None, t_axis=1)
 time_baseline = [-0.05, 0.05]
 tf_baseline = True
 N_sgnl = len(data_neuro['signal_info'])

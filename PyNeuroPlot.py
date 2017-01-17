@@ -106,9 +106,9 @@ def ErpPlot(array_erp, ts, depth_start=0, depth_incr=0.1):
     # plt.colorbar()
 
     # plt.get_current_fig_manager().window.raise_()
-    fig.canvas.manager.window.raise_()
-    fig.show()
-    fig.savefig('PyNeuroPlot_temp_fig.png')
+    # fig.canvas.manager.window.raise_()
+    # fig.show()
+    # fig.savefig('PyNeuroPlot_temp_fig.png')
 
     return 1
 
