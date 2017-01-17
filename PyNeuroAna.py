@@ -5,7 +5,7 @@ from scipy import signal
 from scipy.signal import spectral
 
 
-def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_axis=1):
+def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_axis=1, batchsize=100):
     """
     Compuate power spectrogram in sliding windows
                     if a single data is give, returns power spectrum density Pxx over sliding windows;
@@ -18,6 +18,7 @@ def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=Non
     :param t_bin:    during of time bin for fft, will be used to find the nearest power of two
     :param t_step:   step size for moving window, default to t_bin / 8
     :param t_axis:   the axis index of the time in data
+    :param batchsize:to prevent memory overloading problem (default to 100, make smaller if memory overload occurs)
     :return:         [spcg, spcg_t, spcg_f]
            spcg:     power spectogram, [ trials * timestamps * channels * frequencty]
            spcg_t:   timestamps of spectrogram
@@ -36,13 +37,38 @@ def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=Non
 
     window = signal.hann(nperseg)             # time window for fft
 
-    # compute spectrogram
-    if data1 is None:
-        [spcg_f, spcg_t, spcg] = signal.spectrogram(data, fs=fs, window=window, axis=t_axis,
-                                                nperseg=nperseg, noverlap=noverlap, nfft=nfft)
-    else:
-        [spcg_f, spcg_t, spcg] = signal.spectral._spectral_helper(data, data1, fs=fs, window=window, axis=t_axis,
+    """ compute spectrogram, use batches to prevent memory overload """
+    if batchsize is None:
+        if data1 is None:
+            [spcg_f, spcg_t, spcg] = signal.spectrogram(data, fs=fs, window=window, axis=t_axis,
                                                     nperseg=nperseg, noverlap=noverlap, nfft=nfft)
+        else:
+            [spcg_f, spcg_t, spcg] = signal.spectral._spectral_helper(data, data1, fs=fs, window=window, axis=t_axis,
+                                                        nperseg=nperseg, noverlap=noverlap, nfft=nfft)
+    else:
+        N_trial = data.shape[0]
+        N_batch = N_trial // batchsize
+        if N_batch == 0:
+            N_batch = 1
+        list_indx_in_batch = np.array_split( range(N_trial), N_batch)
+        spcg = []
+        for indx_in_batch in list_indx_in_batch:
+            print indx_in_batch
+            if data1 is None:
+                [spcg_f, spcg_t, spcg_cur] = signal.spectrogram(np.take(data,indx_in_batch,axis=0),
+                                                            fs=fs, window=window, axis=t_axis,
+                                                        nperseg=nperseg, noverlap=noverlap, nfft=nfft)
+            else:
+                [spcg_f, spcg_t, spcg_cur] = signal.spectral._spectral_helper(np.take(data,indx_in_batch,axis=0),
+                                                                          np.take(data1,indx_in_batch,axis=0),
+                                                                          fs=fs, window=window, axis=t_axis,
+                                                            nperseg=nperseg, noverlap=noverlap, nfft=nfft)
+            if len(spcg) == 0:
+                spcg = spcg_cur
+            else:
+                spcg = np.concatenate([spcg, spcg_cur], axis=0)
+            del spcg_cur    # release memory
+
     spcg_t = np.array(spcg_t) + t_ini
     spcg_f = np.array(spcg_f)
 
