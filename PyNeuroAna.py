@@ -53,7 +53,6 @@ def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=Non
         list_indx_in_batch = np.array_split( range(N_trial), N_batch)
         spcg = []
         for indx_in_batch in list_indx_in_batch:
-            print indx_in_batch
             if data1 is None:
                 [spcg_f, spcg_t, spcg_cur] = signal.spectrogram(np.take(data,indx_in_batch,axis=0),
                                                             fs=fs, window=window, axis=t_axis,
@@ -62,7 +61,8 @@ def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=Non
                 [spcg_f, spcg_t, spcg_cur] = signal.spectral._spectral_helper(np.take(data,indx_in_batch,axis=0),
                                                                           np.take(data1,indx_in_batch,axis=0),
                                                                           fs=fs, window=window, axis=t_axis,
-                                                            nperseg=nperseg, noverlap=noverlap, nfft=nfft)
+                                                                nperseg=nperseg, noverlap=noverlap, nfft=nfft,
+                                                                              scaling='density', mode='psd')
             if len(spcg) == 0:
                 spcg = spcg_cur
             else:
@@ -75,7 +75,8 @@ def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=Non
     return [spcg, spcg_t, spcg_f]
 
 
-def ComputeCoherogram(data0, data1, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_axis=1):
+
+def ComputeCoherogram(data0, data1, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_axis=1, batchsize=100, data0_spcg=None, data1_spcg=None):
     """
     Compuate cohrence over sliding window
     :param data0:    LFP data, [ trials * timestamps]
@@ -85,22 +86,32 @@ def ComputeCoherogram(data0, data1, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_
     :param t_bin:    during of time bin for fft, will be used to find the nearest power of two
     :param t_step:   step size for moving window, default to t_bin / 8
     :param t_axis:   the axis index of the time in data
+    :param data0_spcg: the spcg_xx, if already calculated
+    :param data1_spcg: the spcg_yy, if already calculated
     :return:         [cohg, spcg_t, spcg_f]
            cohg:     power spectogram, [ timestamps * frequencty]
            spcg_t:   timestamps of spectrogram
            spcg_t:   frequency ticks of spectrogram
     """
     # Pxx
-    [spcg_xx, _, _] = ComputeSpectrogram(data0, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis)
+    if data0_spcg is None:
+        [spcg_xx, _, _] = ComputeSpectrogram(data0, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
+    else:
+        spcg_xx = data0_spcg
     # Pyy
-    [spcg_yy, _, _] = ComputeSpectrogram(data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis)
+    if data1_spcg is None:
+        [spcg_yy, _, _] = ComputeSpectrogram(data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
+    else:
+        spcg_yy = data1_spcg
     # Pxy
-    [spcg_xy, spcg_t, spcg_f] = ComputeSpectrogram(data0, data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis)
+    [spcg_xy, spcg_t, spcg_f] = ComputeSpectrogram(data0, data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
 
     # cohreence
-    cohg = np.abs(np.mean(spcg_xy, axis=0))**2 / ( np.mean(spcg_xx, axis=0) * np.mean(spcg_yy, axis=0) )
+    cohg = np.abs( np.abs(np.mean(spcg_xy, axis=0))**2 / ( np.mean(spcg_xx, axis=0) * np.mean(spcg_yy, axis=0) ) )
 
     return [cohg, spcg_t, spcg_f]
+
+
 
 
 

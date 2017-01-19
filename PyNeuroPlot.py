@@ -163,23 +163,16 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
     else:                                          # if cdtn is more than 2D, raise exception
         raise Exception('cdtn structure does not meet the requirement of SmartSubplot')
 
+    h_fig.set_size_inches([12,9])
+
     # share clim across axes
     try:
-        h_ax_all = np.array(h_ax).flatten()
-        c_lim = [+np.Inf, -np.Inf]
-        for ax in h_ax_all:                  # get clim
-            plt.axes(ax)
-            if plt.gci() is not None:
-                c_lim_new = plt.gci().get_clim()
-                c_lim = [np.min([c_lim[0],c_lim_new[0]]), np.max([c_lim[1],c_lim_new[1]])]
-        for ax in h_ax_all:                  # set clim
-            plt.axes(ax)
-            if plt.gci() is not None:
-                plt.clim(c_lim)
+        c_lim = share_clim(h_ax)
     except:
         print('share clim was not successful')
 
     return [h_fig, h_ax]
+
 
 
 def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
@@ -300,6 +293,8 @@ def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_
     # plt.suptitle(data_neuro['signal_info'][i_neuron]['name'])
 
 
+
+
 def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time_baseline=None,
                  t_lim = None, f_lim = None, c_lim = None, name_cmap='inferno',
                  rate_interp=None, tf_colorbar= False):
@@ -353,7 +348,7 @@ def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time
         spcg_plot = spcg
 
     # plot using pcolormesh
-    plt.pcolormesh(center2edge(spcg_t_plot), center2edge(spcg_f_plot),
+    h_plot = plt.pcolormesh(center2edge(spcg_t_plot), center2edge(spcg_f_plot),
                    spcg_plot, cmap=plt.get_cmap(name_cmap), shading= 'flat')
 
     # set x, y limit
@@ -371,9 +366,88 @@ def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time
     if tf_colorbar:
         plt.colorbar()
 
-    return [spcg, c_lim]
+    return h_plot
 
 
+def SpectrogramAllPairPlot(data_neuro, indx_chan=None, limit_gap=1, t_bin=0.2, t_step=None, f_lim = None, coh_lim=None, t_axis=1, batchsize=100, verbose=False):
+    """
+    Plot all LFP power specgtrogram (diagonal panels) and all pairwise coherence (off-diagonal panels)
+    :param data_neuro: standard data input
+    :param indx_chan:  index of channels to plot (from zero)
+    :param limit_gap:  the gap between channels to plot, used when indx_chan is None. e.g. if limit_gap=4, the indx_chan=[0,4,8,...]
+    :param t_bin:      time bin size for spectrogram
+    :param t_step:     time step size for spectrogram
+    :param f_lim:      frequency limit for plot (ylim)
+    :param coh_lim:    lim for coherence plot, control clim
+    :param t_axis:     axis index of time in data_neuro['data']
+    :param batchsize:  batch size for ComputeSpectrogram, used to prevent memory overloading
+    :param verbose:    if print some intermediate results
+    :return:           [h_fig, h_ax], handles of figure and axes
+    """
+
+    import PyNeuroAna as pna
+
+
+    # calculate the channel index used for plotting
+    N_chan = len(data_neuro['signal_info'])
+    if indx_chan is None:
+        indx_chan = range(0, N_chan, limit_gap)
+    data = np.take( data_neuro['data'], indx_chan,  axis=2)
+    signal_info = data_neuro['signal_info'][indx_chan]
+    N_plot = len(indx_chan)
+
+    fs = data_neuro['signal_info'][0][2]
+    t_ini = np.array(data_neuro['ts'][0])
+
+    # compute spectrogram
+    spcg_all = []
+    for i_plot, i_chan in enumerate(indx_chan):
+        [spcg_cur, spcg_t, spcg_f] = pna.ComputeSpectrogram(data[:,:,i_plot], data1=None, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
+        spcg_all.append(spcg_cur)
+
+    # plot
+    text_props = dict(boxstyle='round', facecolor='w', alpha=0.5)
+    [h_fig, h_ax] = plt.subplots(nrows=N_plot, ncols=N_plot, sharex=True, sharey=True)
+    h_fig.set_size_inches([12,9])
+    h_fig.subplots_adjust(hspace=0, wspace=0)
+    for indx_row in range(N_plot):
+        for indx_col in range(N_plot):
+            if indx_row == indx_col:            # power spectrogram on diagonal panels
+                plt.axes(h_ax[indx_row, indx_col])
+                h_plot_pow = SpectrogramPlot(np.mean(spcg_all[indx_row], axis=0), spcg_t, spcg_f, tf_log=True, f_lim=f_lim, time_baseline=None,
+                                    rate_interp=8)
+                plt.text(0.03, 0.85, '{}'.format(signal_info[indx_row][0]), transform=plt.gca().transAxes, bbox=text_props)
+            elif indx_row<indx_col:             # coherence on off diagonal panels
+                # compute coherence
+                [cohg, _, _] = pna.ComputeCoherogram(data[:, :, indx_row], data[:, :, indx_col], fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step,
+                                       t_axis=t_axis, batchsize=batchsize, data0_spcg=spcg_all[indx_row], data1_spcg=spcg_all[indx_col])
+
+                # plot on two symmetric panels
+                plt.axes(h_ax[indx_row, indx_col])
+                h_plot_coh = SpectrogramPlot(cohg, spcg_t, spcg_f, tf_log=False, f_lim=f_lim,
+                                time_baseline=None, rate_interp=8, name_cmap='viridis', c_lim=coh_lim)
+                # plt.text(0.03, 0.85, '{}-{}'.format(signal_info[indx_row][0],signal_info[indx_col][0]), transform=plt.gca().transAxes,
+                #          bbox=text_props)
+                plt.axes(h_ax[indx_col, indx_row])
+                h_plot_coh = SpectrogramPlot(cohg, spcg_t, spcg_f, tf_log=False, f_lim=f_lim,
+                                time_baseline=None, rate_interp=8, name_cmap='viridis', c_lim=coh_lim)
+                # plt.text(0.03, 0.85, '{}-{}'.format(signal_info[indx_col][0], signal_info[indx_row][0]),
+                #          transform=plt.gca().transAxes,
+                #          bbox=text_props)
+
+    # share clim for all diagonal panels
+    ax_diag = h_ax.flatten()[range(0,N_plot*N_plot,N_plot+1)]
+    share_clim( ax_diag )
+    # share clim for all off-diagonal panels
+    ax_nondiag = h_ax.flatten()[list(set(range(N_plot * N_plot)) - set(range(0, N_plot * N_plot, N_plot + 1)))]
+    share_clim( ax_nondiag )
+
+    # add colorbar
+    h_fig.colorbar(h_plot_pow, ax=h_ax[0:N_plot//2,:].flatten().tolist())
+    h_fig.colorbar(h_plot_coh, ax=h_ax[N_plot//2:N_plot,:].flatten().tolist())
+    # plt.suptitle('Power Spectrogram and Cohrence plot', fontsize=12)
+
+    return [h_fig, h_ax]
 
 def get_unique_elements(labels):
     return sorted(list(set(labels)))
@@ -593,6 +667,24 @@ def isSingle(x):
     else:
         return True
 
+def share_clim(h_ax):
+    """
+    tool funciton to share clim (make sure c_lim of given axes are the same), call after plotting all images
+    :param h_ax: list of axes
+    :return:     c_lim
+    """
+    h_ax_all = np.array(h_ax).flatten()
+    c_lim = [+np.Inf, -np.Inf]
+    for ax in h_ax_all:  # get clim
+        plt.axes(ax)
+        if plt.gci() is not None:
+            c_lim_new = plt.gci().get_clim()
+            c_lim = [np.min([c_lim[0], c_lim_new[0]]), np.max([c_lim[1], c_lim_new[1]])]
+    for ax in h_ax_all:  # set clim
+        plt.axes(ax)
+        if plt.gci() is not None:
+            plt.clim(c_lim)
+    return c_lim
 
 # to test:
 if 0:
