@@ -7,10 +7,7 @@ import numpy as np
 import scipy as sp
 from scipy import signal as sgn
 import re
-# try:
-    # import seaborn as sns
-# except:
-#     print ('no seaborn module installed for plotting, use matplotlib default')
+import misc_tools
 
 
 def PyNeuroPlot(df, y, x, c=[], p=[]):
@@ -30,9 +27,9 @@ def PyNeuroPlot(df, y, x, c=[], p=[]):
     return 1
 
 
-def SpkWfPlot(seg, ncols=8):
+def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
     """
-    Plot spk waveforms of a segment, one channel per axes
+    Plot spk waveforms of a segment, one channel per axes, different sort code are color coded
     """
     N_chan = max([item.annotations['channel_index'] for item in seg.spiketrains])   # ! depend on the frame !
     nrows  = int(np.ceil(1.0 * N_chan / ncols))
@@ -54,10 +51,15 @@ def SpkWfPlot(seg, ncols=8):
         plt.text(0.1, 0.8, 'C{}'.format(i + 1), transform=axes.transAxes)
         axes.set_axis_bgcolor([0.98,0.98,0.98])
     for i in range(len(seg.spiketrains)):
-        cur_chan = int(re.match('Chan(\d*) .*', seg.spiketrains[i].name).group(1))  # ! depend on the naming !
-        cur_code = int(re.match('.* Code(\d*)', seg.spiketrains[i].name).group(1))  # ! depend on the naming !
-        if cur_code >= 1:
-            axes_cur = axes1d[cur_chan - 1];
+        try:
+            cur_chan = int(re.match('Chan(\d*) .*', seg.spiketrains[i].name).group(1))  # ! depend on the naming !
+            cur_code = int(re.match('.* Code(\d*)', seg.spiketrains[i].name).group(1))  # ! depend on the naming !
+        except:
+            cur_chan = i
+            cur_code = 0
+            print (misc_tools.red_text('the segment does not contain name like "Chan1 Code2"'))
+        if sortcode_min <= cur_code < sortcode_max:
+            axes_cur = axes1d[cur_chan - 1]
             plt.sca(axes_cur)
             h_text = plt.text(0.5, 0.12 * cur_code, 'N={}'.format(len(seg.spiketrains[i])), transform=axes_cur.transAxes, fontsize='smaller')
             h_waveform = plt.plot(np.squeeze(np.mean(seg.spiketrains[i].waveforms, axis=0)))
@@ -68,49 +70,82 @@ def SpkWfPlot(seg, ncols=8):
     fig.suptitle('spike waveforms, y_range={} uV'.format(np.round(np.diff(np.array(axes.get_ylim())) * 1000000)[0] ))
 
 
-def ErpPlot(array_erp, ts, depth_start=0, depth_incr=0.1):
-    # array_erp   : a 2d numpy array ( N_chan * N_timepoints ):
-    # ts          : a 1d numpy array ( N_timepoints )
-    # chan_start  : starting channel
-    # depth_start : starting depth of channel 1
-    # depth_incr  : depth increment
+def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
+    """
 
-    offset_plot_chan = (array_erp.max()-array_erp.min())/5
+    :param array_erp:     a 2d numpy array ( N_chan * N_timepoints ):
+    :param ts:            a 1d numpy array ( N_timepoints )
+    :param array_layout:  electrode array layout
+                            if None, assume linear layout,
+                            otherwise, use the the give array_layout in the format: {chan: (row, col)}
+    :param depth_start:   starting depth of channel 1
+    :param depth_incr:    depth increment
+    :return:
+    """
 
     [N_chan, N_ts] = array_erp.shape
-    array_erp_offset = (array_erp - np.array(np.arange(array_erp.shape[0]), ndmin=2).transpose() * offset_plot_chan).transpose()
+    if array_layout is None:                # if None, assumes linear layout
+        offset_plot_chan = (array_erp.max()-array_erp.min())/5
 
-    name_colormap = 'rainbow'
-    cycle_color = plt.cm.get_cmap(name_colormap)(np.linspace(0, 1, N_chan))
+        array_erp_offset = (array_erp - np.array(np.arange(array_erp.shape[0]), ndmin=2).transpose() * offset_plot_chan).transpose()
 
-    fig = plt.figure(figsize=(12,8))
-    plt.subplot(1,2,1)
-    for i in range(N_chan):
-        plt.plot(ts, array_erp_offset[:,i], c=cycle_color[i]*0.9, lw=2)
-    plt.gca().set_axis_bgcolor([0.95, 0.95, 0.95])
-    plt.xlim(ts[0],ts[-1])
-    plt.title('ERPs')
-    plt.xlabel('time from event onset (s)')
-    plt.ylabel('Voltage (V)')
+        name_colormap = 'rainbow'
+        cycle_color = plt.cm.get_cmap(name_colormap)(np.linspace(0, 1, N_chan))
 
-    plt.subplot(1, 2, 2)
-    plt.pcolormesh(center2edge(ts), center2edge(np.arange(N_chan)+1) , np.array(array_erp), cmap=plt.get_cmap('coolwarm'))
-    color_max = np.max(np.abs(np.array(array_erp)))
-    plt.clim(-color_max, color_max)
-    plt.xlim(ts[0], ts[-1])
-    plt.ylim( center2edge(np.arange(N_chan)+1)[0], center2edge(np.arange(N_chan)+1)[-1]  )
-    plt.gca().invert_yaxis()
-    plt.title('ERPs')
-    plt.xlabel('time from event onset (s)')
-    plt.ylabel('channel index')
-    # plt.colorbar()
+        h_fig = plt.figure(figsize=(12,8))
+        plt.subplot(1,2,1)
+        for i in range(N_chan):
+            plt.plot(ts, array_erp_offset[:,i], c=cycle_color[i]*0.9, lw=2)
+        plt.gca().set_axis_bgcolor([0.95, 0.95, 0.95])
+        plt.xlim(ts[0],ts[-1])
+        plt.title('ERPs')
+        plt.xlabel('time from event onset (s)')
+        plt.ylabel('Voltage (V)')
 
-    # plt.get_current_fig_manager().window.raise_()
-    # fig.canvas.manager.window.raise_()
-    # fig.show()
-    # fig.savefig('PyNeuroPlot_temp_fig.png')
+        plt.subplot(1, 2, 2)
+        plt.pcolormesh(center2edge(ts), center2edge(np.arange(N_chan)+1) , np.array(array_erp), cmap=plt.get_cmap('coolwarm'))
+        color_max = np.max(np.abs(np.array(array_erp)))
+        plt.clim(-color_max, color_max)
+        plt.xlim(ts[0], ts[-1])
+        plt.ylim( center2edge(np.arange(N_chan)+1)[0], center2edge(np.arange(N_chan)+1)[-1]  )
+        plt.gca().invert_yaxis()
+        plt.title('ERPs')
+        plt.xlabel('time from event onset (s)')
+        plt.ylabel('channel index')
+    else:                                 # use customized 2D layout
+        text_props = dict(boxstyle='round', facecolor='w', alpha=0.5)
+        [h_fig, h_axes] = create_array_layout_subplots(array_layout)
+        plt.tight_layout()
+        h_fig.subplots_adjust(hspace=0.02, wspace=0.02)
+        h_fig.set_size_inches([8, 8],forward=True)
 
-    return 1
+        for ch in range(N_chan):
+            plt.axes(h_axes[array_layout[ch + 1]])
+            plt.plot(ts, array_erp[ch, :], linewidth=2, color='dimgray')
+            plt.text(0.1, 0.8, 'C{}'.format(ch + 1), transform=plt.gca().transAxes, fontsize=10, bbox=text_props)
+        plt.xlim(ts[0], ts[-1])
+
+        # axis appearance
+        for ax in h_axes.flatten():
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+            if len(ax.lines)==0:
+                ax.set_axis_bgcolor([1,1,1,0])
+        ax_bottomleft = h_axes[-1,0]
+        plt.axes(ax_bottomleft)
+        ax_bottomleft.get_xaxis().set_visible(True)
+        ax_bottomleft.get_yaxis().set_visible(True)
+        ax_bottomleft.set_xlabel('time')
+        ax_bottomleft.set_ylabel('Voltage')
+        plt.locator_params(axis='x', nbins=4)
+        plt.locator_params(axis='y', nbins=4)
+
+
+        plt.suptitle('ERPs', fontsize=18)
+
+
+
+    return h_fig
 
 
 def RfPlot(data_neuro, indx_sgnl=0, x_scale=0.1, y_scale=50):

@@ -28,3 +28,11 @@ def str_common(list_of_strings):
             char_cur = '_'
         string_out = string_out+char_cur
     return string_out
+
+def red_text(str_in):
+    """
+    tool function to set text font color to red, using ASCII
+    :param str_in:  str
+    :return:        str that will print in red
+    """
+    return('\033[91m{}\033[0m'.format(str_in))

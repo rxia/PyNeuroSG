@@ -140,10 +140,59 @@ def load_data(keyword = None,
     else:
         data_df = pd.DataFrame([])
 
+    data_df[''] = [''] * len(data_df)            # empty column, make some default condition easy
+
     if tf_verbose:
         print('finish loading and concatenating dgs')
 
     return (blk, data_df, name_datafiles)
+
+
+
+def standardize_data_df(data_df, filename_common):
+    """
+    add colums that is necessary for later analysis
+    :param data_df:            pandas dataframe, where every row represent one trial
+    :param filename_common:    filemane, used to check what colums to add
+    :return:                   data_df, with extra columns
+    """
+
+    data_df[''] = [''] * len(data_df)  # empty column, make some default condition easy
+
+    if re.match('.*matchnot.*', filename_common) is not None:
+        data_df['stim_names'] = data_df.SampleFilename
+        data_df['stim_familiarized'] = data_df.SampleFamiliarized
+        data_df['mask_opacity'] = data_df['MaskOpacity']
+    if re.match('.*matchnot.*', filename_common) is not None or re.match('.*_srv_mask.*', filename_common) is not None:
+        # make mask opacity a int, better for printing
+        data_df['mask_opacity_int'] = np.round(data_df['mask_opacity'] * 100).astype(int)
+        # make short name for stim, e.g. face_fam_6016
+        data_df['stim_sname'] = map((lambda (a, b): re.sub('_\w*_', '_fam_', a) if b == 1 else re.sub('_\w*_', '_nov_', a)),
+                                zip(data_df['stim_names'].tolist(), data_df['stim_familiarized'].tolist(), ))
+    return data_df
+
+
+
+def standardize_blk(blk):
+    """
+    standardize neo neuro data, add channel_index and sort code to the annotation field
+    :param blk:    neo block object
+    :return:       neo block object
+    """
+
+    for seg in blk.segments:   # for every segment
+        for spktrain in seg.spiketrains:       # for spiketrain, add channel_index and sort_code to annotations
+            cur_chan = int(re.match('Chan(\d*) .*', spktrain.name).group(1))
+            cur_code = int(re.match('.* Code(\d*)', spktrain.name).group(1))
+            spktrain.annotations = {'channel_index': cur_chan, 'sort_code': cur_code}
+        if False:
+            for analogsignal in seg.analogsignals:  # for analogsignals, add channel_index
+                try:
+                    cur_chan = int(re.match('LFPs (\d*)', analogsignal.name).group(1))
+                    analogsignal.annotations = {'channel_index': cur_chan}
+                except:
+                    pass
+    return blk
 
 
 
