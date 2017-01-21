@@ -212,21 +212,32 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
 
 
 
-def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='auto', tf_legend=False):
+def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete', tf_legend=False):
     """
-    funciton to plot psth and raster
-    :param data: 2D np array, (N_trail * N_ts)
-    :param ts:
-    :param cdtn:
-    :param limit:   index array for selecting trials
-    :return:
+    funciton to plot psth with a raster panel on top of PSTH, works for both spike data and LFP data
+    :param data:        neuro data, np array of various size and dtpye:
+                            size: 2D [N_trials * N_ts] or 3D [N_trials * N_ts * N_signals]
+                            dtype: boolean (spike exist or not) or float (LFP continuous values)
+    :param ts:          1D array containing timestamps for data (length is N_ts)
+    :param cdtn:        conditions used to group
+                            if data is 2D, represent the type of trials,  len(cdtn)=N_ts
+                            if data is 3D, represent the type of signals, len(cdtn)=N_signals
+    :param limit:       index array to select a subset of the trials of data, i.e., data=data[limit,:]
+    :param sk_std:      std of gaussian smoothness kernel, applied along time axis, default to None
+    :param subpanel:    types of sub-panel on tops of PSTH, default to 'auto'
+                            if 'spk'  : data2D is boolean, where every True value represents a spike, plot line raster
+                            if 'LFP'  : data2D is continuous float, plot pcolormesh
+                            if 'auto' : use data format to decide which plot to use
+                            if ''     : does not create subpanel
+    :param color_style: 'discrete' or 'continuous'
+    :param tf_legend:   boolean
+    :return:            axes of plot: [ax_psth, ax_raster]
     """
 
-    """ process the input, to work with various inputs """
+    """ ----- process the input, to work with various inputs ----- """
     if limit is not None:       # select trials of interest
         limit = np.array(limit)
         data = np.take(np.array(data), limit, axis=0)
-
 
     if len(data.shape) ==3:     # if data is 3D [N_trials * N_ts * N_signals]
         [N,T,S] = data.shape
@@ -259,7 +270,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='auto
         ts = np.array(ts)
 
 
-    """ calculate PSTH, one line for every condition """
+    """ ----- calculate PSTH for every condition ----- """
 
     ax_psth = plt.gca()
     psth_cdtn = np.zeros([M, T])
@@ -273,7 +284,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='auto
             psth_cdtn[k, :] = np.mean(data2D[cdtn==cdtn_k], axis=0)
     N_cdtn_cum[1:] = np.cumsum(N_cdtn)
 
-    if sk_std is not np.nan:  # condition for using smoothness kernel
+    if sk_std is not None:  # condition for using smoothness kernel
         ts_interval = np.diff(np.array(ts)).mean()  # get sampling interval
         kernel_std = sk_std / ts_interval  # std in frames
         kernel_len = int(np.ceil(kernel_std) * 3 * 2 + 1)  # num of frames, 3*std on each side, an odd number
@@ -282,9 +293,9 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='auto
         for k in range(M):
             psth_cdtn[k, :] = np.convolve(psth_cdtn[k, :], smooth_kernel, 'same')
 
-    colors = gen_distinct_colors(M, luminance=0.7)
+    colors = gen_distinct_colors(M, luminance=0.7, alpha=0.8, style=color_style)
 
-    # ========== plot psth ==========
+    """ ========== plot psth ========== """
     hl_lines = []
     for k, cdtn_k in enumerate(cdtn_unq):
         hl_line, = plt.plot(ts, psth_cdtn[k, :], c=colors[k])
@@ -298,7 +309,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='auto
         plt.legend(cdtn_unq, labelspacing=0.1, prop={'size': 8},
                    fancybox=True, framealpha=0.5)
 
-    # ========== plot a subpanel, either rasters or LFP pcolor ==========
+    """ ========== plot a subpanel, either rasters or LFP pcolor ========== """
     if subpanel is not '':
         # ========== sub-panel for raster or p-color  ==========
         ax_raster = add_axes_on_top(ax_psth, r=0.4)
@@ -306,82 +317,35 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='auto
 
         if subpanel == 'auto':      # if auto, use the data features to determine raster (spk) plot or pcolor (LFP) plot
             if len(np.unique(data2D)) <=20:
-                subpanel = 'raster'
+                subpanel = 'spk'
             else:
-                subpanel = 'pcolor'
+                subpanel = 'LFP'
 
-        if subpanel is 'raster':       # ---------- plot raster (spike trains) ----------
-            SpkRasterPlot(data2D, ts=ts, cdtn=cdtn, colors=colors, max_rows=None)
+        if subpanel is 'spk':       # ---------- plot raster (spike trains) ----------
+            RasterPlot(data2D, ts=ts, cdtn=cdtn, colors=colors, max_rows=None, RasterType=subpanel)
 
-        elif subpanel is 'pcolor':    # ---------- plot_pcolor (LFP) ----------
-            LfpRasterPlot(data2D, ts=ts, cdtn=cdtn, colors=colors, max_rows=None)
+        elif subpanel is 'LFP':     # ---------- plot_pcolor (LFP) ----------
+            RasterPlot(data2D, ts=ts, cdtn=cdtn, colors=colors, max_rows=None, RasterType=subpanel)
         plt.setp(ax_raster.get_xticklabels(), visible=False)
-    return ax_psth
+    else:
+        ax_raster = None
 
-def SpkRasterPlot(data2D, ts=None, cdtn=None, colors=None, max_rows=None):
+    return [ax_psth, ax_raster]
+
+
+def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_rows=None):
     """
-    Spike raster Plot, where evary row presresent one trial, sorted by cdtn
-    :param data2D:   2D np.array of boolean values, [N_trial * N_ts]
-    :param ts:       1D np.array of timestamps, 1D np.array of length N_ts
-    :param cdtn:     condition of every trial,  1D np.array of length N_trial
+    Spike/LFP raster Plot, where evary row presresent one trial, sorted by cdtn
+    :param data2D:   2D np.array of boolean/float values, [N_trial * N_ts]
+    :param ts:       1D np.array of timestamps, 1D np.array of length N_ts,    used as x axis for plot
+    :param cdtn:     condition of every trial,  1D np.array of length N_trial, used to sort trials
     :param colors:   a list of colors for every unique condition
+    :param RasterType:    string, 'spk', 'LFP' or 'auto', default to 'auto'
+                       if 'spk'  : data2D is boolean, where every True value represents a spike, plot line raster
+                       if 'LFP'  : data2D is continuous float, plot pcolormesh
+                       if 'auto' : use data2D format to decide which plot to use
     :return:         handle of raster plot
     """
-    [N, T] = data2D.shape
-
-    if cdtn is None:        # if cdtn is none, fill with blank string
-        cdtn = ['']*N
-
-    # reorder index according to cdtn, so that trials of the same condition sits together in rows
-    cdtn_unq = get_unique_elements(cdtn)
-    M = len(cdtn_unq)
-    cdtn = np.array(cdtn)
-    index_reorder = np.concatenate([np.flatnonzero(cdtn == cdtn_k) for cdtn_k in cdtn_unq])
-    data2D = data2D[index_reorder,:]
-    cdtn = cdtn[index_reorder]
-
-    if colors is None:      # if no color is given
-        colors = gen_distinct_colors(M, luminance=0.7)
-
-    if ts is None:
-        ts = np.arange(T)
-
-    # if N is too large, to speed up plot, randomly select a fraction to plot
-    if max_rows is not None:
-        if max_rows < N:
-            indx_subselect = np.sort(np.random.choice(N, max_rows, replace=False))
-            data2D = data2D[indx_subselect,:]
-            cdtn   = cdtn[indx_subselect]
-            N = max_rows
-
-
-    [y,x] = zip(*np.argwhere(data2D>0))
-    x_ts  = ts[np.array(x)]   # x loc of raster lines
-    y     = np.array(y)       # y loc of raster lines
-    y_min = y - 0.0005*N
-    y_max = y+1 +0.0005*N
-
-    # color for every raster line
-    cdtn_indx_of_trial = np.zeros(N).astype(int)
-    N_cdtn = np.zeros(M).astype(int)
-    for k, cdtn_k in enumerate(cdtn_unq):
-        N_cdtn[k] = np.sum(cdtn == cdtn_k)
-        cdtn_indx_of_trial[cdtn == cdtn_k] = k
-    N_cdtn_cum = np.cumsum(N_cdtn)
-    c     = np.array(colors)[ cdtn_indx_of_trial[np.array(y)] ]
-
-    # ----- major plot commmand -----
-    h_raster = plt.vlines(x_ts, y_min, y_max, colors=c, linewidth=2)
-    plt.xlim(ts[0],ts[-1])
-    plt.ylim(0, N)
-    plt.gca().invert_yaxis()
-    plt.gca().yaxis.set_ticks(keep_less_than([0]+N_cdtn_cum.tolist(), 8))
-
-    return h_raster
-
-
-def LfpRasterPlot(data2D, ts=None, cdtn=None, colors=None, max_rows=None):
-
     data2D = np.array(data2D)
     [N, T] = data2D.shape
 
@@ -410,28 +374,54 @@ def LfpRasterPlot(data2D, ts=None, cdtn=None, colors=None, max_rows=None):
             cdtn   = cdtn[indx_subselect]
             N = max_rows
 
-    # -----  major plot command -----
-    # c_axis_abs = np.max(np.abs(data2D))
-    c_axis_abs = np.percentile(np.abs(data2D), 98)
-    plt.pcolormesh(center2edge(ts), range(N + 1), data2D, vmin=-c_axis_abs, vmax=c_axis_abs,
-                   cmap=plt.get_cmap('coolwarm'))
+    if RasterType == 'auto':
+        if len(np.unique(data2D)) <= 20:
+            RasterType = 'spk'
+        else:
+            RasterType = 'LFP'
 
-
-    # color for every condition
+    # color for every raster line
+    cdtn_indx_of_trial = np.zeros(N).astype(int)
     N_cdtn = np.zeros(M).astype(int)
     for k, cdtn_k in enumerate(cdtn_unq):
         N_cdtn[k] = np.sum(cdtn == cdtn_k)
+        cdtn_indx_of_trial[cdtn == cdtn_k] = k
     N_cdtn_cum = np.cumsum(N_cdtn)
 
-    plt.vlines(ts[ [0]*M ], np.insert(N_cdtn_cum,0,0)[0:M], N_cdtn_cum, colors=colors, linewidth=10)
-    for k, cdtn_k in enumerate(cdtn_unq):
-        # plt.plot(ts[[0, 0]] + (ts[-1] - ts[0]) / 20, N_cdtn_cum[k:k + 2], color=colors[k], linewidth=5)
-        plt.plot([ts[0], ts[-1]], [N_cdtn_cum[k], N_cdtn_cum[k]], color='k', linewidth=1)
+    if RasterType == 'spk':
+        [y,x] = zip(*np.argwhere(data2D>0))
+        x_ts  = ts[np.array(x)]   # x loc of raster lines
+        y     = np.array(y)       # y loc of raster lines
+        y_min = y - 0.0005*N
+        y_max = y+1 +0.0005*N
+
+        c     = np.array(colors)[ cdtn_indx_of_trial[np.array(y)] ]
+
+        # ----- major plot commmand -----
+        h_raster = plt.vlines(x_ts, y_min, y_max, colors=c, linewidth=2)
+
+    elif RasterType == 'LFP':
+        # -----  major plot command -----
+        # c_axis_abs = np.max(np.abs(data2D))
+        c_axis_abs = np.percentile(np.abs(data2D), 98)
+        h_raster = plt.pcolormesh(center2edge(ts), range(N + 1), data2D, vmin=-c_axis_abs, vmax=c_axis_abs,
+                       cmap=plt.get_cmap('coolwarm'))
+
+        # a colored line segment illustrating the conditions
+        plt.vlines(ts[[0] * M], np.insert(N_cdtn_cum, 0, 0)[0:M], N_cdtn_cum, colors=colors, linewidth=10)
+    else:
+        raise Exception('wrong RasterType, must by either "spk" or "LFP" ')
+
+    # horizontal lines deviding difference conditions
+    plt.hlines(N_cdtn_cum, ts[0], ts[-1], color='k', linewidth=1)
 
     plt.xlim(ts[0],ts[-1])
     plt.ylim(0, N)
-    plt.gca().yaxis.set_ticks(keep_less_than([0]+N_cdtn_cum.tolist(), 8))
     plt.gca().invert_yaxis()
+    plt.gca().yaxis.set_ticks(keep_less_than([0]+N_cdtn_cum.tolist(), 8))
+
+    return h_raster
+
 
 
 def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_name='', limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
@@ -776,16 +766,26 @@ def prettyfloat(input, precision=2):
     return output
 
 
-def gen_distinct_colors(n, luminance=0.9):
+def gen_distinct_colors(n, luminance=0.9, alpha=0.8, style='discrete'):
     """
     tool funciton to generate n distinct colors for plotting
     :param n:          num of colors
     :param luminance:  num between [0,1]
+    :param alhpa:      num between [0,1]
     :return:           n*4 rgba color matrix
     """
-    magic_number = 0.618   # from the golden ratio, to make colors evely distributed
-    initial_number = 0.25
-    return plt.cm.rainbow( (initial_number+np.arange(n))*magic_number %1 )*luminance
+
+    if style == 'discrete':
+        magic_number = 0.618  # from the golden ratio, to make colors evely distributed
+        initial_number = 0.25
+        colors_ini = plt.cm.rainbow((initial_number + np.arange(n)) * magic_number % 1)
+    elif style == 'continuous':
+        colors_ini = plt.cm.rainbow( 1.0*np.arange(n)/n )
+    else:
+        magic_number = 0.618  # from the golden ratio, to make colors evely distributed
+        initial_number = 0.25
+        colors_ini = plt.cm.rainbow((initial_number + np.arange(n)) * magic_number % 1)
+    return colors_ini* np.array([[luminance, luminance, luminance, alpha]])
 
 
 def keep_less_than(list_in, n=6):
