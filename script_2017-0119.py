@@ -66,22 +66,10 @@ pnp.ErpPlot(ERP, data_neuro['ts'])
 plt.savefig('{}/{}_ERP_all.png'.format(dir_temp_fig, filename_common))
 
 try:
-    data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(33,48+1))
-    # data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='spiketrains.*', name_filter='.*Code[1-9].*', chan_filter=range(33,48+1), spike_bin_rate=100)
-    ERP = np.mean(data_neuro['data'], axis=0).transpose()
-    pnp.ErpPlot(ERP, data_neuro['ts'])
+    pnp.ErpPlot(ERP[32:,:], data_neuro['ts'])
     plt.savefig('{}/{}_ERP_U16.png'.format(dir_temp_fig, filename_common))
 
-
-    data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,32+1))
-    ERP = np.mean(data_neuro['data'], axis=0).transpose()
-    [h_fig, h_axes] = pnp.create_array_layout_subplots(layout_GM32)
-    plt.tight_layout()
-    for ch in range(32):
-        plt.axes(h_axes[layout_GM32[ch+1]])
-        plt.plot(data_neuro['ts'], ERP[ch,:]*10**6, linewidth=2)
-        plt.xlabel(t_plot)
-        plt.title( 'Channel {}'.format(ch+1) )
+    pnp.ErpPlot(ERP[0:32, :], data_neuro['ts'], array_layout=layout_GM32)
     plt.savefig('{}/{}_ERP_GM32.png'.format(dir_temp_fig, filename_common))
 except:
     pass

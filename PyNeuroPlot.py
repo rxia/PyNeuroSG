@@ -7,8 +7,9 @@ import numpy as np
 import scipy as sp
 from scipy import signal as sgn
 import re
+import warnings
 import misc_tools
-
+import signal_align
 
 def PyNeuroPlot(df, y, x, c=[], p=[]):
     df_plot = pd.DataFrame()
@@ -72,7 +73,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
 
 def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
     """
-
+    ERP (event-evoked potential) plot
     :param array_erp:     a 2d numpy array ( N_chan * N_timepoints ):
     :param ts:            a 1d numpy array ( N_timepoints )
     :param array_layout:  electrode array layout
@@ -98,6 +99,7 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
             plt.plot(ts, array_erp_offset[:,i], c=cycle_color[i]*0.9, lw=2)
         plt.gca().set_axis_bgcolor([0.95, 0.95, 0.95])
         plt.xlim(ts[0],ts[-1])
+        plt.ylim( -(N_chan+2)*offset_plot_chan, -(0-3)*offset_plot_chan,  )
         plt.title('ERPs')
         plt.xlabel('time from event onset (s)')
         plt.ylabel('Voltage (V)')
@@ -140,10 +142,10 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
         plt.locator_params(axis='x', nbins=4)
         plt.locator_params(axis='y', nbins=4)
 
+        ylim_max = np.max(np.abs(ax_bottomleft.get_ylim()))
+        ax_bottomleft.set_ylim([-ylim_max, ylim_max])
 
         plt.suptitle('ERPs', fontsize=18)
-
-
 
     return h_fig
 
@@ -210,7 +212,7 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
 
 
 
-def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
+def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='auto', tf_legend=False):
     """
     funciton to plot psth and raster
     :param data: 2D np array, (N_trail * N_ts)
@@ -219,24 +221,47 @@ def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='',
     :param limit:   index array for selecting trials
     :return:
     """
-    ax_psth = plt.gca()
-    data2D = np.array(data2D)
-    M = 1
-    [N, T] = np.shape(data2D)
-    ts = np.array(ts)
-    if ts is None:
-        ts = np.arange( np.size(data2D, axis=1) )
-    if cdtn is None:
-        cdtn = ['']*N
-    cdtn = np.array(cdtn)
-    if limit is not None:
+
+    """ process the input, to work with various inputs """
+    if limit is not None:       # select trials of interest
         limit = np.array(limit)
-        data2D = data2D[limit, :]
-        cdtn   = cdtn[limit]
+        data = np.take(np.array(data), limit, axis=0)
+
+
+    if len(data.shape) ==3:     # if data is 3D [N_trials * N_ts * N_signals]
+        [N,T,S] = data.shape
+        data2D = signal_align.data3Dto2D(data)   # re-organize as 2D [(N_trials* N_signals) * N_ts ]
+        if cdtn is None:                         # condition is the tag of the last dimension (e.g. signal name)
+            cdtn = np.array([[i]*N for i in range(S)]).ravel()
+        elif len(cdtn) == S:
+            cdtn = np.array([[i]*N for i in cdtn]).ravel()
+        else:
+            cdtn = ['']*(N*S)
+            warnings.warn('cdtn length does not match the number of signals in data')
+
+    elif len(data.shape) ==2:   # if data is 2D [N_trials * N_ts]
+        data2D = data
         [N, T] = np.shape(data2D)
-    cdtn_unq  = get_unique_elements(cdtn)
+        if cdtn is None:                         # condition is the tag of the trials
+            cdtn = ['']*N
+        if limit is not None:
+            cdtn   = cdtn[limit]
+    else:
+        raise( Exception('input data does not have the right dimension') )
+
+    cdtn = np.array(cdtn)
+    cdtn_unq  = get_unique_elements(cdtn)        # unique conditions
     M = len(cdtn_unq)
 
+    if ts is None:
+        ts = np.arange( np.size(data2D, axis=1) )
+    else:
+        ts = np.array(ts)
+
+
+    """ calculate PSTH, one line for every condition """
+
+    ax_psth = plt.gca()
     psth_cdtn = np.zeros([M, T])
     N_cdtn     = np.zeros(M).astype(int)
     N_cdtn_cum = np.zeros(M+1).astype(int)
@@ -262,14 +287,18 @@ def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='',
     # ========== plot psth ==========
     hl_lines = []
     for k, cdtn_k in enumerate(cdtn_unq):
-        hl_line, = plt.plot(ts, psth_cdtn[k, :], c=colors[k])  # temp
+        hl_line, = plt.plot(ts, psth_cdtn[k, :], c=colors[k])
         hl_lines.append(hl_line)
+
+    textprops = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    plt.text(0.05, 0.9, 'N={}'.format(N), transform=ax_psth.transAxes, verticalalignment='top',bbox=textprops)
 
     ax_psth.set_xlim([ts[0], ts[-1]])
     if tf_legend:
         plt.legend(cdtn_unq, labelspacing=0.1, prop={'size': 8},
                    fancybox=True, framealpha=0.5)
 
+    # ========== plot a subpanel, either rasters or LFP pcolor ==========
     if subpanel is not '':
         # ========== sub-panel for raster or p-color  ==========
         ax_raster = add_axes_on_top(ax_psth, r=0.4)
@@ -282,13 +311,7 @@ def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='',
                 subpanel = 'pcolor'
 
         if subpanel is 'raster':       # ---------- plot raster (spike trains) ----------
-            for k, cdtn_k in enumerate(cdtn_unq):
-                try:
-                    plt.eventplot([ts[data2D[i, :] > 0] for i in np.flatnonzero(cdtn==cdtn_k)],
-                              lineoffsets=range(N_cdtn_cum[k], N_cdtn_cum[k+1]),
-                              linewidths=2, color=[colors[k]]*N_cdtn[k])
-                except:
-                    print('function PsthPlot(), can not plot raster')
+            SpkRasterPlot(data2D, ts=ts, cdtn=cdtn, colors=colors, max_rows=None)
 
         elif subpanel is 'pcolor':    # ---------- plot_pcolor (LFP) ----------
             y_axis_abs = np.abs(np.array(ax_psth.get_ylim())).max()
@@ -301,13 +324,69 @@ def PsthPlot(data2D, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='',
                 plt.plot( [ts[0], ts[-1]], [N_cdtn_cum[k],N_cdtn_cum[k]], color='k', linewidth=2)
         ax_raster.set_ylim([0,N])
         ax_raster.set_xlim([ts[0], ts[-1]])
-        ax_raster.yaxis.set_ticks( keep_less_than(N_cdtn_cum[1:]) )
+        # ax_raster.yaxis.set_ticks( keep_less_than(N_cdtn_cum[1:]) )
+
+    return ax_psth
+
+def SpkRasterPlot(data2D, ts=None, cdtn=None, colors=None, max_rows=None):
+    """
+    Spike raster Plot, where evary row presresent one trial, sorted by cdtn
+    :param data2D:   2D np.array of boolean values, [N_trial * N_ts]
+    :param ts:       1D np.array of timestamps, 1D np.array of length N_ts
+    :param cdtn:     condition of every trial,  1D np.array of length N_trial
+    :param colors:   a list of colors for every unique condition
+    :return:         handle of raster plot
+    """
+    [N, T] = data2D.shape
+
+    if cdtn is None:        # if cdtn is none, fill with blank string
+        cdtn = ['']*N
+
+    # reorder index according to cdtn, so that trials of the same condition sits together in rows
+    cdtn_unq = get_unique_elements(cdtn)
+    M = len(cdtn_unq)
+    cdtn = np.array(cdtn)
+    index_reorder = np.concatenate([np.flatnonzero(cdtn == cdtn_k) for cdtn_k in cdtn_unq])
+    data2D = data2D[index_reorder,:]
+    cdtn = cdtn[index_reorder]
+
+    if colors is None:      # if no color is given
+        colors = gen_distinct_colors(M, luminance=0.7)
+
+    if ts is None:
+        ts = np.arange(T)
+
+    # if N is too large, to speed up plot, randomly select a fraction to plot
+    if max_rows is not None:
+        if max_rows < N:
+            indx_subselect = np.sort(np.random.choice(N, max_rows, replace=False))
+            data2D = data2D[indx_subselect,:]
+            cdtn   = cdtn[indx_subselect]
+            N = max_rows
 
 
-    # data_plot = np.zeros([N_ts, N_sign])
-    # for i in range(N_sign):
-    #     data_plot[:, i] = np.convolve(np.mean(data3D, axis=0)[:, i], smooth_kernel, 'same')
+    [y,x] = zip(*np.argwhere(data2D>0))
+    x_ts  = ts[np.array(x)]   # x loc of raster lines
+    y     = np.array(y)       # y loc of raster lines
+    y_min = y - 0.0005*N
+    y_max = y+1 +0.0005*N
 
+    # color for every raster line
+    cdtn_indx_of_trial = np.zeros(N).astype(int)
+    N_cdtn = np.zeros(M).astype(int)
+    for k, cdtn_k in enumerate(cdtn_unq):
+        N_cdtn[k] = np.sum(cdtn == cdtn_k)
+        cdtn_indx_of_trial[cdtn == cdtn_k] = k
+    N_cdtn_cum = np.cumsum(N_cdtn)
+    c     = np.array(colors)[ cdtn_indx_of_trial[np.array(y)] ]
+
+    h_raster = plt.vlines(x_ts, y_min, y_max, colors=c, linewidth=2)
+    plt.xlim(ts[0],ts[-1])
+    plt.ylim(0, N)
+    plt.gca().yaxis.set_ticks(keep_less_than([0]+N_cdtn_cum.tolist(), 8))
+    plt.setp(plt.gca().get_xticklabels(), visible=False)
+
+    return h_raster
 
 def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_name='', limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
     N_cdtn0 = len(data_df[cdtn0_name].unique())
