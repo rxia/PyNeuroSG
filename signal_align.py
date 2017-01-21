@@ -228,6 +228,15 @@ def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}, tf_plt=False):
     return neuro
 
 
+def data3Dto2D(data3D):
+    """
+    data3D to data2D, move the last dimension to stack vertically
+    :param data3D:  np array: [N_trials * N_ts * N_signals]
+    :return:        np array: [(N_trials*N_signals) * N_ts ]
+    """
+    [N1, N2, N3] = data3D.shape
+    return np.vstack(data3D[:,:,i] for i in range(N3))
+
 # ==================== Some test script  ====================
 # to test
 if 0:
