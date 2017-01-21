@@ -305,7 +305,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='auto
         plt.axes(ax_raster)
 
         if subpanel == 'auto':      # if auto, use the data features to determine raster (spk) plot or pcolor (LFP) plot
-            if len(np.unique(data2D)) <=5:
+            if len(np.unique(data2D)) <=20:
                 subpanel = 'raster'
             else:
                 subpanel = 'pcolor'
@@ -314,18 +314,8 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=np.nan, subpanel='auto
             SpkRasterPlot(data2D, ts=ts, cdtn=cdtn, colors=colors, max_rows=None)
 
         elif subpanel is 'pcolor':    # ---------- plot_pcolor (LFP) ----------
-            y_axis_abs = np.abs(np.array(ax_psth.get_ylim())).max()
-            index_reorder = np.concatenate([np.flatnonzero(np.array(cdtn) == cdtn_k) for cdtn_k in cdtn_unq])
-            data2D_reorder = data2D[index_reorder,:]
-            plt.pcolormesh( center2edge(ts), range(N+1), data2D_reorder, vmin=-y_axis_abs, vmax=y_axis_abs, cmap=plt.get_cmap('coolwarm'))
-            for k, cdtn_k in enumerate(cdtn_unq):
-                plt.plot( ts[[0,0]]+(ts[-1]-ts[0])/20,   N_cdtn_cum[k:k+2], color=colors[k], linewidth=5 )
-                # ax_raster.add_patch(plt.Rectangle([ts[0], N_cdtn_cum[k]], 0, 1, facecolor=colors[k]))
-                plt.plot( [ts[0], ts[-1]], [N_cdtn_cum[k],N_cdtn_cum[k]], color='k', linewidth=2)
-        ax_raster.set_ylim([0,N])
-        ax_raster.set_xlim([ts[0], ts[-1]])
-        # ax_raster.yaxis.set_ticks( keep_less_than(N_cdtn_cum[1:]) )
-
+            LfpRasterPlot(data2D, ts=ts, cdtn=cdtn, colors=colors, max_rows=None)
+        plt.setp(ax_raster.get_xticklabels(), visible=False)
     return ax_psth
 
 def SpkRasterPlot(data2D, ts=None, cdtn=None, colors=None, max_rows=None):
@@ -380,13 +370,69 @@ def SpkRasterPlot(data2D, ts=None, cdtn=None, colors=None, max_rows=None):
     N_cdtn_cum = np.cumsum(N_cdtn)
     c     = np.array(colors)[ cdtn_indx_of_trial[np.array(y)] ]
 
+    # ----- major plot commmand -----
     h_raster = plt.vlines(x_ts, y_min, y_max, colors=c, linewidth=2)
     plt.xlim(ts[0],ts[-1])
     plt.ylim(0, N)
+    plt.gca().invert_yaxis()
     plt.gca().yaxis.set_ticks(keep_less_than([0]+N_cdtn_cum.tolist(), 8))
-    plt.setp(plt.gca().get_xticklabels(), visible=False)
 
     return h_raster
+
+
+def LfpRasterPlot(data2D, ts=None, cdtn=None, colors=None, max_rows=None):
+
+    data2D = np.array(data2D)
+    [N, T] = data2D.shape
+
+    if cdtn is None:        # if cdtn is none, fill with blank string
+        cdtn = ['']*N
+
+    # reorder index according to cdtn, so that trials of the same condition sits together in rows
+    cdtn_unq = get_unique_elements(cdtn)
+    M = len(cdtn_unq)
+    cdtn = np.array(cdtn)
+    index_reorder = np.concatenate([np.flatnonzero(cdtn == cdtn_k) for cdtn_k in cdtn_unq])
+    data2D = data2D[index_reorder,:]
+    cdtn = cdtn[index_reorder]
+
+    if colors is None:      # if no color is given
+        colors = gen_distinct_colors(M, luminance=0.7)
+
+    if ts is None:
+        ts = np.arange(T)
+
+    # if N is too large, to speed up plot, randomly select a fraction to plot
+    if max_rows is not None:
+        if max_rows < N:
+            indx_subselect = np.sort(np.random.choice(N, max_rows, replace=False))
+            data2D = data2D[indx_subselect,:]
+            cdtn   = cdtn[indx_subselect]
+            N = max_rows
+
+    # -----  major plot command -----
+    # c_axis_abs = np.max(np.abs(data2D))
+    c_axis_abs = np.percentile(np.abs(data2D), 98)
+    plt.pcolormesh(center2edge(ts), range(N + 1), data2D, vmin=-c_axis_abs, vmax=c_axis_abs,
+                   cmap=plt.get_cmap('coolwarm'))
+
+
+    # color for every condition
+    N_cdtn = np.zeros(M).astype(int)
+    for k, cdtn_k in enumerate(cdtn_unq):
+        N_cdtn[k] = np.sum(cdtn == cdtn_k)
+    N_cdtn_cum = np.cumsum(N_cdtn)
+
+    plt.vlines(ts[ [0]*M ], np.insert(N_cdtn_cum,0,0)[0:M], N_cdtn_cum, colors=colors, linewidth=10)
+    for k, cdtn_k in enumerate(cdtn_unq):
+        # plt.plot(ts[[0, 0]] + (ts[-1] - ts[0]) / 20, N_cdtn_cum[k:k + 2], color=colors[k], linewidth=5)
+        plt.plot([ts[0], ts[-1]], [N_cdtn_cum[k], N_cdtn_cum[k]], color='k', linewidth=1)
+
+    plt.xlim(ts[0],ts[-1])
+    plt.ylim(0, N)
+    plt.gca().yaxis.set_ticks(keep_less_than([0]+N_cdtn_cum.tolist(), 8))
+    plt.gca().invert_yaxis()
+
 
 def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_name='', limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
     N_cdtn0 = len(data_df[cdtn0_name].unique())
