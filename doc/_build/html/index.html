@@ -1,0 +1,527 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Welcome to PyNeuroSG’s documentation! &#8212; PyNeuroSG 2017_01_21 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '2017_01_21',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="welcome-to-pyneurosg-s-documentation">
+<h1>Welcome to PyNeuroSG&#8217;s documentation!<a class="headerlink" href="#welcome-to-pyneurosg-s-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+<div class="section" id="module-PyNeuroPlot">
+<span id="modules"></span><h1>Modules<a class="headerlink" href="#module-PyNeuroPlot" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="PyNeuroPlot.ErpPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">ErpPlot</code><span class="sig-paren">(</span><em>array_erp</em>, <em>ts</em>, <em>array_layout=None</em>, <em>depth_start=0</em>, <em>depth_incr=0.1</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.ErpPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>ERP (event-evoked potential) plot</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>array_erp</strong> &#8211; a 2d numpy array ( N_chan * N_timepoints )</li>
+<li><strong>ts</strong> &#8211; a 1d numpy array ( N_timepoints )</li>
+<li><strong>array_layout</strong> &#8211; electrode array layout
+if None, assume linear layout,
+otherwise, use the the give array_layout in the format: {chan: (row, col)}</li>
+<li><strong>depth_start</strong> &#8211; starting depth of channel 1</li>
+<li><strong>depth_incr</strong> &#8211; depth increment</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">figure handle</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.PsthPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">PsthPlot</code><span class="sig-paren">(</span><em>data</em>, <em>ts=None</em>, <em>cdtn=None</em>, <em>limit=None</em>, <em>sk_std=None</em>, <em>subpanel='auto'</em>, <em>color_style='discrete'</em>, <em>tf_legend=False</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.PsthPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>funciton to plot psth with a raster panel on top of PSTH, works for both spike data and LFP data</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> &#8211; neuro data, np array of various size and dtpye:
+size: 2D [N_trials * N_ts] or 3D [N_trials * N_ts * N_signals]
+dtype: boolean (spike exist or not) or float (LFP continuous values)</li>
+<li><strong>ts</strong> &#8211; 1D array containing timestamps for data (length is N_ts)</li>
+<li><strong>cdtn</strong> &#8211; conditions used to group
+if data is 2D, represent the type of trials,  len(cdtn)=N_ts
+if data is 3D, represent the type of signals, len(cdtn)=N_signals</li>
+<li><strong>limit</strong> &#8211; index array to select a subset of the trials of data, i.e., data=data[limit,:]</li>
+<li><strong>sk_std</strong> &#8211; std of gaussian smoothness kernel, applied along time axis, default to None</li>
+<li><strong>subpanel</strong> &#8211; types of sub-panel on tops of PSTH, default to &#8216;auto&#8217;
+if &#8216;spk&#8217;  : data2D is boolean, where every True value represents a spike, plot line raster
+if &#8216;LFP&#8217;  : data2D is continuous float, plot pcolormesh
+if &#8216;auto&#8217; : use data format to decide which plot to use
+if &#8216;&#8217;     : does not create subpanel</li>
+<li><strong>color_style</strong> &#8211; &#8216;discrete&#8217; or &#8216;continuous&#8217;</li>
+<li><strong>tf_legend</strong> &#8211; boolean</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">axes of plot: [ax_psth, ax_raster]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.RasterPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">RasterPlot</code><span class="sig-paren">(</span><em>data2D</em>, <em>ts=None</em>, <em>cdtn=None</em>, <em>colors=None</em>, <em>RasterType='auto'</em>, <em>max_rows=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.RasterPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Spike/LFP raster Plot, where evary row presresent one trial, sorted by cdtn</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data2D</strong> &#8211; 2D np.array of boolean/float values, [N_trial * N_ts]</li>
+<li><strong>ts</strong> &#8211; 1D np.array of timestamps, 1D np.array of length N_ts,    used as x axis for plot</li>
+<li><strong>cdtn</strong> &#8211; condition of every trial,  1D np.array of length N_trial, used to sort trials</li>
+<li><strong>colors</strong> &#8211; a list of colors for every unique condition</li>
+<li><strong>RasterType</strong> &#8211; string, &#8216;spk&#8217;, &#8216;LFP&#8217; or &#8216;auto&#8217;, default to &#8216;auto&#8217;
+if &#8216;spk&#8217;  : data2D is boolean, where every True value represents a spike, plot line raster
+if &#8216;LFP&#8217;  : data2D is continuous float, plot pcolormesh
+if &#8216;auto&#8217; : use data2D format to decide which plot to use</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">handle of raster plot</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.RfPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">RfPlot</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>indx_sgnl=0</em>, <em>x_scale=0.1</em>, <em>y_scale=50</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.RfPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot RF using one single plot, the data_neuro[&#8216;cdtn&#8217;] contains &#8216;x&#8217; and &#8216;y&#8217;, which represents the location of stimulus</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.SignalPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">SignalPlot</code><span class="sig-paren">(</span><em>ts</em>, <em>data3D</em>, <em>sk_std=nan</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.SignalPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>function to generate plot using data3D, (N_trial * N_ts * N_signal)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ts</strong> &#8211; timestamps (in sec)</li>
+<li><strong>data3D</strong> &#8211; data</li>
+<li><strong>sk_std</strong> &#8211; smooth kernel std (in sec); default is nan, do not smooth data</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.SmartSubplot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">SmartSubplot</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>functionPlot=None</em>, <em>dataPlot=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.SmartSubplot" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Smart subplots based on the data_neuro[&#8216;cdtn&#8217;]; in each panel, plot using function &#8216;functionPlot&#8217;, on data &#8216;dataPlot&#8217;</dt>
+<dd>if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and dim1 as columns</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data_neuro</strong> &#8211; dictionary containing field &#8216;cdtn&#8217; and &#8216;cdtn_indx&#8217;, which directing the subplot layout</li>
+<li><strong>functionPlot</strong> &#8211; the plot function in each panel</li>
+<li><strong>dataPlot</strong> &#8211; the data that plot function applies on; in each panel, its first dim is sliced using data_neuro[&#8216;cdtn_indx&#8217;]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">[h_fig, h_ax]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.SpectrogramAllPairPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">SpectrogramAllPairPlot</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>indx_chan=None</em>, <em>limit_gap=1</em>, <em>t_bin=0.2</em>, <em>t_step=None</em>, <em>f_lim=None</em>, <em>coh_lim=None</em>, <em>t_axis=1</em>, <em>batchsize=100</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.SpectrogramAllPairPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot all LFP power specgtrogram (diagonal panels) and all pairwise coherence (off-diagonal panels)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data_neuro</strong> &#8211; standard data input</li>
+<li><strong>indx_chan</strong> &#8211; index of channels to plot (from zero)</li>
+<li><strong>limit_gap</strong> &#8211; the gap between channels to plot, used when indx_chan is None. e.g. if limit_gap=4, the indx_chan=[0,4,8,...]</li>
+<li><strong>t_bin</strong> &#8211; time bin size for spectrogram</li>
+<li><strong>t_step</strong> &#8211; time step size for spectrogram</li>
+<li><strong>f_lim</strong> &#8211; frequency limit for plot (ylim)</li>
+<li><strong>coh_lim</strong> &#8211; lim for coherence plot, control clim</li>
+<li><strong>t_axis</strong> &#8211; axis index of time in data_neuro[&#8216;data&#8217;]</li>
+<li><strong>batchsize</strong> &#8211; batch size for ComputeSpectrogram, used to prevent memory overloading</li>
+<li><strong>verbose</strong> &#8211; if print some intermediate results</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">[h_fig, h_ax], handles of figure and axes</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.SpectrogramPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">SpectrogramPlot</code><span class="sig-paren">(</span><em>spcg</em>, <em>spcg_t</em>, <em>spcg_f</em>, <em>limit_trial=None</em>, <em>tf_log=False</em>, <em>time_baseline=None</em>, <em>t_lim=None</em>, <em>f_lim=None</em>, <em>c_lim=None</em>, <em>name_cmap='inferno'</em>, <em>rate_interp=None</em>, <em>tf_colorbar=False</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.SpectrogramPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot spectrogram, input could be</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>spcg</strong> &#8211; 2D numpy array, [ N_t * N*f ] or 3D numpy array [ N_trial, N_t * N*f ]</li>
+<li><strong>spcg_t</strong> &#8211; tick of time</li>
+<li><strong>spcg_f</strong> &#8211; tick of frequency</li>
+<li><strong>limit_trial</strong> &#8211; index array to specicy which trials to use</li>
+<li><strong>tf_log</strong> &#8211; true/false, use log scale</li>
+<li><strong>time_baseline</strong> &#8211; baseline time period to be subtracted</li>
+<li><strong>name_cmap</strong> &#8211; name of color map to use</li>
+<li><strong>rate_interp</strong> &#8211; rate of interpolation for plotting</li>
+<li><strong>tf_colorbar</strong> &#8211; true/false, plot colorbar</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.SpkWfPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">SpkWfPlot</code><span class="sig-paren">(</span><em>seg</em>, <em>sortcode_min=1</em>, <em>sortcode_max=100</em>, <em>ncols=8</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.SpkWfPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot spk waveforms of a segment, one channel per axes, different sort code are color coded</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.add_axes_on_top">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">add_axes_on_top</code><span class="sig-paren">(</span><em>h_axes</em>, <em>r=0.25</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.add_axes_on_top" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool funciton to add an axes on the top of the existing axis</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>h_axes</strong> &#8211; the curret axex handle</li>
+<li><strong>r</strong> &#8211; ratio of the height of the newly added axes</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.cal_rc">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">cal_rc</code><span class="sig-paren">(</span><em>N</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.cal_rc" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculate n_row, n_column automatically, for subplot layout</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">[n_rows, n_cols]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.create_array_layout_subplots">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">create_array_layout_subplots</code><span class="sig-paren">(</span><em>array_layout</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.create_array_layout_subplots" title="Permalink to this definition">¶</a></dt>
+<dd><p>create the subplots based on the electrode array&#8217;s spatial layout</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>array_layout</strong> &#8211; electrode array&#8217;s spatial layout, a dict, {chan: (row, column)}</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">as the plt.subplots</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.gen_distinct_colors">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">gen_distinct_colors</code><span class="sig-paren">(</span><em>n</em>, <em>luminance=0.9</em>, <em>alpha=0.8</em>, <em>style='discrete'</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.gen_distinct_colors" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool funciton to generate n distinct colors for plotting</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>n</strong> &#8211; num of colors</li>
+<li><strong>luminance</strong> &#8211; num between [0,1]</li>
+<li><strong>alhpa</strong> &#8211; num between [0,1]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">n*4 rgba color matrix</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.isSingle">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">isSingle</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.isSingle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether input is does not contain multiple items, works for lists and tuples</p>
+<p>e.g. 1, 3.0, &#8216;a string&#8217;, [1.0], or (&#8216;afe&#8217;) returns True, [1,2] returns false
+:param x:
+:return:   Ture of False</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.keep_less_than">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">keep_less_than</code><span class="sig-paren">(</span><em>list_in</em>, <em>n=6</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.keep_less_than" title="Permalink to this definition">¶</a></dt>
+<dd><p>keep less than n element, through recursion</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>list_in</strong> &#8211; input list, 1D</li>
+<li><strong>n</strong> &#8211; criterion</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of a subset of the original list with elemetns smaller than n</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.prettyfloat">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">prettyfloat</code><span class="sig-paren">(</span><em>input</em>, <em>precision=2</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.prettyfloat" title="Permalink to this definition">¶</a></dt>
+<dd><p>function to cut the long float numbers for print</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.share_clim">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">share_clim</code><span class="sig-paren">(</span><em>h_ax</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.share_clim" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool funciton to share clim (make sure c_lim of given axes are the same), call after plotting all images</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>h_ax</strong> &#8211; list of axes</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">c_lim</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<span class="target" id="module-PyNeuroAna"></span><dl class="function">
+<dt id="PyNeuroAna.ComputeCoherogram">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">ComputeCoherogram</code><span class="sig-paren">(</span><em>data0</em>, <em>data1</em>, <em>fs=1.0</em>, <em>t_ini=0.0</em>, <em>t_bin=20</em>, <em>t_step=None</em>, <em>t_axis=1</em>, <em>batchsize=100</em>, <em>data0_spcg=None</em>, <em>data1_spcg=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroAna.ComputeCoherogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compuate cohrence over sliding window</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data0</strong> &#8211; LFP data, [ trials * timestamps]</li>
+<li><strong>data1</strong> &#8211; LFP data, [ trials * timestamps]</li>
+<li><strong>fs</strong> &#8211; sampling frequency</li>
+<li><strong>t_ini</strong> &#8211; the first timestamps</li>
+<li><strong>t_bin</strong> &#8211; during of time bin for fft, will be used to find the nearest power of two</li>
+<li><strong>t_step</strong> &#8211; step size for moving window, default to t_bin / 8</li>
+<li><strong>t_axis</strong> &#8211; the axis index of the time in data</li>
+<li><strong>data0_spcg</strong> &#8211; the spcg_xx, if already calculated</li>
+<li><strong>data1_spcg</strong> &#8211; the spcg_yy, if already calculated</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">[cohg, spcg_t, spcg_f]
+cohg:     power spectogram, [ timestamps * frequencty]
+spcg_t:   timestamps of spectrogram
+spcg_t:   frequency ticks of spectrogram</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.ComputeSpectrogram">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">ComputeSpectrogram</code><span class="sig-paren">(</span><em>data</em>, <em>data1=None</em>, <em>fs=1.0</em>, <em>t_ini=0.0</em>, <em>t_bin=20</em>, <em>t_step=None</em>, <em>t_axis=1</em>, <em>batchsize=100</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroAna.ComputeSpectrogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compuate power spectrogram in sliding windows</p>
+<blockquote>
+<div>if a single data is give, returns power spectrum density Pxx over sliding windows;
+if two data are given, returns cross spectrum Pxy over sliding windows</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> &#8211; LFP data, [ trials * timestamps * channels]
+the dimension does not matter, as long as the time axis is provided in t_axis;
+the resulting spcg will add another dimension (frequency) to the end</li>
+<li><strong>fs</strong> &#8211; sampling frequency</li>
+<li><strong>t_ini</strong> &#8211; the first timestamps</li>
+<li><strong>t_bin</strong> &#8211; during of time bin for fft, will be used to find the nearest power of two</li>
+<li><strong>t_step</strong> &#8211; step size for moving window, default to t_bin / 8</li>
+<li><strong>t_axis</strong> &#8211; the axis index of the time in data</li>
+<li><strong>batchsize</strong> &#8211; to prevent memory overloading problem (default to 100, make smaller if memory overload occurs)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">[spcg, spcg_t, spcg_f]
+spcg:     power spectogram, [ trials * timestamps * channels * frequencty]
+spcg_t:   timestamps of spectrogram
+spcg_f:   frequency ticks of spectrogram</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.GetNearestPow2">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">GetNearestPow2</code><span class="sig-paren">(</span><em>n</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroAna.GetNearestPow2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the nearest power of 2, for FFT</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>n</strong> &#8211; input number</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">an int, power of 2 (e.g., 2,4,8,16,32...), nearest to n</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Welcome to PyNeuroSG&#8217;s documentation!</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+<li><a class="reference internal" href="#module-PyNeuroPlot">Modules</a></li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Shaobo Guan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

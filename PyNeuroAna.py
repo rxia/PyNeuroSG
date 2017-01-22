@@ -8,8 +8,10 @@ from scipy.signal import spectral
 def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_axis=1, batchsize=100):
     """
     Compuate power spectrogram in sliding windows
-                    if a single data is give, returns power spectrum density Pxx over sliding windows;
-                    if two data are given, returns cross spectrum Pxy over sliding windows
+
+        if a single data is give, returns power spectrum density Pxx over sliding windows;
+        if two data are given, returns cross spectrum Pxy over sliding windows
+
     :param data:     LFP data, [ trials * timestamps * channels]
                             the dimension does not matter, as long as the time axis is provided in t_axis;
                             the resulting spcg will add another dimension (frequency) to the end
@@ -18,7 +20,7 @@ def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=Non
     :param t_bin:    during of time bin for fft, will be used to find the nearest power of two
     :param t_step:   step size for moving window, default to t_bin / 8
     :param t_axis:   the axis index of the time in data
-    :param batchsize:to prevent memory overloading problem (default to 100, make smaller if memory overload occurs)
+    :param batchsize: to prevent memory overloading problem (default to 100, make smaller if memory overload occurs)
     :return:         [spcg, spcg_t, spcg_f]
            spcg:     power spectogram, [ trials * timestamps * channels * frequencty]
            spcg_t:   timestamps of spectrogram
@@ -79,6 +81,7 @@ def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=Non
 def ComputeCoherogram(data0, data1, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_axis=1, batchsize=100, data0_spcg=None, data1_spcg=None):
     """
     Compuate cohrence over sliding window
+
     :param data0:    LFP data, [ trials * timestamps]
     :param data1:    LFP data, [ trials * timestamps]
     :param fs:       sampling frequency
@@ -119,6 +122,7 @@ def ComputeCoherogram(data0, data1, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_
 def GetNearestPow2(n):
     """
     Get the nearest power of 2, for FFT
+
     :param n:  input number
     :return:   an int, power of 2 (e.g., 2,4,8,16,32...), nearest to n
     """
