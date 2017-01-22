@@ -90,23 +90,32 @@ except:
 
 
 window_offset = [-0.100, 0.6]
-""" GM32 spike by condition  """
+""" spike by condition  """
 # align
-data_neuro_spk_GM32 = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(1,32+1))
+data_neuro_spk = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(1,48+1))
 # group
-data_neuro_spk_GM32 = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_spk_GM32)
-# plot
-pnp.DataNeuroSummaryPlot(data_neuro_spk_U16, sk_std=0.01, signal_type='auto', suptitle='spk_GM32  {}'.format(filename_common))
+data_neuro_spk = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_spk)
+# plot GM32
+pnp.DataNeuroSummaryPlot(signal_align.select_signal(data_neuro_spk, chan_filter=range(1,32+1)), sk_std=0.01, signal_type='auto', suptitle='spk_GM32  {}'.format(filename_common))
 plt.savefig('{}/{}_spk_GM32.png'.format(dir_temp_fig, filename_common))
-
-""" U16 spike by condition  """
-# align
-data_neuro_spk_U16 = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(33,48+1))
-# group
-data_neuro_spk_U16 = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_spk_U16)
-# plot
-pnp.SmartSubplot(data_neuro_spk_U16, lambda x: pnp.PsthPlot(x, ts=data_neuro_spk_U16['ts'], sk_std=0.010, tf_legend=True, xlabel='t (s)', ylabel='firing rate (spk/s)'), suptitle='spk_U16  {}'.format(filename_common))
+# plot U16
+pnp.DataNeuroSummaryPlot(signal_align.select_signal(data_neuro_spk, chan_filter=range(33,48+1)), sk_std=0.01, signal_type='auto', suptitle='spk_U16  {}'.format(filename_common))
 plt.savefig('{}/{}_spk_U16.png'.format(dir_temp_fig, filename_common))
+
+
+""" LFP by condition  """
+# align
+data_neuro_LFP = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1))
+# group
+data_neuro_LFP = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_LFP)
+# plot GM32
+pnp.DataNeuroSummaryPlot(signal_align.select_signal(data_neuro_LFP, chan_filter=range(1,32+1)), sk_std=0.01, signal_type='auto', suptitle='LFP_GM32  {}'.format(filename_common))
+plt.savefig('{}/{}_LFP_GM32.png'.format(dir_temp_fig, filename_common))
+# plot U16
+pnp.DataNeuroSummaryPlot(signal_align.select_signal(data_neuro_LFP, chan_filter=range(33,48+1)), sk_std=0.01, signal_type='auto', suptitle='LFP_U16  {}'.format(filename_common))
+plt.savefig('{}/{}_LFP_U16.png'.format(dir_temp_fig, filename_common))
+
+
 
 """ GM32 LFP by condition  """
 # align
