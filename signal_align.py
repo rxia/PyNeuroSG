@@ -12,6 +12,21 @@ import warnings
 import re
 
 def signal_align_to_evt(signal, evt_align_ts, window_offset, spike_bin_rate=1000):
+    """
+    Function break a single neo signal object according to given timestamps and align them together
+
+    used by funciton signal_array_align_to_evt()
+    
+    :param signal:         neo signal object, either neo.core.analogsignal.AnalogSignal or neo.core.spiketrain.SpikeTrain
+    :param evt_align_ts:   timestamps to align signal with, in sec
+    :param window_offset:  [t_start, t_stop], relative timestamps, in sec
+    :param spike_bin_rate: bin rate for spikes, default to 1000:
+    :return:               a dict {'data': signal_aligned, 'ts': time_aligned, 'sampling_rate': sampling_rate}
+
+                           * data:          2D numpy array, [N_trials * N_ts_in_trial]
+                           * ts:            1D numpy array, in ts
+                           * sampling_rate: a florat number, in Hz
+    """
 
     # if evt_align_ts or window_offset does not have a unit, assume it is 'sec'
     # if pq.Quantity(evt_align_ts).simplified.units == pq.Quantity(1):
@@ -56,11 +71,6 @@ def signal_align_to_evt(signal, evt_align_ts, window_offset, spike_bin_rate=1000
         num_bins = (t_stop * sampling_rate).astype('int')
         spk_binned  = np.bincount(np.round((signal-t_start)*sampling_rate).astype('int'), minlength=num_bins)[0:num_bins]
         spk_binned = spk_binned * sampling_rate
-        if 0:   # old method, slow by using "histogram" compared with "bincount"
-            sampling_interval = 1/sampling_rate
-            ts_bin = np.arange(t_start, t_stop, sampling_interval)
-            ts_bin_edge = np.append(ts_bin, ts_bin[-1]+sampling_interval )- sampling_interval/2
-            spk_binned  = np.histogram(signal, ts_bin_edge)[0]
 
         result_aligned = align_continuous(spk_binned, t_start, sampling_rate, evt_align_ts, window_offset)
         signal_aligned = pq.Quantity( result_aligned['signal_aligned'], 'Hz' )
@@ -71,21 +81,32 @@ def signal_align_to_evt(signal, evt_align_ts, window_offset, spike_bin_rate=1000
     time_aligned   = pq.Quantity( result_aligned['time_aligned'], 's' )
     sampling_rate  = pq.Quantity( sampling_rate, 'Hz' )
 
-    return {'data': signal_aligned, 'ts': time_aligned, 'sampling_rate': sampling_rate, 'time_aligned': time_aligned, 'signal_aligned': signal_aligned}
+    signal_aligned = np.array(signal_aligned)
+    time_aligned = np.array(time_aligned)
+    sampling_rate = np.array(sampling_rate)
+
+
+    return {'data': signal_aligned, 'ts': time_aligned, 'sampling_rate': sampling_rate}
 
 
 def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter='.*', name_filter='.*', chan_filter=[], spike_bin_rate=1000):
     """
-    function to align signal arrays to event, returns a 3D array ( N_trials * len_window * N_signals )
-    inputs:
-        segment       :  neo segment object
-        evt_align_ts  : timestamps to align signal with, default in sec, e.g. ts_StimOn=[0, 1.5, 1.7, ...]
-        window_offset : [start, stop] of window relative to event_align_ts, default in sec, eg., [-0.1, 0.5]
-        type_filter   : string of signal types to use, in regular expression, e.g., 'spiketrains' or '.*'
-        name_filter   : string of signal names to use, in regular expression, e.g., 'LFPs.*'
-        spike_bin_rate: frequency to bin spikes, default is 1000 Hz
-    outputs:
-        signal_array_align
+    Function to break neo signal objects (in a segment) according to given timestamps and align them together
+
+    uses function signal_align_to_evt
+
+    :param segment:        neo segment object, contains analogsignals or spiketrain
+    :param evt_align_ts:   timestamps to align signal with, in sec
+    :param window_offset:  [t_start, t_stop], relative timestamps, in sec
+    :param type_filter:    regular expression, used to select signal types, eg., '.*', spiketrains' or 'analogsignals'
+    :param name_filter:    regular expression, used to select signal names, eg., '.*', '.*Code[1-9]$', 'LFPs.*'
+    :param chan_filter:    list that contains integers, used to select channels, eg. [], [0], range(1,32+1)
+    :param spike_bin_rate: bin rate for spikes, default to 1000
+    :return:               a dict {'data': signal_aligned, 'ts': time_aligned, 'sampling_rate': sampling_rate}
+
+                            * data:          3D numpy array, [N_trials * N_ts_in_trial * N_signals]
+                            * ts:            1D numpy array, in ts
+                            * sampling_rate: array of [ N_signals * (signal_name, signal_type, sampling_rate) ]
     """
 
     signal_name = []
@@ -121,7 +142,7 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
         for item in signal_info:
             print(item)
     else:    # if sampling rate is unique
-        data = pq.Quantity( np.dstack(signal_aligned)   )
+        data = np.array( np.dstack(signal_aligned)   )
         ts   = cur_signal_aligned['ts']
 
     # spiketrain_names = [segment.spiketrains[i].name  for  ]
@@ -131,6 +152,25 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
     return {'data': data, 'ts': ts, 'signal_info': signal_info}
 
 def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', name_filter='.*', chan_filter=[],spike_bin_rate=1000):
+    """
+    Function to break neo signal objects (in a block contains multiple segments) according to given timestamps and align them together
+
+    uses function signal_array_align_to_evt
+
+    :param segment:        neo block object, contains multiple (N_seg) segments that contain analogsignals or spiketrain
+    :param evt_align_ts:   list of N_seg arrays that contain timestamps to align signal with, in sec
+    :param window_offset:  [t_start, t_stop], relative timestamps, in sec
+    :param type_filter:    regular expression, used to select signal types, eg., '.*', spiketrains' or 'analogsignals'
+    :param name_filter:    regular expression, used to select signal names, eg., '.*', '.*Code[1-9]$', 'LFPs.*'
+    :param chan_filter:    list that contains integers, used to select channels, eg. [], [0], range(1,32+1)
+    :param spike_bin_rate: bin rate for spikes, default to 1000
+    :return:               a dict {'data': signal_aligned, 'ts': time_aligned, 'sampling_rate': sampling_rate}:
+
+                            * data:          3D numpy array, [N_trials * N_ts_in_trial * N_signals]
+                            * ts:            1D numpy array, in ts
+                            * sampling_rate: array of [ N_signals * (signal_name, signal_type, sampling_rate) ]
+    """
+
     data_neuro_list = []
     for i in range(len(blk.segments)):
         segment = blk.segments[i]
@@ -141,7 +181,15 @@ def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', nam
     data_neuro = data_concatenate(data_neuro_list)
     return data_neuro
 
+
 def data_concatenate(list_data_neuro):
+    """
+    Tool function for blk_align_to_evt, make sure they contains the same number of signals
+
+    :param list_data_neuro:  a list of data_neuro
+    :return:                 concatenated data_neuro
+    """
+
     data_neuro_all = {}
     for i, data_neuro in enumerate(list_data_neuro):
         if i==0:                                 # if the first block, copy it
@@ -168,6 +216,10 @@ def data_concatenate(list_data_neuro):
 
 
 def align_continuous(signal, t_start, sampling_rate, evt_align_ts, window_offset):
+    """
+    Tool function used by signal_align_to_evt
+    """
+
     # tool function to align continuous signals, all inputs do not have units
     signal = np.squeeze(signal)  # make sure it is 1D array
     indx_align = (( evt_align_ts - t_start ) * sampling_rate) .round().astype(int)
@@ -200,11 +252,13 @@ def align_continuous(signal, t_start, sampling_rate, evt_align_ts, window_offset
 
 def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}, tf_plt=False):
     """
-    :param neuro:  neural data, a dict, neuro['data'] is a 3D array ( N_trials * len_window * N_signals )
+    funciton to sort a table arrording to some columns, returns the index of each condition
+
     :param tlbl:   trial label, information of every trial, a pandas data frame
     :param grpby:  group by   , list of string that specifies the columns to sort and group
     :param fltr:   filter     , binary array of length N_trials for keeping/discarding the trials
-    :return:
+    :param neuro:  neural data, a dict, neuro['data'] is a 3D array ( N_trials * len_window * N_signals )
+    :return:       ({'grpby': grpby, 'fltr': fltr, 'cdtn': sorted(cdtn_indx.keys()), 'cdtn_indx': cdtn_indx})
     """
 
     # process inputs
@@ -231,6 +285,7 @@ def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}, tf_plt=False):
 def data3Dto2D(data3D):
     """
     data3D to data2D, move the last dimension to stack vertically
+
     :param data3D:  np array: [N_trials * N_ts * N_signals]
     :return:        np array: [(N_trials*N_signals) * N_ts ]
     """

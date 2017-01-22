@@ -23,6 +23,9 @@ Indices and tables
 Modules
 ==================
 
+.. automodule:: signal_align
+   :members:
+
 .. automodule:: PyNeuroPlot
    :members:
 
