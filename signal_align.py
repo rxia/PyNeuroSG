@@ -106,13 +106,15 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
 
                             * data:          3D numpy array, [N_trials * N_ts_in_trial * N_signals]
                             * ts:            1D numpy array, in ts
-                            * sampling_rate: array of [ N_signals * (signal_name, signal_type, sampling_rate) ]
+                            * signal_info:   1D numpy array, N_signals * [('name', 'S32'), ('type', 'S32'), ('sampling_rate', float), ('channel_index', int), ('sort_code', int)]
     """
 
     signal_name = []
     signal_type  = []
     signal_aligned = []
     signal_sampling_rate = []
+    signal_chan = []
+    signal_sortcode = []
     data = np.array([], ndmin=3)
     ts   = np.array([], ndmin=1)
     neo_data_object_types = ['spiketrains', 'analogsignals']
@@ -120,18 +122,32 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
         if re.match(type_filter, neo_data_object_type) is not None:
             neo_data_object = getattr(segment, neo_data_object_type)
             if len(chan_filter)==0:
-                chan_filter = range( len(neo_data_object)*10 )
+                chan_filter = range( len(neo_data_object)*1000 )
             for i in range(len(neo_data_object)):
                 cur_name = neo_data_object[i].name
                 if re.match(name_filter, cur_name) is not None:
-                    if neo_data_object[i].annotations['channel_index'] in chan_filter:
+                    try:
+                        cur_chan = neo_data_object[i].annotations['channel_index']
+                    except:
+                        cur_chan = 0
+                    if cur_chan in chan_filter:
                         signal_name.append(cur_name)
                         signal_type.append(neo_data_object_type)
                         cur_signal_aligned = signal_align_to_evt(neo_data_object[i], evt_align_ts, window_offset, spike_bin_rate)
                         signal_aligned.append( cur_signal_aligned['data'] )
                         signal_sampling_rate.append( cur_signal_aligned['sampling_rate'] )
-    signal_info = zip(signal_name, signal_type, signal_sampling_rate)
-    signal_info = np.array( signal_info, dtype=[('name', 'S32'), ('type', 'S32'), ('sampling_rate', float)]  )
+                        try:
+                            cur_chan = neo_data_object[i].annotations['channel_index']
+                        except:
+                            cur_chan = 0
+                        try:
+                            cur_sortcode = neo_data_object[i].annotations['sort_code']
+                        except:
+                            cur_sortcode = 0
+                        signal_chan.append(cur_chan)
+                        signal_sortcode.append(cur_sortcode)
+    signal_info = zip(signal_name, signal_type, signal_sampling_rate, signal_chan, signal_sortcode)
+    signal_info = np.array( signal_info, dtype=[('name', 'S32'), ('type', 'S32'), ('sampling_rate', float), ('channel_index', int), ('sort_code', int)]  )
 
     if len(signal_aligned) == 0:
         warnings.warn('no signals in the segment match the selection filter for alignment')
@@ -168,7 +184,7 @@ def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', nam
 
                             * data:          3D numpy array, [N_trials * N_ts_in_trial * N_signals]
                             * ts:            1D numpy array, in ts
-                            * sampling_rate: array of [ N_signals * (signal_name, signal_type, sampling_rate) ]
+                            * signal_info:   1D numpy array, N_signals * [('name', 'S32'), ('type', 'S32'), ('sampling_rate', float), ('channel_index', int), ('sort_code', int)]
     """
 
     data_neuro_list = []
@@ -248,6 +264,9 @@ def align_continuous(signal, t_start, sampling_rate, evt_align_ts, window_offset
 
     return {'signal_aligned': signal_aligned, 'time_aligned': time_aligned}
 
+
+def select_signal(data_neuro, indx=None, name_filter='.*', chan_filter=None, sortcode_filter=None):
+    pass
 
 
 def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}, tf_plt=False):
