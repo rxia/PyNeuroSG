@@ -1,5 +1,9 @@
+"""
+This is a show case for the project PyNeuroSG
+"""
 
-
+""" Import modules """
+# ----- standard modules -----
 import os
 import sys
 import numpy as np
@@ -10,22 +14,26 @@ import matplotlib.pyplot as plt
 import re                   # regular expression
 import time                 # time code execution
 
+# ----- modules used to read neuro data -----
 import dg2df                # for DLSH dynamic group (behavioral data)
 import neo                  # data structure for neural data
 import quantities as pq
+
+# ----- modules of the project PyNeuroSG -----
 import signal_align         # in this package: align neural data according to task
 import PyNeuroAna as pna    # in this package: analysis
 import PyNeuroPlot as pnp   # in this package: plot
 import misc_tools           # in this package: misc
 
+# ----- modules for the data location and organization in Sheinberg lab -----
 import data_load_DLSH       # package specific for DLSH lab data
+from GM32_layout import layout_GM32
+
 
 from scipy import signal
 from scipy.signal import spectral
 from PyNeuroPlot import center2edge
 
-
-from GM32_layout import layout_GM32
 
 plt.ioff()
 
@@ -50,7 +58,8 @@ data_df = data_load_DLSH.standardize_data_df(data_df, filename_common)
 blk     = data_load_DLSH.standardize_blk(blk)
 
 
-""" ==================== """
+
+""" ========== Baisc overview of the neural data quality ========== """
 
 """ glance spk waveforms """
 pnp.SpkWfPlot(blk.segments[0])
@@ -66,39 +75,38 @@ pnp.ErpPlot(ERP, data_neuro['ts'])
 plt.savefig('{}/{}_ERP_all.png'.format(dir_temp_fig, filename_common))
 
 try:
+    # for GM32 array in V4
     pnp.ErpPlot(ERP[32:,:], data_neuro['ts'])
     plt.savefig('{}/{}_ERP_U16.png'.format(dir_temp_fig, filename_common))
 
+    # for U16 array in IT
     pnp.ErpPlot(ERP[0:32, :], data_neuro['ts'], array_layout=layout_GM32)
     plt.savefig('{}/{}_ERP_GM32.png'.format(dir_temp_fig, filename_common))
 except:
     pass
 
 
-""" ==================== """
+""" ========== PSTH or spike raster and average LFP of different experimental conditions ========== """
 
 
 window_offset = [-0.100, 0.6]
 """ GM32 spike by condition  """
 # align
-data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(1,32+1))
+data_neuro_spk_GM32 = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(1,32+1))
 # group
-data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro)
+data_neuro_spk_GM32 = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_spk_GM32)
 # plot
-pnp.NeuroPlot(data_neuro, sk_std=0.010, tf_legend=True, tf_seperate_window=False)
-plt.suptitle('spk_GM32    {}'.format(filename_common), fontsize=20)
+pnp.DataNeuroSummaryPlot(data_neuro_spk_U16, sk_std=0.01, signal_type='auto', suptitle='spk_GM32  {}'.format(filename_common))
 plt.savefig('{}/{}_spk_GM32.png'.format(dir_temp_fig, filename_common))
 
 """ U16 spike by condition  """
 # align
-data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(33,48+1))
+data_neuro_spk_U16 = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(33,48+1))
 # group
-data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro)
+data_neuro_spk_U16 = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_spk_U16)
 # plot
-pnp.NeuroPlot(data_neuro, sk_std=0.010,tf_legend=True, tf_seperate_window=False)
-plt.suptitle('spk_U16    {}'.format(filename_common), fontsize=20)
+pnp.SmartSubplot(data_neuro_spk_U16, lambda x: pnp.PsthPlot(x, ts=data_neuro_spk_U16['ts'], sk_std=0.010, tf_legend=True, xlabel='t (s)', ylabel='firing rate (spk/s)'), suptitle='spk_U16  {}'.format(filename_common))
 plt.savefig('{}/{}_spk_U16.png'.format(dir_temp_fig, filename_common))
-# import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.blk_align_to_evt(blk, blk_StimOn, [-0.100, 1.000], type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1), spike_bin_rate=1000); print(time.time()-t)
 
 """ GM32 LFP by condition  """
 # align

@@ -172,7 +172,7 @@ def RfPlot(data_neuro, indx_sgnl=0, x_scale=0.1, y_scale=50):
 
 
 
-def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
+def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle=''):
     """
     Smart subplots based on the data_neuro['cdtn']
 
@@ -180,11 +180,13 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
     if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and dim1 as columns
     :param data_neuro:    dictionary containing field 'cdtn' and 'cdtn_indx', which directing the subplot layout
     :param functionPlot:  the plot function in each panel
-    :param dataPlot:      the data that plot function applies on; in each panel, its first dim is sliced using data_neuro['cdtn_indx']
+    :param dataPlot:      the data that plot function applies on; in each panel, its first dim is sliced using data_neuro['cdtn_indx'], if None, use data_neuro[data]
     :return:              [h_fig, h_ax]
     """
     if 'cdtn' not in data_neuro.keys():            # if the input data does not contain the field for sorting
         raise Exception('data does not contain fields "cdtn" for subplot')
+    if ('data' in data_neuro.keys()) and dataPlot is None:  # if dataPlot is None, use data_neuro[data]
+        dataPlot = data_neuro['data']
     if isSingle(data_neuro['cdtn'][0]):            # if cdtn is 1D, automatically decide row and column
         N_cdtn = len(data_neuro['cdtn'])
         [n_rows, n_cols] = cal_rc(N_cdtn)
@@ -212,8 +214,11 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
     else:                                          # if cdtn is more than 2D, raise exception
         raise Exception('cdtn structure does not meet the requirement of SmartSubplot')
 
-    h_fig.set_size_inches([12,9])
-
+    h_fig.set_size_inches([12,9], forward=True)
+    try:
+        plt.suptitle(suptitle + '    ' + data_neuro['grpby'].__str__(), fontsize=16)
+    except:
+        pass
     # share clim across axes
     try:
         c_lim = share_clim(h_ax)
@@ -224,7 +229,7 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
 
 
 
-def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete', tf_legend=False):
+def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete', tf_legend=False, xlabel=None, ylabel=None):
     """
     funciton to plot psth with a raster panel on top of PSTH, works for both spike data and LFP data
 
@@ -244,7 +249,9 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
                         * if 'auto' : use data format to decide which plot to use
                         * if ''     : does not create subpanel
     :param color_style: 'discrete' or 'continuous'
-    :param tf_legend:   boolean
+    :param tf_legend:   boolean, true/false to plot legend
+    :param x_label:     string
+    :param y_label:     string
     :return:            axes of plot: [ax_psth, ax_raster]
     """
 
@@ -253,12 +260,14 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
         limit = np.array(limit)
         data = np.take(np.array(data), limit, axis=0)
 
+    cdtn_unq = None
     if len(data.shape) ==3:     # if data is 3D [N_trials * N_ts * N_signals]
         [N,T,S] = data.shape
         data2D = signal_align.data3Dto2D(data)   # re-organize as 2D [(N_trials* N_signals) * N_ts ]
         if cdtn is None:                         # condition is the tag of the last dimension (e.g. signal name)
             cdtn = np.array([[i]*N for i in range(S)]).ravel()
         elif len(cdtn) == S:
+            cdtn_unq = np.array(cdtn)
             cdtn = np.array([[i]*N for i in cdtn]).ravel()
         else:
             cdtn = ['']*(N*S)
@@ -275,7 +284,8 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
         raise( Exception('input data does not have the right dimension') )
 
     cdtn = np.array(cdtn)
-    cdtn_unq  = get_unique_elements(cdtn)        # unique conditions
+    if cdtn_unq is None:
+        cdtn_unq  = get_unique_elements(cdtn)        # unique conditions
     M = len(cdtn_unq)
 
     if ts is None:
@@ -322,6 +332,11 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
     if tf_legend:
         plt.legend(cdtn_unq, labelspacing=0.1, prop={'size': 8},
                    fancybox=True, framealpha=0.5)
+
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+    if ylabel is not None:
+        plt.ylabel(ylabel)
 
     """ ========== plot a subpanel, either rasters or LFP pcolor ========== """
     if subpanel is not '':
@@ -438,9 +453,53 @@ def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_r
 
     return h_raster
 
+def DataNeuroSummaryPlot(data_neuro, sk_std=None, signal_type='auto', suptitle='', xlabel='', ylabel=''):
+    """
+    Summary plot for data_neuro, uses SmartSubplot and PsthPlot
+
+    Use data_neuro['cdtn'] to sort and group trials in to sub-panels, plot all signals in every sub-panel
+
+    :param data_neuro:  data_neuro structure, see moduel signal_align.blk_align_to_evt
+    :param sk_std:      smoothness kernel, if None, set automatically based on data type
+    :param signal_type: 'spk', 'LFP' or 'auto'
+    :param suptitle:    title of figure
+    :param xlabel:      xlabel
+    :param ylabel:      ylabel
+    :return:            figure handle
+    """
+
+    ts = data_neuro['ts']
+    if signal_type == 'auto':
+        if len(np.unique(data_neuro['data'])) <=20:   # signal is spk
+            signal_type = 'spk'
+        else:
+            signal_type = 'LFP'           # signal is LFP
+
+    if sk_std is None:
+        if signal_type == 'spk':
+            sk_std = (ts[-1]-ts[0])/100
+    if xlabel =='':
+        xlabel = 't (s)'
+    if ylabel =='':
+        if signal_type == 'spk':
+            ylabel = 'firing rate (spk/s)'
+        elif signal_type == 'LFP':
+            ylabel = 'LFP (V)'
+
+    name_signals = [x['name'] for x in data_neuro['signal_info']]
+
+    # plot function for every panel
+    functionPlot = lambda x: PsthPlot(x, ts=ts, cdtn=name_signals, sk_std=sk_std, tf_legend=True,
+                                      xlabel=xlabel, ylabel=ylabel, color_style='continuous')
+
+    # plot every condition in every panel
+    h = SmartSubplot(data_neuro, functionPlot, suptitle=suptitle)
+    return h
 
 
 def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_name='', limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
+    """ Obsolete funciton """
+
     N_cdtn0 = len(data_df[cdtn0_name].unique())
     N_cdtn1 = len(data_df[cdtn1_name].unique())
     if N_cdtn1 > 1:
