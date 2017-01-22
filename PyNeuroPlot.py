@@ -32,6 +32,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
     """
     Plot spk waveforms of a segment, one channel per axes, different sort code are color coded
     """
+    
     N_chan = max([item.annotations['channel_index'] for item in seg.spiketrains])   # ! depend on the frame !
     nrows  = int(np.ceil(1.0 * N_chan / ncols))
     # spike waveforms:
@@ -74,14 +75,15 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
 def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
     """
     ERP (event-evoked potential) plot
-    :param array_erp:     a 2d numpy array ( N_chan * N_timepoints ):
+
+    :param array_erp:     a 2d numpy array ( N_chan * N_timepoints )
     :param ts:            a 1d numpy array ( N_timepoints )
     :param array_layout:  electrode array layout
                             if None, assume linear layout,
                             otherwise, use the the give array_layout in the format: {chan: (row, col)}
     :param depth_start:   starting depth of channel 1
     :param depth_incr:    depth increment
-    :return:
+    :return:              figure handle
     """
 
     [N_chan, N_ts] = array_erp.shape
@@ -166,6 +168,7 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
     """
     Smart subplots based on the data_neuro['cdtn']; in each panel, plot using function 'functionPlot', on data 'dataPlot'
         if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and dim1 as columns
+
     :param data_neuro:    dictionary containing field 'cdtn' and 'cdtn_indx', which directing the subplot layout
     :param functionPlot:  the plot function in each panel
     :param dataPlot:      the data that plot function applies on; in each panel, its first dim is sliced using data_neuro['cdtn_indx']
@@ -215,6 +218,7 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
 def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete', tf_legend=False):
     """
     funciton to plot psth with a raster panel on top of PSTH, works for both spike data and LFP data
+
     :param data:        neuro data, np array of various size and dtpye:
                             size: 2D [N_trials * N_ts] or 3D [N_trials * N_ts * N_signals]
                             dtype: boolean (spike exist or not) or float (LFP continuous values)
@@ -336,6 +340,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
 def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_rows=None):
     """
     Spike/LFP raster Plot, where evary row presresent one trial, sorted by cdtn
+
     :param data2D:   2D np.array of boolean/float values, [N_trial * N_ts]
     :param ts:       1D np.array of timestamps, 1D np.array of length N_ts,    used as x axis for plot
     :param cdtn:     condition of every trial,  1D np.array of length N_trial, used to sort trials
@@ -450,6 +455,7 @@ def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time
                  rate_interp=None, tf_colorbar= False):
     """
     plot spectrogram, input could be
+
     :param spcg:          2D numpy array, [ N_t * N*f ] or 3D numpy array [ N_trial, N_t * N*f ]
     :param spcg_t:        tick of time
     :param spcg_f:        tick of frequency
@@ -522,6 +528,7 @@ def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time
 def SpectrogramAllPairPlot(data_neuro, indx_chan=None, limit_gap=1, t_bin=0.2, t_step=None, f_lim = None, coh_lim=None, t_axis=1, batchsize=100, verbose=False):
     """
     Plot all LFP power specgtrogram (diagonal panels) and all pairwise coherence (off-diagonal panels)
+
     :param data_neuro: standard data input
     :param indx_chan:  index of channels to plot (from zero)
     :param limit_gap:  the gap between channels to plot, used when indx_chan is None. e.g. if limit_gap=4, the indx_chan=[0,4,8,...]
@@ -605,6 +612,7 @@ def get_unique_elements(labels):
 def add_axes_on_top(h_axes, r=0.25):
     """
     tool funciton to add an axes on the top of the existing axis
+
     :param h_axes: the curret axex handle
     :param r:      ratio of the height of the newly added axes
     :return:
@@ -671,6 +679,7 @@ def NeuroPlot(data_neuro, layout=[], sk_std=np.nan, tf_seperate_window=False, tf
 def SignalPlot(ts, data3D, sk_std=np.nan):
     """
     function to generate plot using data3D, (N_trial * N_ts * N_signal)
+
     :param ts:      timestamps (in sec)
     :param data3D:  data
     :param sk_std:  smooth kernel std (in sec); default is nan, do not smooth data
@@ -728,6 +737,7 @@ def SignalPlot(ts, data3D, sk_std=np.nan):
 def create_array_layout_subplots(array_layout):
     """
     create the subplots based on the electrode array's spatial layout
+
     :param array_layout: electrode array's spatial layout, a dict, {chan: (row, column)}
     :return: as the plt.subplots
     """
@@ -769,6 +779,7 @@ def prettyfloat(input, precision=2):
 def gen_distinct_colors(n, luminance=0.9, alpha=0.8, style='discrete'):
     """
     tool funciton to generate n distinct colors for plotting
+
     :param n:          num of colors
     :param luminance:  num between [0,1]
     :param alhpa:      num between [0,1]
@@ -791,6 +802,7 @@ def gen_distinct_colors(n, luminance=0.9, alpha=0.8, style='discrete'):
 def keep_less_than(list_in, n=6):
     """
     keep less than n element, through recursion
+
     :param list_in: input list, 1D
     :param n:       criterion
     :return:        list of a subset of the original list with elemetns smaller than n
@@ -805,6 +817,7 @@ def keep_less_than(list_in, n=6):
 def cal_rc(N):
     """
     calculate n_row, n_column automatically, for subplot layout
+
     :return: [n_rows, n_cols]
     """
     n_rows = int(np.ceil(np.sqrt(N)))
@@ -815,6 +828,7 @@ def cal_rc(N):
 def isSingle(x):
     """
     Check whether input is does not contain multiple items, works for lists and tuples
+
     e.g. 1, 3.0, 'a string', [1.0], or ('afe') returns True, [1,2] returns false
     :param x:
     :return:   Ture of False
@@ -830,6 +844,7 @@ def isSingle(x):
 def share_clim(h_ax):
     """
     tool funciton to share clim (make sure c_lim of given axes are the same), call after plotting all images
+
     :param h_ax: list of axes
     :return:     c_lim
     """
