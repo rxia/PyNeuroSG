@@ -30,7 +30,13 @@ def PyNeuroPlot(df, y, x, c=[], p=[]):
 
 def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
     """
-    Plot spk waveforms of a segment, one channel per axes, different sort code are color coded
+    Plot spk waveforms of a segment, one channel per axes, different sort codes are color coded
+
+    :param seg:          neo blk.segment
+    :param sortcode_min: the min sortcode included in the plot, default to 1
+    :param sortcode_max: the max sortcode included in the plot, default to 1
+    :param ncols:        number of columns in the subplot
+    :return:             figure handle
     """
     
     N_chan = max([item.annotations['channel_index'] for item in seg.spiketrains])   # ! depend on the frame !
@@ -71,6 +77,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
     axes.set_ylim( np.max(np.abs(np.array(axes.get_ylim())))*np.array([-1,1]) )    # make y_lim symmetrical
     fig.suptitle('spike waveforms, y_range={} uV'.format(np.round(np.diff(np.array(axes.get_ylim())) * 1000000)[0] ))
 
+    return fig
 
 def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
     """
@@ -166,9 +173,10 @@ def RfPlot(data_neuro, indx_sgnl=0, x_scale=0.1, y_scale=50):
 
 def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
     """
-    Smart subplots based on the data_neuro['cdtn']; in each panel, plot using function 'functionPlot', on data 'dataPlot'
-        if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and dim1 as columns
+    Smart subplots based on the data_neuro['cdtn'];
 
+        in each panel, plot using function 'functionPlot', on data 'dataPlot'
+        if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and dim1 as columns
     :param data_neuro:    dictionary containing field 'cdtn' and 'cdtn_indx', which directing the subplot layout
     :param functionPlot:  the plot function in each panel
     :param dataPlot:      the data that plot function applies on; in each panel, its first dim is sliced using data_neuro['cdtn_indx']
