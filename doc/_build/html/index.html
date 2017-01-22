@@ -54,9 +54,169 @@
 <li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
 </ul>
 </div>
-<div class="section" id="module-PyNeuroPlot">
-<span id="modules"></span><h1>Modules<a class="headerlink" href="#module-PyNeuroPlot" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-signal_align">
+<span id="modules"></span><h1>Modules<a class="headerlink" href="#module-signal_align" title="Permalink to this headline">¶</a></h1>
+<p>This is an example for reading files with neo.io, and get psth
+Shaobo GUAN, Sheinberg lab, Brown University
+2016-0501</p>
 <dl class="function">
+<dt id="signal_align.align_continuous">
+<code class="descclassname">signal_align.</code><code class="descname">align_continuous</code><span class="sig-paren">(</span><em>signal</em>, <em>t_start</em>, <em>sampling_rate</em>, <em>evt_align_ts</em>, <em>window_offset</em><span class="sig-paren">)</span><a class="headerlink" href="#signal_align.align_continuous" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tool function used by signal_align_to_evt</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.blk_align_to_evt">
+<code class="descclassname">signal_align.</code><code class="descname">blk_align_to_evt</code><span class="sig-paren">(</span><em>blk</em>, <em>blk_evt_align_ts</em>, <em>window_offset</em>, <em>type_filter='.*'</em>, <em>name_filter='.*'</em>, <em>chan_filter=[]</em>, <em>spike_bin_rate=1000</em><span class="sig-paren">)</span><a class="headerlink" href="#signal_align.blk_align_to_evt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to break neo signal objects (in a block contains multiple segments) according to given timestamps and align them together</p>
+<p>uses function signal_array_align_to_evt</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>segment</strong> &#8211; neo block object, contains multiple (N_seg) segments that contain analogsignals or spiketrain</li>
+<li><strong>evt_align_ts</strong> &#8211; list of N_seg arrays that contain timestamps to align signal with, in sec</li>
+<li><strong>window_offset</strong> &#8211; [t_start, t_stop], relative timestamps, in sec</li>
+<li><strong>type_filter</strong> &#8211; regular expression, used to select signal types, eg., &#8216;.*&#8217;, spiketrains&#8217; or &#8216;analogsignals&#8217;</li>
+<li><strong>name_filter</strong> &#8211; regular expression, used to select signal names, eg., &#8216;.*&#8217;, &#8216;.*Code[1-9]$&#8217;, &#8216;LFPs.*&#8217;</li>
+<li><strong>chan_filter</strong> &#8211; list that contains integers, used to select channels, eg. [], [0], range(1,32+1)</li>
+<li><strong>spike_bin_rate</strong> &#8211; bin rate for spikes, default to 1000</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>a dict {&#8216;data&#8217;: signal_aligned, &#8216;ts&#8217;: time_aligned, &#8216;sampling_rate&#8217;: sampling_rate}:</p>
+<ul class="simple">
+<li>data:          3D numpy array, [N_trials * N_ts_in_trial * N_signals]</li>
+<li>ts:            1D numpy array, in ts</li>
+<li>sampling_rate: array of [ N_signals * (signal_name, signal_type, sampling_rate) ]</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.data3Dto2D">
+<code class="descclassname">signal_align.</code><code class="descname">data3Dto2D</code><span class="sig-paren">(</span><em>data3D</em><span class="sig-paren">)</span><a class="headerlink" href="#signal_align.data3Dto2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>data3D to data2D, move the last dimension to stack vertically</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data3D</strong> &#8211; np array: [N_trials * N_ts * N_signals]</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">np array: [(N_trials*N_signals) * N_ts ]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.data_concatenate">
+<code class="descclassname">signal_align.</code><code class="descname">data_concatenate</code><span class="sig-paren">(</span><em>list_data_neuro</em><span class="sig-paren">)</span><a class="headerlink" href="#signal_align.data_concatenate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tool function for blk_align_to_evt, make sure they contains the same number of signals</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>list_data_neuro</strong> &#8211; a list of data_neuro</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">concatenated data_neuro</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.neuro_sort">
+<code class="descclassname">signal_align.</code><code class="descname">neuro_sort</code><span class="sig-paren">(</span><em>tlbl</em>, <em>grpby=[]</em>, <em>fltr=[]</em>, <em>neuro={}</em>, <em>tf_plt=False</em><span class="sig-paren">)</span><a class="headerlink" href="#signal_align.neuro_sort" title="Permalink to this definition">¶</a></dt>
+<dd><p>funciton to sort a table arrording to some columns, returns the index of each condition</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>tlbl</strong> &#8211; trial label, information of every trial, a pandas data frame</li>
+<li><strong>grpby</strong> &#8211; group by   , list of string that specifies the columns to sort and group</li>
+<li><strong>fltr</strong> &#8211; filter     , binary array of length N_trials for keeping/discarding the trials</li>
+<li><strong>neuro</strong> &#8211; neural data, a dict, neuro[&#8216;data&#8217;] is a 3D array ( N_trials * len_window * N_signals )</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">({&#8216;grpby&#8217;: grpby, &#8216;fltr&#8217;: fltr, &#8216;cdtn&#8217;: sorted(cdtn_indx.keys()), &#8216;cdtn_indx&#8217;: cdtn_indx})</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.signal_align_to_evt">
+<code class="descclassname">signal_align.</code><code class="descname">signal_align_to_evt</code><span class="sig-paren">(</span><em>signal</em>, <em>evt_align_ts</em>, <em>window_offset</em>, <em>spike_bin_rate=1000</em><span class="sig-paren">)</span><a class="headerlink" href="#signal_align.signal_align_to_evt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function break a single neo signal object according to given timestamps and align them together</p>
+<p>used by funciton signal_array_align_to_evt()</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>signal</strong> &#8211; neo signal object, either neo.core.analogsignal.AnalogSignal or neo.core.spiketrain.SpikeTrain</li>
+<li><strong>evt_align_ts</strong> &#8211; timestamps to align signal with, in sec</li>
+<li><strong>window_offset</strong> &#8211; [t_start, t_stop], relative timestamps, in sec</li>
+<li><strong>spike_bin_rate</strong> &#8211; bin rate for spikes, default to 1000:</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>a dict {&#8216;data&#8217;: signal_aligned, &#8216;ts&#8217;: time_aligned, &#8216;sampling_rate&#8217;: sampling_rate}</p>
+<ul class="simple">
+<li>data:          2D numpy array, [N_trials * N_ts_in_trial]</li>
+<li>ts:            1D numpy array, in ts</li>
+<li>sampling_rate: a florat number, in Hz</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.signal_array_align_to_evt">
+<code class="descclassname">signal_align.</code><code class="descname">signal_array_align_to_evt</code><span class="sig-paren">(</span><em>segment</em>, <em>evt_align_ts</em>, <em>window_offset</em>, <em>type_filter='.*'</em>, <em>name_filter='.*'</em>, <em>chan_filter=[]</em>, <em>spike_bin_rate=1000</em><span class="sig-paren">)</span><a class="headerlink" href="#signal_align.signal_array_align_to_evt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to break neo signal objects (in a segment) according to given timestamps and align them together</p>
+<p>uses function signal_align_to_evt</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>segment</strong> &#8211; neo segment object, contains analogsignals or spiketrain</li>
+<li><strong>evt_align_ts</strong> &#8211; timestamps to align signal with, in sec</li>
+<li><strong>window_offset</strong> &#8211; [t_start, t_stop], relative timestamps, in sec</li>
+<li><strong>type_filter</strong> &#8211; regular expression, used to select signal types, eg., &#8216;.*&#8217;, spiketrains&#8217; or &#8216;analogsignals&#8217;</li>
+<li><strong>name_filter</strong> &#8211; regular expression, used to select signal names, eg., &#8216;.*&#8217;, &#8216;.*Code[1-9]$&#8217;, &#8216;LFPs.*&#8217;</li>
+<li><strong>chan_filter</strong> &#8211; list that contains integers, used to select channels, eg. [], [0], range(1,32+1)</li>
+<li><strong>spike_bin_rate</strong> &#8211; bin rate for spikes, default to 1000</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>a dict {&#8216;data&#8217;: signal_aligned, &#8216;ts&#8217;: time_aligned, &#8216;sampling_rate&#8217;: sampling_rate}</p>
+<ul class="simple">
+<li>data:          3D numpy array, [N_trials * N_ts_in_trial * N_signals]</li>
+<li>ts:            1D numpy array, in ts</li>
+<li>sampling_rate: array of [ N_signals * (signal_name, signal_type, sampling_rate) ]</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<span class="target" id="module-PyNeuroPlot"></span><dl class="function">
 <dt id="PyNeuroPlot.ErpPlot">
 <code class="descclassname">PyNeuroPlot.</code><code class="descname">ErpPlot</code><span class="sig-paren">(</span><em>array_erp</em>, <em>ts</em>, <em>array_layout=None</em>, <em>depth_start=0</em>, <em>depth_incr=0.1</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.ErpPlot" title="Permalink to this definition">¶</a></dt>
 <dd><p>ERP (event-evoked potential) plot</p>
@@ -67,9 +227,12 @@
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>array_erp</strong> &#8211; a 2d numpy array ( N_chan * N_timepoints )</li>
 <li><strong>ts</strong> &#8211; a 1d numpy array ( N_timepoints )</li>
-<li><strong>array_layout</strong> &#8211; electrode array layout
-if None, assume linear layout,
-otherwise, use the the give array_layout in the format: {chan: (row, col)}</li>
+<li><strong>array_layout</strong> &#8211; <p>electrode array layout:</p>
+<ul>
+<li>if None, assume linear layout,</li>
+<li>otherwise, use the the give array_layout in the format: {chan: (row, col)}</li>
+</ul>
+</li>
 <li><strong>depth_start</strong> &#8211; starting depth of channel 1</li>
 <li><strong>depth_incr</strong> &#8211; depth increment</li>
 </ul>
@@ -100,11 +263,14 @@ if data is 2D, represent the type of trials,  len(cdtn)=N_ts
 if data is 3D, represent the type of signals, len(cdtn)=N_signals</li>
 <li><strong>limit</strong> &#8211; index array to select a subset of the trials of data, i.e., data=data[limit,:]</li>
 <li><strong>sk_std</strong> &#8211; std of gaussian smoothness kernel, applied along time axis, default to None</li>
-<li><strong>subpanel</strong> &#8211; types of sub-panel on tops of PSTH, default to &#8216;auto&#8217;
-if &#8216;spk&#8217;  : data2D is boolean, where every True value represents a spike, plot line raster
-if &#8216;LFP&#8217;  : data2D is continuous float, plot pcolormesh
-if &#8216;auto&#8217; : use data format to decide which plot to use
-if &#8216;&#8217;     : does not create subpanel</li>
+<li><strong>subpanel</strong> &#8211; <p>types of sub-panel on tops of PSTH, default to &#8216;auto&#8217;:</p>
+<ul>
+<li>if &#8216;spk&#8217;  : data2D is boolean, where every True value represents a spike, plot line raster</li>
+<li>if &#8216;LFP&#8217;  : data2D is continuous float, plot pcolormesh</li>
+<li>if &#8216;auto&#8217; : use data format to decide which plot to use</li>
+<li>if &#8216;&#8217;     : does not create subpanel</li>
+</ul>
+</li>
 <li><strong>color_style</strong> &#8211; &#8216;discrete&#8217; or &#8216;continuous&#8217;</li>
 <li><strong>tf_legend</strong> &#8211; boolean</li>
 </ul>
@@ -130,10 +296,13 @@ if &#8216;&#8217;     : does not create subpanel</li>
 <li><strong>ts</strong> &#8211; 1D np.array of timestamps, 1D np.array of length N_ts,    used as x axis for plot</li>
 <li><strong>cdtn</strong> &#8211; condition of every trial,  1D np.array of length N_trial, used to sort trials</li>
 <li><strong>colors</strong> &#8211; a list of colors for every unique condition</li>
-<li><strong>RasterType</strong> &#8211; string, &#8216;spk&#8217;, &#8216;LFP&#8217; or &#8216;auto&#8217;, default to &#8216;auto&#8217;
-if &#8216;spk&#8217;  : data2D is boolean, where every True value represents a spike, plot line raster
-if &#8216;LFP&#8217;  : data2D is continuous float, plot pcolormesh
-if &#8216;auto&#8217; : use data2D format to decide which plot to use</li>
+<li><strong>RasterType</strong> &#8211; <p>string, &#8216;spk&#8217;, &#8216;LFP&#8217; or &#8216;auto&#8217;, default to &#8216;auto&#8217;:</p>
+<ul>
+<li>if &#8216;spk&#8217;  : data2D is boolean, where every True value represents a spike, plot line raster</li>
+<li>if &#8216;LFP&#8217;  : data2D is continuous float, plot pcolormesh</li>
+<li>if &#8216;auto&#8217; : use data2D format to decide which plot to use</li>
+</ul>
+</li>
 </ul>
 </td>
 </tr>
@@ -165,7 +334,7 @@ if &#8216;auto&#8217; : use data2D format to decide which plot to use</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">plot handle</p>
 </td>
 </tr>
 </tbody>
@@ -175,26 +344,13 @@ if &#8216;auto&#8217; : use data2D format to decide which plot to use</li>
 <dl class="function">
 <dt id="PyNeuroPlot.SmartSubplot">
 <code class="descclassname">PyNeuroPlot.</code><code class="descname">SmartSubplot</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>functionPlot=None</em>, <em>dataPlot=None</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.SmartSubplot" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>Smart subplots based on the data_neuro[&#8216;cdtn&#8217;]; in each panel, plot using function &#8216;functionPlot&#8217;, on data &#8216;dataPlot&#8217;</dt>
-<dd>if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and dim1 as columns</dd>
-</dl>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>data_neuro</strong> &#8211; dictionary containing field &#8216;cdtn&#8217; and &#8216;cdtn_indx&#8217;, which directing the subplot layout</li>
-<li><strong>functionPlot</strong> &#8211; the plot function in each panel</li>
-<li><strong>dataPlot</strong> &#8211; the data that plot function applies on; in each panel, its first dim is sliced using data_neuro[&#8216;cdtn_indx&#8217;]</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">[h_fig, h_ax]</p>
-</td>
-</tr>
-</tbody>
-</table>
+<dd><p>Smart subplots based on the data_neuro[&#8216;cdtn&#8217;]</p>
+<p>in each panel, plot using function &#8216;functionPlot&#8217;, on data &#8216;dataPlot&#8217;;
+if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and dim1 as columns
+:param data_neuro:    dictionary containing field &#8216;cdtn&#8217; and &#8216;cdtn_indx&#8217;, which directing the subplot layout
+:param functionPlot:  the plot function in each panel
+:param dataPlot:      the data that plot function applies on; in each panel, its first dim is sliced using data_neuro[&#8216;cdtn_indx&#8217;]
+:return:              [h_fig, h_ax]</p>
 </dd></dl>
 
 <dl class="function">
@@ -247,7 +403,7 @@ if &#8216;auto&#8217; : use data2D format to decide which plot to use</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">figure handle</p>
 </td>
 </tr>
 </tbody>
@@ -257,7 +413,24 @@ if &#8216;auto&#8217; : use data2D format to decide which plot to use</li>
 <dl class="function">
 <dt id="PyNeuroPlot.SpkWfPlot">
 <code class="descclassname">PyNeuroPlot.</code><code class="descname">SpkWfPlot</code><span class="sig-paren">(</span><em>seg</em>, <em>sortcode_min=1</em>, <em>sortcode_max=100</em>, <em>ncols=8</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.SpkWfPlot" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot spk waveforms of a segment, one channel per axes, different sort code are color coded</p>
+<dd><p>Plot spk waveforms of a segment, one channel per axes, different sort codes are color coded</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>seg</strong> &#8211; neo blk.segment</li>
+<li><strong>sortcode_min</strong> &#8211; the min sortcode included in the plot, default to 1</li>
+<li><strong>sortcode_max</strong> &#8211; the max sortcode included in the plot, default to 1</li>
+<li><strong>ncols</strong> &#8211; number of columns in the subplot</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">figure handle</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -274,7 +447,7 @@ if &#8216;auto&#8217; : use data2D format to decide which plot to use</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">axis handle</p>
 </td>
 </tr>
 </tbody>
@@ -338,7 +511,7 @@ if &#8216;auto&#8217; : use data2D format to decide which plot to use</li>
 <code class="descclassname">PyNeuroPlot.</code><code class="descname">isSingle</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="headerlink" href="#PyNeuroPlot.isSingle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check whether input is does not contain multiple items, works for lists and tuples</p>
 <p>e.g. 1, 3.0, &#8216;a string&#8217;, [1.0], or (&#8216;afe&#8217;) returns True, [1,2] returns false
-:param x:
+:param x:  list, tuple, string or number
 :return:   Ture of False</p>
 </dd></dl>
 
@@ -478,7 +651,7 @@ spcg_f:   frequency ticks of spectrogram</p>
   <ul>
 <li><a class="reference internal" href="#">Welcome to PyNeuroSG&#8217;s documentation!</a></li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
-<li><a class="reference internal" href="#module-PyNeuroPlot">Modules</a></li>
+<li><a class="reference internal" href="#module-signal_align">Modules</a></li>
 </ul>
 <div class="relations">
 <h3>Related Topics</h3>

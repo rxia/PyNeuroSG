@@ -85,9 +85,10 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
 
     :param array_erp:     a 2d numpy array ( N_chan * N_timepoints )
     :param ts:            a 1d numpy array ( N_timepoints )
-    :param array_layout:  electrode array layout
-                            if None, assume linear layout,
-                            otherwise, use the the give array_layout in the format: {chan: (row, col)}
+    :param array_layout:  electrode array layout:
+
+                          * if None, assume linear layout,
+                          * otherwise, use the the give array_layout in the format: {chan: (row, col)}
     :param depth_start:   starting depth of channel 1
     :param depth_incr:    depth increment
     :return:              figure handle
@@ -173,10 +174,10 @@ def RfPlot(data_neuro, indx_sgnl=0, x_scale=0.1, y_scale=50):
 
 def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
     """
-    Smart subplots based on the data_neuro['cdtn'];
+    Smart subplots based on the data_neuro['cdtn']
 
-        in each panel, plot using function 'functionPlot', on data 'dataPlot'
-        if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and dim1 as columns
+    in each panel, plot using function 'functionPlot', on data 'dataPlot';
+    if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and dim1 as columns
     :param data_neuro:    dictionary containing field 'cdtn' and 'cdtn_indx', which directing the subplot layout
     :param functionPlot:  the plot function in each panel
     :param dataPlot:      the data that plot function applies on; in each panel, its first dim is sliced using data_neuro['cdtn_indx']
@@ -236,11 +237,12 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
                             if data is 3D, represent the type of signals, len(cdtn)=N_signals
     :param limit:       index array to select a subset of the trials of data, i.e., data=data[limit,:]
     :param sk_std:      std of gaussian smoothness kernel, applied along time axis, default to None
-    :param subpanel:    types of sub-panel on tops of PSTH, default to 'auto'
-                            if 'spk'  : data2D is boolean, where every True value represents a spike, plot line raster
-                            if 'LFP'  : data2D is continuous float, plot pcolormesh
-                            if 'auto' : use data format to decide which plot to use
-                            if ''     : does not create subpanel
+    :param subpanel:    types of sub-panel on tops of PSTH, default to 'auto':
+
+                        * if 'spk'  : data2D is boolean, where every True value represents a spike, plot line raster
+                        * if 'LFP'  : data2D is continuous float, plot pcolormesh
+                        * if 'auto' : use data format to decide which plot to use
+                        * if ''     : does not create subpanel
     :param color_style: 'discrete' or 'continuous'
     :param tf_legend:   boolean
     :return:            axes of plot: [ax_psth, ax_raster]
@@ -353,10 +355,11 @@ def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_r
     :param ts:       1D np.array of timestamps, 1D np.array of length N_ts,    used as x axis for plot
     :param cdtn:     condition of every trial,  1D np.array of length N_trial, used to sort trials
     :param colors:   a list of colors for every unique condition
-    :param RasterType:    string, 'spk', 'LFP' or 'auto', default to 'auto'
-                       if 'spk'  : data2D is boolean, where every True value represents a spike, plot line raster
-                       if 'LFP'  : data2D is continuous float, plot pcolormesh
-                       if 'auto' : use data2D format to decide which plot to use
+    :param RasterType:    string, 'spk', 'LFP' or 'auto', default to 'auto':
+
+                     * if 'spk'  : data2D is boolean, where every True value represents a spike, plot line raster
+                     * if 'LFP'  : data2D is continuous float, plot pcolormesh
+                     * if 'auto' : use data2D format to decide which plot to use
     :return:         handle of raster plot
     """
     data2D = np.array(data2D)
@@ -473,7 +476,7 @@ def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time
     :param name_cmap:     name of color map to use
     :param rate_interp:   rate of interpolation for plotting
     :param tf_colorbar:   true/false, plot colorbar
-    :return:
+    :return:              figure handle
     """
 
     if tf_log:                   # if use log scale
@@ -623,7 +626,7 @@ def add_axes_on_top(h_axes, r=0.25):
 
     :param h_axes: the curret axex handle
     :param r:      ratio of the height of the newly added axes
-    :return:
+    :return:       axis handle
     """
     # get axes position
     axes_rect = h_axes.get_position()
@@ -634,7 +637,6 @@ def add_axes_on_top(h_axes, r=0.25):
     h_axes_top.invert_yaxis()
     # h_axes_top.set_xticklabels({})
     h_axes_top.set_axis_bgcolor([0.95,0.95,0.95])
-
 
     return h_axes_top
 
@@ -691,7 +693,7 @@ def SignalPlot(ts, data3D, sk_std=np.nan):
     :param ts:      timestamps (in sec)
     :param data3D:  data
     :param sk_std:  smooth kernel std (in sec); default is nan, do not smooth data
-    :return:
+    :return:        plot handle
     """
 
     tf_smooth_every_trial = False    # very slow if set to true
@@ -838,7 +840,7 @@ def isSingle(x):
     Check whether input is does not contain multiple items, works for lists and tuples
 
     e.g. 1, 3.0, 'a string', [1.0], or ('afe') returns True, [1,2] returns false
-    :param x:
+    :param x:  list, tuple, string or number
     :return:   Ture of False
     """
     if isinstance(x, (list, tuple)):
