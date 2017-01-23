@@ -630,24 +630,24 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, limit_gap=1, t_bin=0.2, t
     spcg_all = []
     for i_plot, i_chan in enumerate(indx_chan):
         [spcg_cur, spcg_t, spcg_f] = pna.ComputeSpectrogram(data[:,:,i_plot], data1=None, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
-        spcg_all.append(spcg_cur)
+        spcg_all.append( np.mean(spcg_cur, axis=0) )
 
     # plot
     text_props = dict(boxstyle='round', facecolor='w', alpha=0.5)
-    [h_fig, h_ax] = plt.subplots(nrows=N_plot, ncols=N_plot, sharex=True, sharey=True)
+    [h_fig, h_ax] = plt.subplots(nrows=N_plot, ncols=N_plot, sharex=True, sharey=True, figsize=[16,16])
     h_fig.set_size_inches([12,9])
     h_fig.subplots_adjust(hspace=0, wspace=0)
     for indx_row in range(N_plot):
         for indx_col in range(N_plot):
             if indx_row == indx_col:            # power spectrogram on diagonal panels
                 plt.axes(h_ax[indx_row, indx_col])
-                h_plot_pow = SpectrogramPlot(np.mean(spcg_all[indx_row], axis=0), spcg_t, spcg_f, tf_log=True, f_lim=f_lim, time_baseline=None,
+                h_plot_pow = SpectrogramPlot(spcg_all[indx_row], spcg_t, spcg_f, tf_log=True, f_lim=f_lim, time_baseline=None,
                                     rate_interp=8)
                 plt.text(0.03, 0.85, '{}'.format(signal_info[indx_row][0]), transform=plt.gca().transAxes, bbox=text_props)
             elif indx_row<indx_col:             # coherence on off diagonal panels
                 # compute coherence
                 [cohg, _, _] = pna.ComputeCoherogram(data[:, :, indx_row], data[:, :, indx_col], fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step,
-                                       t_axis=t_axis, batchsize=batchsize, data0_spcg=spcg_all[indx_row], data1_spcg=spcg_all[indx_col])
+                                       t_axis=t_axis, batchsize=batchsize, data0_spcg_ave=spcg_all[indx_row], data1_spcg_ave=spcg_all[indx_col])
 
                 # plot on two symmetric panels
                 plt.axes(h_ax[indx_row, indx_col])

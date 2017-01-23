@@ -78,7 +78,7 @@ def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=Non
 
 
 
-def ComputeCoherogram(data0, data1, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_axis=1, batchsize=100, data0_spcg=None, data1_spcg=None):
+def ComputeCoherogram(data0, data1, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_axis=1, batchsize=100, data0_spcg=None, data1_spcg=None, data0_spcg_ave=None, data1_spcg_ave=None):
     """
     Compuate cohrence over sliding window
 
@@ -97,20 +97,28 @@ def ComputeCoherogram(data0, data1, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_
            spcg_t:   frequency ticks of spectrogram
     """
     # Pxx
-    if data0_spcg is None:
-        [spcg_xx, _, _] = ComputeSpectrogram(data0, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
+    if data0_spcg_ave is None:
+        if data0_spcg is None:
+            [spcg_xx, _, _] = ComputeSpectrogram(data0, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
+        else:
+            spcg_xx = data0_spcg
+        spcg_xx_ave = np.mean(spcg_xx, axis=0)
     else:
-        spcg_xx = data0_spcg
+        spcg_xx_ave = data0_spcg_ave
     # Pyy
-    if data1_spcg is None:
-        [spcg_yy, _, _] = ComputeSpectrogram(data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
+    if data1_spcg_ave is None:
+        if data1_spcg is None:
+            [spcg_yy, _, _] = ComputeSpectrogram(data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
+        else:
+            spcg_yy = data1_spcg
+        spcg_yy_ave = np.mean(spcg_yy, axis=0)
     else:
-        spcg_yy = data1_spcg
+        spcg_yy_ave = data1_spcg_ave
     # Pxy
     [spcg_xy, spcg_t, spcg_f] = ComputeSpectrogram(data0, data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
 
     # cohreence
-    cohg = np.abs( np.abs(np.mean(spcg_xy, axis=0))**2 / ( np.mean(spcg_xx, axis=0) * np.mean(spcg_yy, axis=0) ) )
+    cohg = np.abs( np.abs(np.mean(spcg_xy, axis=0))**2 / (spcg_xx_ave  *  spcg_yy_ave) )
 
     return [cohg, spcg_t, spcg_f]
 

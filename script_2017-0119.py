@@ -85,9 +85,10 @@ try:
 except:
     pass
 
+plt.close('all')
+
 
 """ ========== PSTH or spike raster and average LFP of different experimental conditions ========== """
-
 
 window_offset = [-0.100, 0.6]
 """ spike by condition  """
@@ -116,30 +117,9 @@ pnp.DataNeuroSummaryPlot(signal_align.select_signal(data_neuro_LFP, chan_filter=
 plt.savefig('{}/{}_LFP_U16.png'.format(dir_temp_fig, filename_common))
 
 
+plt.close('all')
 
-""" GM32 LFP by condition  """
-# align
-data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,32+1))
-# group
-data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro)
-# plot
-pnp.NeuroPlot(data_neuro, tf_legend=True, tf_seperate_window=False)
-plt.suptitle('LFP_GM32    {}'.format(filename_common), fontsize=20)
-plt.savefig('{}/{}_LFP_GM32.png'.format(dir_temp_fig, filename_common))
-
-""" U16 LFP by condition  """
-# align
-data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(33,48+1))
-# group
-data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro)
-# plot
-pnp.NeuroPlot(data_neuro, tf_legend=True, tf_seperate_window=False)
-plt.suptitle('LFP_U16    {}'.format(filename_common), fontsize=20)
-plt.savefig('{}/{}_LFP_U16.png'.format(dir_temp_fig, filename_common))
-
-
-
-""" ===== psth plot, spk ===== """
+""" ===== psth plot, spk, by channel ===== """
 
 window_offset = [-0.100, 0.6]
 data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(1,48+1))
@@ -183,6 +163,12 @@ for i_neuron in range(len(data_neuro['signal_info'] )):
     plt.suptitle('file {},   LFP power spectrum {}'.format(filename_common, name_signal, fontsize=20))
     plt.savefig('{}/{} LFPs power spectrum by condition {}.png'.format(dir_temp_fig, filename_common, name_signal))
     plt.close()
+
+
+""" coherence of all pairs """
+pnp.SpectrogramAllPairPlot(data_neuro, limit_gap=4, t_bin=0.15, f_lim=[0,100])
+plt.savefig('{}/{} LFPs power spectrum and coherence of all pairs.png'.format(dir_temp_fig, filename_common))
+plt.close()
 
 
 """ LFP coherence """
@@ -231,34 +217,6 @@ for ch_x in range(0,48,chan_gap):
             # plt.title( 'ch{} vs ch {}'.format(ch_x+1, ch_y+1) )
         plt.ylim(0, 80)
 
-
-
-# psth by six conditions
-if False:
-    cdtn0_name = 'stim_familiarized'
-    cdtn1_name = 'mask_opacity_int'
-    cdtn_l_name = 'stim_names'
-    N_cdtn0 = len(data_df[cdtn0_name].unique())
-    N_cdtn1 = len(data_df[cdtn1_name].unique())
-
-    for i_neuron in range(len(data_neuro['signal_info'] )):
-        data2D = data_neuro['data'][:, :, i_neuron]
-        ts = data_neuro['ts']
-        [h_fig, h_ax] = plt.subplots( N_cdtn0, N_cdtn1, figsize=[12,9], sharex=True, sharey=True )
-        for i_cdtn0, cdtn0 in enumerate(sorted(data_df[cdtn0_name].unique())) :
-            for i_cdtn1, cdtn1 in enumerate(sorted(data_df[cdtn1_name].unique())):
-                plt.axes(h_ax[i_cdtn0,i_cdtn1])
-                pnp.PsthPlot(data2D, ts, data_df[cdtn_l_name],
-                             np.logical_and(data_df[cdtn0_name] == cdtn0, data_df[cdtn1_name] == cdtn1),
-                             tf_legend=False, sk_std=0.020, subpanel='raster')
-                plt.title( [cdtn0, cdtn1] )
-
-        plt.suptitle(data_neuro['signal_info'][i_neuron]['name'])
-        try:
-            plt.savefig('{}/{} PSTH {}.png'.format(dir_temp_fig, filename_common, data_neuro['signal_info'][i_neuron]['name']))
-        except:
-            plt.savefig('./temp_figs/' + misc_tools.get_time_string() + '.png' )
-        plt.close(h_fig)
 
 
 # if rf mapping
