@@ -5,7 +5,7 @@ from scipy import signal
 from scipy.signal import spectral
 
 
-def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_axis=1, batchsize=100):
+def ComputeSpectrogram(data, data1=None, fs=1000, t_ini=0.0, t_bin=0.100, t_step=None, t_axis=1, batchsize=100):
     """
     Compuate power spectrogram in sliding windows
 
@@ -46,7 +46,8 @@ def ComputeSpectrogram(data, data1=None, fs=1.0, t_ini=0.0, t_bin=20, t_step=Non
                                                     nperseg=nperseg, noverlap=noverlap, nfft=nfft)
         else:
             [spcg_f, spcg_t, spcg] = signal.spectral._spectral_helper(data, data1, fs=fs, window=window, axis=t_axis,
-                                                        nperseg=nperseg, noverlap=noverlap, nfft=nfft)
+                                                        nperseg=nperseg, noverlap=noverlap, nfft=nfft,
+                                                                      scaling='density', mode='psd')
     else:
         N_trial = data.shape[0]
         N_batch = N_trial // batchsize
@@ -96,6 +97,11 @@ def ComputeCoherogram(data0, data1, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_
            spcg_t:   timestamps of spectrogram
            spcg_t:   frequency ticks of spectrogram
     """
+
+    if data1 is None:    # the input could be data0 contains both signals, and data1 is None
+        data1 = data0[:, :, 1]
+        data0 = data0[:, :, 0]
+
     # Pxx
     if data0_spcg_ave is None:
         if data0_spcg is None:
@@ -118,7 +124,7 @@ def ComputeCoherogram(data0, data1, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_
     [spcg_xy, spcg_t, spcg_f] = ComputeSpectrogram(data0, data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
 
     # cohreence
-    cohg = np.abs( np.abs(np.mean(spcg_xy, axis=0))**2 / (spcg_xx_ave  *  spcg_yy_ave) )
+    cohg = np.abs(np.mean(spcg_xy, axis=0))**2 / (spcg_xx_ave  *  spcg_yy_ave)
 
     return [cohg, spcg_t, spcg_f]
 

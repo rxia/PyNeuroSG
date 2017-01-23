@@ -216,7 +216,7 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle=''):
 
     h_fig.set_size_inches([12,9], forward=True)
     try:
-        plt.suptitle(suptitle + '    ' + data_neuro['grpby'].__str__(), fontsize=16)
+        plt.suptitle(suptitle.__str__() + '    ' + data_neuro['grpby'].__str__(), fontsize=16)
     except:
         pass
     # share clim across axes

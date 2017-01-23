@@ -42,7 +42,8 @@ plt.ioff()
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv.*', '.*GM32.*U16.*161228.*', tf_interactive=True,)
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*match.*', '.*GM32.*U16.*161125.*', tf_interactive=True,)
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('x_.*detection_opto_011317.*', '.*Dexter_.*U16.*170113.*', tf_interactive=True,dir_dg='/Volumes/Labfiles/projects/analysis/ruobing')
-[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', '.*GM32.*U16.*170117.*', tf_interactive=True,)
+# [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', '.*GM32.*U16.*170117.*', tf_interactive=True,)
+[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*matchnot.*', '.*GM32.*U16.*170117.*', tf_interactive=True,)
 
 """ Get StimOn time stamps in neo time frame """
 ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
@@ -116,7 +117,6 @@ plt.savefig('{}/{}_LFP_GM32.png'.format(dir_temp_fig, filename_common))
 pnp.DataNeuroSummaryPlot(signal_align.select_signal(data_neuro_LFP, chan_filter=range(33,48+1)), sk_std=0.01, signal_type='auto', suptitle='LFP_U16  {}'.format(filename_common))
 plt.savefig('{}/{}_LFP_U16.png'.format(dir_temp_fig, filename_common))
 
-
 plt.close('all')
 
 """ ===== psth plot, spk, by channel ===== """
@@ -157,7 +157,7 @@ N_sgnl = len(data_neuro['signal_info'])
 
 for i_neuron in range(len(data_neuro['signal_info'] )):
     name_signal = data_neuro['signal_info'][i_neuron]['name']
-    functionPlot = lambda x: pnp.SpectrogramPlot(x, spcg_t, spcg_f, tf_log=True, f_lim=[0, 100], time_baseline=[-0.05, 0.05],
+    functionPlot = lambda x: pnp.SpectrogramPlot(x, spcg_t, spcg_f, tf_log=True, f_lim=[0, 100], time_baseline=[-0.05, 0.00],
                                   rate_interp=8)
     pnp.SmartSubplot(data_neuro, functionPlot, spcg[:, :, i_neuron, :])
     plt.suptitle('file {},   LFP power spectrum {}'.format(filename_common, name_signal, fontsize=20))
@@ -171,8 +171,23 @@ plt.savefig('{}/{} LFPs power spectrum and coherence of all pairs.png'.format(di
 plt.close()
 
 
-""" LFP coherence """
-[spcg_f,spcg_t,spcg] = signal.spectrogram(data_neuro['data'], data_neuro['data'], window=signal.hann(128), nperseg=128, nfft=256,fs=data_neuro['signal_info'][0][2], axis=1, noverlap=96)
+""" cohrence plot of one pair """
+data_neuro_LFP = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1))
+data_neuro_LFP = signal_align.neuro_sort(data_df, ['SampleCategory','mask_opacity_int'], [], data_neuro_LFP)
+
+# list_ch0 = [1,3,5,10,11,14,16,19,21,28]
+# list_ch1 = [33,40,48]
+list_ch0 = [1,5,11,16,19,28]
+list_ch1 = [3,10,14,21]
+for ch0 in list_ch0:
+    for ch1 in list_ch1:
+        def functionPlot(x):
+            [cohg, spcg_t, spcg_f] = pna.ComputeCoherogram(x, data1=None, fs=data_neuro_LFP['signal_info'][0][2], t_ini=np.array( data_neuro_LFP['ts'][0] ), t_bin=0.1, t_step=None, t_axis=1)
+            pnp.SpectrogramPlot(cohg, spcg_t, spcg_f, tf_log=False, f_lim=[0, 100], time_baseline=None, rate_interp=8, name_cmap='viridis', tf_colorbar=True)
+            del(cohg)
+        pnp.SmartSubplot(data_neuro_LFP, functionPlot, data_neuro_LFP['data'][:,:,[ch0-1,ch1-1]], suptitle='coherence {}_{},    {}'.format(ch0, ch1, filename_common))
+        plt.savefig('{}/{} LFPs coherence by condition {}-{}.png'.format(dir_temp_fig, filename_common, ch0, ch1))
+        plt.close()
 
 
 
