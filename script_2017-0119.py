@@ -43,7 +43,7 @@ plt.ioff()
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*match.*', '.*GM32.*U16.*161125.*', tf_interactive=True,)
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('x_.*detection_opto_011317.*', '.*Dexter_.*U16.*170113.*', tf_interactive=True,dir_dg='/Volumes/Labfiles/projects/analysis/ruobing')
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', '.*GM32.*U16.*170117.*', tf_interactive=True,)
-[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*matchnot.*', '.*GM32.*U16.*170117.*', tf_interactive=True,)
+[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*matchnot.*', '.*GM32.*U16.*170113.*', tf_interactive=True,)
 
 """ Get StimOn time stamps in neo time frame """
 ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
@@ -173,14 +173,17 @@ plt.close()
 
 """ cohrence plot of one pair """
 data_neuro_LFP = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1))
-data_neuro_LFP = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_LFP)
+# data_neuro_LFP = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_LFP)
+# data_neuro_LFP = signal_align.neuro_sort(data_df, ['stim_sname'], [], data_neuro_LFP)
 data_neuro_LFP = signal_align.neuro_sort(data_df, [''], [], data_neuro_LFP)
 # list_ch0 = [1,3,5,10,11,14,16,19,21,28]
 # list_ch1 = [33,40,48]
 # list_ch0 = [1,5,11,16,19,28]
 # list_ch1 = [3,10,14,21]
-list_ch0 = [1,5,11,16,19,28]
-list_ch1 = [33,37,41,45,48]
+# list_ch0 = [1,5,11,16,19,28]
+# list_ch1 = [33,37,41,45,48]
+list_ch0 = [5]
+list_ch1 = [33]
 for ch0 in list_ch0:
     for ch1 in list_ch1:
         def functionPlot(x):
@@ -191,6 +194,46 @@ for ch0 in list_ch0:
         plt.savefig('{}/{} LFPs coherence by condition {}-{}.png'.format(dir_temp_fig, filename_common, ch0, ch1))
         plt.close()
 
+
+""" spkike-field coupling of one pair """
+data_neuro_LFP = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1))
+fs = data_neuro_LFP['signal_info'][0][2]
+data_neuro_spk = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spi.*', name_filter='.*Code[1-9]$', chan_filter=range(1,48+1), spike_bin_rate=fs)
+# data_neuro_LFP = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_LFP)
+# data_neuro_LFP = signal_align.neuro_sort(data_df, ['stim_sname'], [], data_neuro_LFP)
+data_neuro_LFP = signal_align.neuro_sort(data_df, [''], [], data_neuro_LFP)
+data_neuro_spk = signal_align.neuro_sort(data_df, [''], [], data_neuro_spk)
+# list_ch0 = [1,3,5,10,11,14,16,19,21,28]
+# list_ch1 = [33,40,48]
+# list_ch0 = [1,5,11,16,19,28]
+# list_ch1 = [3,10,14,21]
+# list_ch0 = [1,5,11,16,19,28]
+# list_ch1 = [33,37,41,45,48]
+list_ch0 = [2,5,11,16,28]
+list_ch1 = [33,36,42,47]
+# list_ch0 = [33,36,42,47]
+# list_ch1 = [28]
+measure = 'PLV'
+for ch0 in list_ch0:
+    for ch1 in list_ch1:
+        def functionPlot(x):
+            if measure == 'coherence':
+                [cohg, spcg_t, spcg_f] = pna.ComputeCoherogram(x, data1=None, tf_phase=True, fs=fs, t_ini=np.array( data_neuro_LFP['ts'][0] ), t_bin=0.2, t_step=None, t_axis=1, f_lim=[0, 100])
+            elif measure == 'PLV':
+                [cohg, spcg_t, spcg_f] = pna.ComputeSpkTrnFieldCoupling(x, data_spk=None, tf_phase=True, fs=fs, measure=measure,
+                                                           t_ini=np.array(data_neuro_LFP['ts'][0]), t_bin=0.2,
+                                                           t_step=None, t_axis=1, f_lim=[0, 100])
+            elif measure == 'PPC':
+                [cohg, spcg_t, spcg_f] = pna.ComputeSpkTrnFieldCoupling(x, data_spk=None, tf_phase=True, fs=fs, measure=measure,
+                                                            t_ini=np.array(data_neuro_LFP['ts'][0]), t_bin=0.2,
+                                                            t_step=None, t_axis=1, f_lim=[0, 100])
+            pnp.SpectrogramPlot(cohg, spcg_t, spcg_f, tf_log=False, f_lim=[0, 100], tf_phase=True, time_baseline=None, rate_interp=8, name_cmap='viridis', tf_colorbar=False)
+            del(cohg)
+        data_cur = np.dstack([signal_align.select_signal(data_neuro_LFP, chan_filter=[ch0])['data'][:, :, 0],
+                              signal_align.select_signal(data_neuro_spk, chan_filter=[ch1])['data'][:, :, -1]])
+        pnp.SmartSubplot(data_neuro_LFP, functionPlot, data_cur, suptitle='spike LFP phase consistency {}_{},    {}'.format(ch0, ch1, filename_common), tf_colorbar=True)
+        plt.savefig('{}/{} spike LFP phase consistency, spk {}-LFP {}.png'.format(dir_temp_fig, filename_common, ch1, ch0))
+        plt.close()
 
 
 """ LFP coherence, all pairs """

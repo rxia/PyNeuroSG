@@ -624,7 +624,7 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase
             indx_ts = np.array(keep_less_than(range(N_ts), max_quiver))
             plt.quiver(spcg_t[indx_ts], spcg_f[indx_fs],
                        spcg_complex[indx_fs, :][:, indx_ts].real, spcg_complex[indx_fs, :][:, indx_ts].imag,
-                       color='r', units='height', pivot='mid',
+                       color='r', units='height', pivot='mid', headwidth=5,
                        scale=np.percentile(spcg, 99.5) * quiver_scale)
         except:
             plt.quiver(spcg_t, spcg_f, spcg_complex.real, spcg_complex.imag,
