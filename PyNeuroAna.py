@@ -5,19 +5,19 @@ from scipy import signal
 from scipy.signal import spectral
 
 
-def ComputeSpectrogram(data, data1=None, fs=1000, t_ini=0.0, t_bin=0.100, t_step=None, t_axis=1, batchsize=100):
+def ComputeSpectrogram(data, data1=None, fs=1000.0, t_ini=0.0, t_bin=0.100, t_step=None, t_axis=1, batchsize=100):
     """
     Compuate power spectrogram in sliding windows
 
-        if a single data is give, returns power spectrum density Pxx over sliding windows;
-        if two data are given, returns cross spectrum Pxy over sliding windows
+    if a single data is give, returns power spectrum density Pxx over sliding windows;
+    if two data are given, returns cross spectrum Pxy over sliding windows
 
     :param data:     LFP data, [ trials * timestamps * channels]
                             the dimension does not matter, as long as the time axis is provided in t_axis;
                             the resulting spcg will add another dimension (frequency) to the end
     :param fs:       sampling frequency
     :param t_ini:    the first timestamps
-    :param t_bin:    during of time bin for fft, will be used to find the nearest power of two
+    :param t_bin:    duration of time bin for fft, will be used to find the nearest power of two, default to total_time/10
     :param t_step:   step size for moving window, default to t_bin / 8
     :param t_axis:   the axis index of the time in data
     :param batchsize: to prevent memory overloading problem (default to 100, make smaller if memory overload occurs)
@@ -26,6 +26,9 @@ def ComputeSpectrogram(data, data1=None, fs=1000, t_ini=0.0, t_bin=0.100, t_step
            spcg_t:   timestamps of spectrogram
            spcg_f:   frequency ticks of spectrogram
     """
+
+    if t_bin is None:     # default to total_time/10
+        t_bin = 1.0*data.shape[t_axis]/fs /10
 
     nperseg = GetNearestPow2( fs * t_bin )                    # number of points per segment, power of 2
     if t_step is None:                                        # number of overlapping points of neighboring segments
@@ -77,18 +80,18 @@ def ComputeSpectrogram(data, data1=None, fs=1000, t_ini=0.0, t_bin=0.100, t_step
 
     return [spcg, spcg_t, spcg_f]
 
-
-
-def ComputeCoherogram(data0, data1, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_axis=1, batchsize=100, data0_spcg=None, data1_spcg=None, data0_spcg_ave=None, data1_spcg_ave=None):
+def ComputeCoherogram(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, tf_phase=False, t_axis=1,
+                          batchsize=100, data0_spcg=None, data1_spcg=None, data0_spcg_ave=None, data1_spcg_ave=None):
     """
-    Compuate cohrence over sliding window
+    Compuate LFP-LFP cohrence over sliding window, takes two [ trials * timestamps] arrays, or one [ trials * timestamps * 2] arrays
 
-    :param data0:    LFP data, [ trials * timestamps]
+    :param data0:    LFP data, [ trials * timestamps]; if data1 is None, data0 contains both signals [ trials * timestamps * 2]
     :param data1:    LFP data, [ trials * timestamps]
     :param fs:       sampling frequency
     :param t_ini:    the first timestamps
-    :param t_bin:    during of time bin for fft, will be used to find the nearest power of two
+    :param t_bin:    duration of time bin for fft, will be used to find the nearest power of two
     :param t_step:   step size for moving window, default to t_bin / 8
+    :param tf_phase: true/false keep phase, if true, returning value cohg is complex, whose abs represents coherence, and whose angle represents phase (negative if data1 lags data0)
     :param t_axis:   the axis index of the time in data
     :param data0_spcg: the spcg_xx, if already calculated
     :param data1_spcg: the spcg_yy, if already calculated
@@ -122,15 +125,20 @@ def ComputeCoherogram(data0, data1, fs=1.0, t_ini=0.0, t_bin=20, t_step=None, t_
         spcg_yy_ave = data1_spcg_ave
     # Pxy
     [spcg_xy, spcg_t, spcg_f] = ComputeSpectrogram(data0, data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
+    spcg_xy_ave = np.mean(spcg_xy, axis=0)
 
     # cohreence
-    cohg = np.abs(np.mean(spcg_xy, axis=0))**2 / (spcg_xx_ave  *  spcg_yy_ave)
+    cohg = np.abs(spcg_xy_ave)**2 / (spcg_xx_ave  *  spcg_yy_ave)
+
+    # if keeps phase, returns complex values, whose abs represents coherence, and whose angle represents phase (negative if data1 lags data0)
+    if tf_phase:
+        cohg = cohg * np.exp(np.angle(spcg_xy_ave) *1j )
 
     return [cohg, spcg_t, spcg_f]
 
 
-
-
+def ComputePPC(data0, data1, fs=1000, t_ini=0.0, t_bin=20, t_step=None, t_axis=1, batchsize=100, data0_spcg=None, data1_spcg=None, data0_spcg_ave=None, data1_spcg_ave=None):
+    pass
 
 
 def GetNearestPow2(n):

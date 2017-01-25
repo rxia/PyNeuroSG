@@ -173,19 +173,21 @@ plt.close()
 
 """ cohrence plot of one pair """
 data_neuro_LFP = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1))
-data_neuro_LFP = signal_align.neuro_sort(data_df, ['SampleCategory','mask_opacity_int'], [], data_neuro_LFP)
-
+data_neuro_LFP = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_LFP)
+data_neuro_LFP = signal_align.neuro_sort(data_df, [''], [], data_neuro_LFP)
 # list_ch0 = [1,3,5,10,11,14,16,19,21,28]
 # list_ch1 = [33,40,48]
+# list_ch0 = [1,5,11,16,19,28]
+# list_ch1 = [3,10,14,21]
 list_ch0 = [1,5,11,16,19,28]
-list_ch1 = [3,10,14,21]
+list_ch1 = [33,37,41,45,48]
 for ch0 in list_ch0:
     for ch1 in list_ch1:
         def functionPlot(x):
-            [cohg, spcg_t, spcg_f] = pna.ComputeCoherogram(x, data1=None, fs=data_neuro_LFP['signal_info'][0][2], t_ini=np.array( data_neuro_LFP['ts'][0] ), t_bin=0.1, t_step=None, t_axis=1)
-            pnp.SpectrogramPlot(cohg, spcg_t, spcg_f, tf_log=False, f_lim=[0, 100], time_baseline=None, rate_interp=8, name_cmap='viridis', tf_colorbar=True)
+            [cohg, spcg_t, spcg_f] = pna.ComputeCoherogram(x, data1=None, tf_phase=True, fs=data_neuro_LFP['signal_info'][0][2], t_ini=np.array( data_neuro_LFP['ts'][0] ), t_bin=0.1, t_step=None, t_axis=1)
+            pnp.SpectrogramPlot(cohg, spcg_t, spcg_f, tf_log=False, f_lim=[0, 100], tf_phase=True, time_baseline=None, rate_interp=8, name_cmap='viridis', tf_colorbar=False)
             del(cohg)
-        pnp.SmartSubplot(data_neuro_LFP, functionPlot, data_neuro_LFP['data'][:,:,[ch0-1,ch1-1]], suptitle='coherence {}_{},    {}'.format(ch0, ch1, filename_common))
+        pnp.SmartSubplot(data_neuro_LFP, functionPlot, data_neuro_LFP['data'][:,:,[ch0-1,ch1-1]], suptitle='coherence {}_{},    {}'.format(ch0, ch1, filename_common), tf_colorbar=True)
         plt.savefig('{}/{} LFPs coherence by condition {}-{}.png'.format(dir_temp_fig, filename_common, ch0, ch1))
         plt.close()
 

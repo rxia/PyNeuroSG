@@ -172,7 +172,7 @@ def RfPlot(data_neuro, indx_sgnl=0, x_scale=0.1, y_scale=50):
 
 
 
-def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle=''):
+def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_colorbar=False):
     """
     Smart subplots based on the data_neuro['cdtn']
 
@@ -191,7 +191,7 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle=''):
         N_cdtn = len(data_neuro['cdtn'])
         [n_rows, n_cols] = cal_rc(N_cdtn)
         [h_fig, h_ax]= plt.subplots(n_rows, n_cols, sharex=True, sharey=True)      # creates subplots
-        h_ax = h_ax.flatten()
+        h_ax = np.array(h_ax).flatten()
         for i, cdtn in enumerate(data_neuro['cdtn']):
             plt.axes(h_ax[i])
             if (functionPlot is not None) and (dataPlot is not None):    # in each panel, plot
@@ -223,7 +223,13 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle=''):
     try:
         c_lim = share_clim(h_ax)
     except:
-        print('share clim was not successful')
+        warnings.warn('share clim was not successful')
+
+    if tf_colorbar:
+        try:
+            h_fig.colorbar(plt.gci(), ax=h_ax.flatten().tolist())
+        except:
+            warnings.warn('can not create colorbar')
 
     return [h_fig, h_ax]
 
@@ -520,16 +526,20 @@ def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_
 
 
 
-def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time_baseline=None,
+def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase =False, tf_log=False, time_baseline=None,
                  t_lim = None, f_lim = None, c_lim = None, name_cmap='inferno',
                  rate_interp=None, tf_colorbar= False):
     """
-    plot spectrogram, input could be
+    plot power spectrogram or coherence-gram, input spcg could be [ N_t * N*f ] or [ N_trial * N_t * N*f ], real or complex
 
-    :param spcg:          2D numpy array, [ N_t * N*f ] or 3D numpy array [ N_trial, N_t * N*f ]
+    :param spcg:          2D numpy array, [ N_t * N*f ] or 3D numpy array [ N_trial * N_t * N*f ], either real or complex:
+
+                            * if [ N_trial * N_t * N*f ], average over trial and get [ N_t * N*f ]
+                            * if complex, plot spectrogram using its abs value, and plot quiver using the complex value
     :param spcg_t:        tick of time
     :param spcg_f:        tick of frequency
-    :param limit_trial:   index array to specicy which trials to use
+    :param limit_trial:   index array to specify which trials to use
+    :param tf_phase:      true/false, plot phase using quiver (spcg has to be complex): points down if negative phase (singal1 lags signal0 for coherence)
     :param tf_log:        true/false, use log scale
     :param time_baseline: baseline time period to be subtracted
     :param name_cmap:     name of color map to use
@@ -545,6 +555,18 @@ def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time
         if limit_trial is not None:
             spcg = spcg[limit_trial,:,:]
         spcg = np.mean(spcg, axis=0)
+
+    if np.any(np.iscomplex(spcg)):     # if imaginary, keep the origianl and calculate abs
+        spcg_complex = spcg
+        spcg = np.abs(spcg)
+    else:
+        spcg_complex = None
+
+    if spcg_t is None:
+        spcg_t = np.arange(spcg.shape[1]).astype(float)
+
+    if spcg_f is None:
+        spcg_f = np.arange(spcg.shape[0]).astype(float)
 
     # if use reference period for baseline, subtract baseline
     if time_baseline is not None:
@@ -591,6 +613,24 @@ def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time
     # color bar
     if tf_colorbar:
         plt.colorbar()
+
+    # quiver plot of phase: pointing down if negative phase, singal1 lags signal0 for coherence
+    if tf_phase is True and spcg_complex is not None:
+        try:                   # plot a subset of quivers, to prevent them from filling the whole plot
+            max_quiver = 32    # max number of quivers every dimension (in both axis)
+            quiver_scale = 32  # about 1/32 of axis length
+            [N_fs, N_ts] = spcg.shape
+            indx_fs = np.array(keep_less_than(range(N_fs), max_quiver*1.0*(spcg_f.max()-spcg_f.min())/(f_lim[1]-f_lim[0])))
+            indx_ts = np.array(keep_less_than(range(N_ts), max_quiver))
+            plt.quiver(spcg_t[indx_ts], spcg_f[indx_fs],
+                       spcg_complex[indx_fs, :][:, indx_ts].real, spcg_complex[indx_fs, :][:, indx_ts].imag,
+                       color='r', units='height', pivot='mid',
+                       scale=np.percentile(spcg, 99.5) * quiver_scale)
+        except:
+            plt.quiver(spcg_t, spcg_f, spcg_complex.real, spcg_complex.imag,
+                       color='r', units='height', pivot='mid', scale=np.percentile(spcg, 99.8) * quiver_scale)
+
+    plt.sci(h_plot) # set the current color-mappable object to be the specrogram plot but not the quiver
 
     return h_plot
 
