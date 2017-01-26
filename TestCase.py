@@ -94,8 +94,8 @@ if True:
     N_ts = 1000    # number of timestamps
     N_trial = 200 # number of trials
     t_ini = -0.1  # initial timestamp
-    f0s = 30       # shared frequency, sync
-    f0n = 50       # shared frequency, not sync
+    f0s = 30       # shared frequency, sync, locked to trial
+    f0n = 50       # shared frequency, sync, not locked to trial
     f1  = 10       # unique frequency for signal1
     f2  = 90       # unique frequency for signal1
     ts = np.arange(0, N_ts).astype(float) * (1/fs) + t_ini   # timestamps
@@ -109,18 +109,18 @@ if True:
     spk_criterion = 0.99  # sparse if close to 1.0, dense if close to 0.0
     t_bin = 0.2
 
-    signal_spk = np.sin(2 * np.pi * f0s * ts + phi0s) \
-              + np.sin(2 * np.pi * f0n * ts + 0) \
+    signal_spk = np.sin(2 * np.pi * f0s * ts) \
+              + np.sin(2 * np.pi * f0n * ts + phi0n) \
               + np.sin(2 * np.pi * f1 * ts + phi1) \
               + np.random.randn(N_trial, N_ts) * Noise1
     signal_spk = signal_spk > np.percentile(signal_spk, spk_criterion*100)
-    signal_LFP = np.sin(2 * np.pi * f0s * ts + phi0s - phi0s_lag_cycle*2*np.pi) * np.linspace(0,2,N_ts)*(np.linspace(0,2,N_ts)>1) \
+    signal_LFP = np.sin(2 * np.pi * f0s * ts - phi0s_lag_cycle*2*np.pi) * np.linspace(0,2,N_ts)*(np.linspace(0,2,N_ts)>1) \
               + + np.sin(2 * np.pi * f0n * ts + phi0n) \
               + np.sin(2 * np.pi * f2 * ts + phi2) * np.linspace(2,0,N_ts) \
               + np.random.randn(N_trial, N_ts) * Noise2
 
     h_fig, h_ax = plt.subplots(3,3, sharex=True, sharey=False, figsize=[16,9])
-    plt.suptitle('Test Spectrogram / coherence calculation and plot \n Signal1 and Signal2 share synced {}Hz, non-synched {}Hz'.format(f0s, f0n))
+    plt.suptitle('Test Spectrogram / coherence calculation and plot \n Signal1 and Signal2 share {0}Hz and {1}Hz; but the {0}Hz is locked to trial, {1}Hz is not'.format(f0s, f0n))
     plt.axes(h_ax[0, 0])
     pnp.RasterPlot(signal_spk, ts)
     plt.title('signal_spk, stable, noisy')
@@ -130,7 +130,7 @@ if True:
 
     [spcg_spk, spgc_t, spcg_f] = pna.ComputeSpectrogram(signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, f_lim=[0, 120])
     [spcg_LFP, spgc_t, spcg_f] = pna.ComputeSpectrogram(signal_LFP, fs=fs, t_bin=t_bin, t_ini=t_ini, f_lim=[0, 120])
-    [cohg, spgc_t, spcg_f]  = pna.ComputeCoherogram(signal_LFP, signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, tf_phase=True, f_lim=[0, 120])
+    [cohg, spgc_t, spcg_f]  = pna.ComputeCoherogram(signal_LFP, signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, tf_phase=True, f_lim=[0, 120], tf_shuffle=True, tf_vs_shuffle=True)
     [sfPLV, spgc_t, spcg_f] = pna.ComputeSpkTrnFieldCoupling(signal_LFP, signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, measure='PLV', f_lim=[0, 120])
     [sfPPC, spgc_t, spcg_f] = pna.ComputeSpkTrnFieldCoupling(signal_LFP, signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, measure='PPC', f_lim=[0, 120])
 
@@ -144,7 +144,7 @@ if True:
 
     plt.axes(h_ax[2, 0])
     pnp.SpectrogramPlot(cohg, spgc_t, spcg_f, f_lim=[0, 120], tf_phase=True, tf_colorbar=True, tf_log=False,
-                        rate_interp=8, name_cmap='viridis')
+                        rate_interp=8, c_lim_style='diverge')
     plt.title('coherence')
 
     plt.axes(h_ax[2, 1])

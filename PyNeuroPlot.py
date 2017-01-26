@@ -527,7 +527,7 @@ def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_
 
 
 def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase =False, tf_log=False, time_baseline=None,
-                 t_lim = None, f_lim = None, c_lim = None, name_cmap='inferno',
+                 t_lim = None, f_lim = None, c_lim = None, c_lim_style=None, name_cmap=None,
                  rate_interp=None, tf_colorbar= False):
     """
     plot power spectrogram or coherence-gram, input spcg could be [ N_t * N*f ] or [ N_trial * N_t * N*f ], real or complex
@@ -536,14 +536,15 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase
 
                             * if [ N_trial * N_t * N*f ], average over trial and get [ N_t * N*f ]
                             * if complex, plot spectrogram using its abs value, and plot quiver using the complex value
-    :param spcg_t:        tick of time
-    :param spcg_f:        tick of frequency
+    :param spcg_t:        tick of time, length N_t
+    :param spcg_f:        tick of frequency, length N_f
     :param limit_trial:   index array to specify which trials to use
     :param tf_phase:      true/false, plot phase using quiver (spcg has to be complex): points down if negative phase (singal1 lags signal0 for coherence)
     :param tf_log:        true/false, use log scale
-    :param time_baseline: baseline time period to be subtracted
-    :param name_cmap:     name of color map to use
-    :param rate_interp:   rate of interpolation for plotting
+    :param c_lim_style:   'basic' (min, max), 'from_zero' (0, max), or 'diverge' (-max, max); default to None, select automatically based on tf_log and time_baseline
+    :param time_baseline: baseline time period to be subtracted, eg. [-0.1, 0.05], default to None
+    :param name_cmap:     name of color map to use, default to 'inferno', if use diverge c_map, automatically change to 'coolwarm'; another suggested one is 'veridis'
+    :param rate_interp:   rate of interpolation for plotting, if None, do not interpolate, suggested value is 8
     :param tf_colorbar:   true/false, plot colorbar
     :return:              figure handle
     """
@@ -573,17 +574,36 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase
         spcg_baseline = np.mean( spcg[:,np.logical_and(spcg_t >= time_baseline[0], spcg_t < time_baseline[1])],
                                  axis=1, keepdims=True)
         spcg = spcg - spcg_baseline
-        name_cmap = 'coolwarm'           # use divergence colormap
+
 
     # set color limit
     if c_lim is None:
-        if time_baseline is not None:    # if use reference period
+        if c_lim_style is None:
+            if time_baseline is not None:  # if use reference period, symmetric about zero
+                c_lim_style = 'diverge'
+            else:
+                if (not tf_log) and (not np.any(spcg<0)):  # if not log scale and no nagative values
+                    c_lim_style = 'from_zero'
+                else:                                      # otherwise, use basic
+                    c_lim_style = 'basic'
+
+        if c_lim_style == 'diverge':       # if 'deverge', set to [-a,a]
             c_lim = [-np.max(np.abs(spcg)), np.max(np.abs(spcg))]
+        elif c_lim_style == 'from_zero':   # if 'from zero', set to [0,a]
+            c_lim = [0, np.max(spcg)]
+        elif c_lim_style == 'basic':       # otherwise, use 'basic', set to [a,b]
+            c_lim = [np.min(spcg), np.max(spcg)]
         else:
-            if tf_log is True:           # if log scale, set c_lim
-                c_lim = [np.min(spcg), np.max(spcg)]
-            else:                        # if not log scale, set c_lim with lower boundary to be 0
-                c_lim = [0, np.max(spcg)]
+            c_lim = [np.min(spcg), np.max(spcg)]
+            warnings.warn('c_lim_style not recognized, must be "basic", "from_zero", "diverge", or None ')
+
+    if name_cmap is None:
+        if c_lim_style == 'diverge':
+            name_cmap = 'coolwarm'  # use divergence colormap
+        else:
+            name_cmap = 'inferno'   # default to inferno
+
+
 
     if rate_interp is not None:
         f_interp = sp.interpolate.interp2d(spcg_t, spcg_f, spcg, kind='linear')

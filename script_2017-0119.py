@@ -121,7 +121,7 @@ plt.close('all')
 
 """ ===== psth plot, spk, by channel ===== """
 
-window_offset = [-0.100, 0.6]
+window_offset = [-0.100, 1.0]
 data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(1,48+1))
 data2D = data_neuro['data'][:,:,0]
 ts = data_neuro['ts']
@@ -172,6 +172,7 @@ plt.close()
 
 
 """ cohrence plot of one pair """
+window_offset = [-0.100, 1.0]
 data_neuro_LFP = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1))
 # data_neuro_LFP = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_LFP)
 # data_neuro_LFP = signal_align.neuro_sort(data_df, ['stim_sname'], [], data_neuro_LFP)
@@ -182,12 +183,15 @@ data_neuro_LFP = signal_align.neuro_sort(data_df, [''], [], data_neuro_LFP)
 # list_ch1 = [3,10,14,21]
 # list_ch0 = [1,5,11,16,19,28]
 # list_ch1 = [33,37,41,45,48]
-list_ch0 = [5]
-list_ch1 = [33]
+# list_ch0 = [5]
+# list_ch1 = [33]
+list_ch0 = [2,5,11,16,21 ,28]
+list_ch1 = [34,36,40,43,45,48]
+
 for ch0 in list_ch0:
     for ch1 in list_ch1:
         def functionPlot(x):
-            [cohg, spcg_t, spcg_f] = pna.ComputeCoherogram(x, data1=None, tf_phase=True, fs=data_neuro_LFP['signal_info'][0][2], t_ini=np.array( data_neuro_LFP['ts'][0] ), t_bin=0.1, t_step=None, t_axis=1)
+            [cohg, spcg_t, spcg_f] = pna.ComputeCoherogram(x, data1=None, tf_phase=True, fs=data_neuro_LFP['signal_info'][0][2], t_ini=np.array( data_neuro_LFP['ts'][0] ), t_bin=0.2, t_step=None, t_axis=1)
             pnp.SpectrogramPlot(cohg, spcg_t, spcg_f, tf_log=False, f_lim=[0, 100], tf_phase=True, time_baseline=None, rate_interp=8, name_cmap='viridis', tf_colorbar=False)
             del(cohg)
         pnp.SmartSubplot(data_neuro_LFP, functionPlot, data_neuro_LFP['data'][:,:,[ch0-1,ch1-1]], suptitle='coherence {}_{},    {}'.format(ch0, ch1, filename_common), tf_colorbar=True)
@@ -196,6 +200,7 @@ for ch0 in list_ch0:
 
 
 """ spkike-field coupling of one pair """
+window_offset = [-0.100, 1.0]
 data_neuro_LFP = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1))
 fs = data_neuro_LFP['signal_info'][0][2]
 data_neuro_spk = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='spi.*', name_filter='.*Code[1-9]$', chan_filter=range(1,48+1), spike_bin_rate=fs)
@@ -209,10 +214,12 @@ data_neuro_spk = signal_align.neuro_sort(data_df, [''], [], data_neuro_spk)
 # list_ch1 = [3,10,14,21]
 # list_ch0 = [1,5,11,16,19,28]
 # list_ch1 = [33,37,41,45,48]
-list_ch0 = [2,5,11,16,28]
-list_ch1 = [33,36,42,47]
+# list_ch0 = [2,5,11,16,28]
+# list_ch1 = [33,36,42,47]
 # list_ch0 = [33,36,42,47]
 # list_ch1 = [28]
+list_ch0 = [1,5,11,16,19,28]
+list_ch1 = [34,36,40,43,45,48]
 measure = 'PLV'
 for ch0 in list_ch0:
     for ch1 in list_ch1:

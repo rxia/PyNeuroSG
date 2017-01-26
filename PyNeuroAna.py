@@ -87,8 +87,9 @@ def ComputeSpectrogram(data, data1=None, fs=1000.0, t_ini=0.0, t_bin=None, t_ste
     return [spcg, spcg_t, spcg_f]
 
 
-def ComputeCoherogram(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, tf_phase=False, t_axis=1, f_lim=None,
-                          batchsize=100, data0_spcg=None, data1_spcg=None, data0_spcg_ave=None, data1_spcg_ave=None):
+def ComputeCoherogram(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, f_lim=None, batchsize=100,
+                      tf_phase=False, tf_shuffle=False, tf_vs_shuffle = False,
+                      data0_spcg=None, data1_spcg=None, data0_spcg_ave=None, data1_spcg_ave=None):
     """
     Compuate LFP-LFP coherence over sliding window, takes two [ trials * timestamps] arrays, or one [ trials * timestamps * 2] arrays
 
@@ -113,10 +114,14 @@ def ComputeCoherogram(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=Non
             data1 = data0[:, :, 1]
             data0 = data0[:, :, 0]
 
+    if tf_vs_shuffle:
+        tf_shuffle = True
+        tf_phase = False
+
     # Pxx
     if data0_spcg_ave is None:
         if data0_spcg is None:
-            [spcg_xx, _, _] = ComputeSpectrogram(data0, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize, f_lim=f_lim)
+            [spcg_xx, _, _] = ComputeSpectrogram(data0, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, batchsize=batchsize, f_lim=f_lim)
         else:
             spcg_xx = data0_spcg
         spcg_xx_ave = np.mean(spcg_xx, axis=0)
@@ -126,7 +131,7 @@ def ComputeCoherogram(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=Non
     # Pyy
     if data1_spcg_ave is None:
         if data1_spcg is None:
-            [spcg_yy, _, _] = ComputeSpectrogram(data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize, f_lim=f_lim)
+            [spcg_yy, _, _] = ComputeSpectrogram(data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, batchsize=batchsize, f_lim=f_lim)
         else:
             spcg_yy = data1_spcg
         spcg_yy_ave = np.mean(spcg_yy, axis=0)
@@ -134,11 +139,23 @@ def ComputeCoherogram(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=Non
         spcg_yy = np.array([])
         spcg_yy_ave = data1_spcg_ave
     # Pxy
-    [spcg_xy, spcg_t, spcg_f] = ComputeSpectrogram(data0, data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize, f_lim=f_lim)
+    [spcg_xy, spcg_t, spcg_f] = ComputeSpectrogram(data0, data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, batchsize=batchsize, f_lim=f_lim)
     spcg_xy_ave = np.mean(spcg_xy, axis=0)
 
     # cohreence
     cohg = np.abs(spcg_xy_ave)**2 / (spcg_xx_ave  *  spcg_yy_ave)
+
+    if tf_shuffle:
+        data0_shuffle = data0[np.random.permutation(data0.shape[0]), :]
+        [spcg_xy_shuffle, spcg_t, spcg_f] = ComputeSpectrogram(data0_shuffle, data1, fs=fs, t_ini=t_ini, t_bin=t_bin,
+                                                       t_step=t_step, batchsize=batchsize, f_lim=f_lim)
+        spcg_xy_ave_shuffle = np.mean(spcg_xy_shuffle, axis=0)
+        cohg_shuffle = np.abs(spcg_xy_ave_shuffle)**2 / (spcg_xx_ave  *  spcg_yy_ave)
+
+        if tf_vs_shuffle:
+            cohg = cohg-cohg_shuffle
+        else:
+            cohg = cohg_shuffle
 
     # if keeps phase, returns complex values, whose abs represents coherence, and whose angle represents phase (negative if data1 lags data0)
     if tf_phase:
