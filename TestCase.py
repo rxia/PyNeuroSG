@@ -113,7 +113,7 @@ if True:
               + np.sin(2 * np.pi * f0n * ts + phi0n) \
               + np.sin(2 * np.pi * f1 * ts + phi1) \
               + np.random.randn(N_trial, N_ts) * Noise1
-    signal_spk = signal_spk > np.percentile(signal_spk, spk_criterion*100)
+    signal_spk = signal_spk > np.random.rand(*signal_spk)
     signal_LFP = np.sin(2 * np.pi * f0s * ts - phi0s_lag_cycle*2*np.pi) * np.linspace(0,2,N_ts)*(np.linspace(0,2,N_ts)>1) \
               + + np.sin(2 * np.pi * f0n * ts + phi0n) \
               + np.sin(2 * np.pi * f2 * ts + phi2) * np.linspace(2,0,N_ts) \
@@ -130,9 +130,11 @@ if True:
 
     [spcg_spk, spgc_t, spcg_f] = pna.ComputeSpectrogram(signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, f_lim=[0, 120])
     [spcg_LFP, spgc_t, spcg_f] = pna.ComputeSpectrogram(signal_LFP, fs=fs, t_bin=t_bin, t_ini=t_ini, f_lim=[0, 120])
-    [cohg, spgc_t, spcg_f]  = pna.ComputeCoherogram(signal_LFP, signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, tf_phase=True, f_lim=[0, 120], tf_shuffle=True, tf_vs_shuffle=True)
-    [sfPLV, spgc_t, spcg_f] = pna.ComputeSpkTrnFieldCoupling(signal_LFP, signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, measure='PLV', f_lim=[0, 120])
-    [sfPPC, spgc_t, spcg_f] = pna.ComputeSpkTrnFieldCoupling(signal_LFP, signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, measure='PPC', f_lim=[0, 120])
+    [cohg, spgc_t, spcg_f]  = pna.ComputeCoherogram(signal_LFP, signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, tf_phase=True, f_lim=[0, 120], tf_vs_shuffle=False)
+    [PLV, spgc_t, spcg_f] = pna.ComputeSpkTrnFieldCoupling(signal_LFP, signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, measure='PLV', f_lim=[0, 120], tf_vs_shuffle=False)
+    [PPC, spgc_t, spcg_f] = pna.ComputeSpkTrnFieldCoupling(signal_LFP, signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, measure='PPC', f_lim=[0, 120], tf_vs_shuffle=False)
+    [PLV_shuffle, spgc_t, spcg_f] = pna.ComputeSpkTrnFieldCoupling(signal_LFP, signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, measure='PLV', f_lim=[0, 120], tf_vs_shuffle=True)
+    [PPC_shuffle, spgc_t, spcg_f] = pna.ComputeSpkTrnFieldCoupling(signal_LFP, signal_spk, fs=fs, t_bin=t_bin, t_ini=t_ini, measure='PPC', f_lim=[0, 120], tf_vs_shuffle=True)
 
     plt.axes(h_ax[1, 0])
     pnp.SpectrogramPlot(spcg_spk, spgc_t, spcg_f, f_lim=[0, 120], tf_colorbar=True, tf_log=False)
@@ -142,19 +144,30 @@ if True:
     plt.title('LFP, power, linear scale')
 
 
-    plt.axes(h_ax[2, 0])
+    plt.axes(h_ax[0, 2])
     pnp.SpectrogramPlot(cohg, spgc_t, spcg_f, f_lim=[0, 120], tf_phase=True, tf_colorbar=True, tf_log=False,
-                        rate_interp=8, c_lim_style='diverge')
+                        rate_interp=8, c_lim_style='from_zero')
     plt.title('coherence')
 
-    plt.axes(h_ax[2, 1])
-    pnp.SpectrogramPlot(sfPLV, spgc_t, spcg_f, f_lim=[0, 120], tf_phase=True, tf_colorbar=True, tf_log=False,
-                        rate_interp=8, name_cmap='viridis')
+    plt.axes(h_ax[1, 2])
+    pnp.SpectrogramPlot(PLV, spgc_t, spcg_f, f_lim=[0, 120], tf_phase=True, tf_colorbar=True, tf_log=False,
+                        rate_interp=8, c_lim_style='from_zero')
     plt.title('PLV')
 
     plt.axes(h_ax[2, 2])
-    pnp.SpectrogramPlot(sfPPC, spgc_t, spcg_f, f_lim=[0, 120], tf_phase=True, tf_colorbar=True, tf_log=False,
-                        rate_interp=8, name_cmap='viridis')
+    pnp.SpectrogramPlot(PPC, spgc_t, spcg_f, f_lim=[0, 120], tf_phase=True, tf_colorbar=True, tf_log=False,
+                        rate_interp=8, c_lim_style='from_zero')
     plt.title('PPC')
 
+    plt.axes(h_ax[2, 0])
+    pnp.SpectrogramPlot(PLV_shuffle, spgc_t, spcg_f, f_lim=[0, 120], tf_phase=True, tf_colorbar=True, tf_log=False,
+                        rate_interp=8, c_lim_style='diverge')
+    plt.title('PLV_vs_shuffle')
+
+    plt.axes(h_ax[2, 1])
+    pnp.SpectrogramPlot(PPC_shuffle, spgc_t, spcg_f, f_lim=[0, 120], tf_phase=True, tf_colorbar=True, tf_log=False,
+                        rate_interp=8, c_lim_style='diverge')
+    plt.title('PPC_vs_shuffle')
+
+    plt.savefig('Showcase_spk_LFP_phase_sync.png')
     plt.show()

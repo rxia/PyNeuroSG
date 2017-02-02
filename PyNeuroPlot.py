@@ -42,7 +42,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
     N_chan = max([item.annotations['channel_index'] for item in seg.spiketrains])   # ! depend on the frame !
     nrows  = int(np.ceil(1.0 * N_chan / ncols))
     # spike waveforms:
-    fig, axes2d = plt.subplots(nrows=nrows, ncols=ncols, sharex=True, sharey=True)
+    fig, axes2d = plt.subplots(nrows=nrows, ncols=ncols, sharex=True, sharey=True, figsize=(8,6))
     plt.tight_layout()
     fig.subplots_adjust(hspace=0.05, wspace=0.05)
     axes1d = [item for sublist in axes2d for item in sublist]  # flatten axis
@@ -69,7 +69,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
         if sortcode_min <= cur_code < sortcode_max:
             axes_cur = axes1d[cur_chan - 1]
             plt.sca(axes_cur)
-            h_text = plt.text(0.5, 0.12 * cur_code, 'N={}'.format(len(seg.spiketrains[i])), transform=axes_cur.transAxes, fontsize='smaller')
+            h_text = plt.text(0.4, 0.12 * cur_code, 'N={}'.format(len(seg.spiketrains[i])), transform=axes_cur.transAxes, fontsize='smaller')
             h_waveform = plt.plot(np.squeeze(np.mean(seg.spiketrains[i].waveforms, axis=0)))
             if cur_code >= 0 and cur_code <= 5:
                 h_waveform[0].set_color(sortcode_color[cur_code])
@@ -264,7 +264,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
     """ ----- process the input, to work with various inputs ----- """
     if limit is not None:       # select trials of interest
         limit = np.array(limit)
-        data = np.take(np.array(data), limit, axis=0)
+        data = np.take(np.array(data), np.flatnonzero(limit), axis=0)
 
     cdtn_unq = None
     if len(data.shape) ==3:     # if data is 3D [N_trials * N_ts * N_signals]
@@ -459,7 +459,7 @@ def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_r
 
     return h_raster
 
-def DataNeuroSummaryPlot(data_neuro, sk_std=None, signal_type='auto', suptitle='', xlabel='', ylabel=''):
+def DataNeuroSummaryPlot(data_neuro, sk_std=None, signal_type='auto', suptitle='', xlabel='', ylabel='', tf_legend=False):
     """
     Summary plot for data_neuro, uses SmartSubplot and PsthPlot
 
@@ -495,7 +495,7 @@ def DataNeuroSummaryPlot(data_neuro, sk_std=None, signal_type='auto', suptitle='
     name_signals = [x['name'] for x in data_neuro['signal_info']]
 
     # plot function for every panel
-    functionPlot = lambda x: PsthPlot(x, ts=ts, cdtn=name_signals, sk_std=sk_std, tf_legend=True,
+    functionPlot = lambda x: PsthPlot(x, ts=ts, cdtn=name_signals, sk_std=sk_std, tf_legend=tf_legend,
                                       xlabel=xlabel, ylabel=ylabel, color_style='continuous')
 
     # plot every condition in every panel
@@ -503,7 +503,7 @@ def DataNeuroSummaryPlot(data_neuro, sk_std=None, signal_type='auto', suptitle='
     return h
 
 
-def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_name='', limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
+def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_name='', limit=None, sk_std=None, subpanel='', tf_legend=False):
     """ Obsolete funciton """
 
     N_cdtn0 = len(data_df[cdtn0_name].unique())
@@ -552,9 +552,10 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase
     if tf_log:                   # if use log scale
         spcg = np.log(spcg * 10**6 + 10**(-32)) - 6         # prevent log(0) error
 
+    if limit_trial is not None:
+        spcg = spcg[limit_trial, :, :]
+
     if spcg.ndim == 3:           # if contains many trials, calculate average
-        if limit_trial is not None:
-            spcg = spcg[limit_trial,:,:]
         spcg = np.mean(spcg, axis=0)
 
     if np.any(np.iscomplex(spcg)):     # if imaginary, keep the origianl and calculate abs
