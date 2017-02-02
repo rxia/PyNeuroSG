@@ -759,15 +759,14 @@ def add_axes_on_top(h_axes, r=0.25):
     try:    # for differenet versions of matploblib
         try:
             h_axes_top.set_facecolor([0.95, 0.95, 0.95])
-        else:
+        except:
             h_axes_top.set_axis_bgcolor([0.95, 0.95, 0.95])
     except:
         pass
 
-
-
-
     return h_axes_top
+
+
 
 def NeuroPlot(data_neuro, layout=[], sk_std=np.nan, tf_seperate_window=False, tf_legend=True):
 
