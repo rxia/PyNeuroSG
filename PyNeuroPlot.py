@@ -57,7 +57,13 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
         plt.xticks([])
         plt.yticks([])
         plt.text(0.1, 0.8, 'C{}'.format(i + 1), transform=axes.transAxes)
-        axes.set_axis_bgcolor([0.98,0.98,0.98])
+        try:  # for differenet versions of matploblib
+            try:
+                h_axes_top.set_facecolor([0.98, 0.98, 0.98])
+            except:
+                h_axes_top.set_axis_bgcolor([0.98, 0.98, 0.98])
+        except:
+            pass
     for i in range(len(seg.spiketrains)):
         try:
             cur_chan = int(re.match('Chan(\d*) .*', seg.spiketrains[i].name).group(1))  # ! depend on the naming !
@@ -107,7 +113,13 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
         plt.subplot(1,2,1)
         for i in range(N_chan):
             plt.plot(ts, array_erp_offset[:,i], c=cycle_color[i]*0.9, lw=2)
-        plt.gca().set_axis_bgcolor([0.95, 0.95, 0.95])
+        try:  # for differenet versions of matploblib
+            try:
+                h_axes_top.set_facecolor([0.95, 0.95, 0.95])
+            except:
+                h_axes_top.set_axis_bgcolor([0.95, 0.95, 0.95])
+        except:
+            pass
         plt.xlim(ts[0],ts[-1])
         plt.ylim( -(N_chan+2)*offset_plot_chan, -(0-3)*offset_plot_chan,  )
         plt.title('ERPs')
@@ -142,7 +154,13 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
             if len(ax.lines)==0:
-                ax.set_axis_bgcolor([1,1,1,0])
+                try:  # for differenet versions of matploblib
+                    try:
+                        h_axes_top.set_facecolor([1,1,1,0])
+                    except:
+                        h_axes_top.set_axis_bgcolor([1,1,1,0])
+                except:
+                    pass
         ax_bottomleft = h_axes[-1,0]
         plt.axes(ax_bottomleft)
         ax_bottomleft.get_xaxis().set_visible(True)
