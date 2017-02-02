@@ -756,7 +756,16 @@ def add_axes_on_top(h_axes, r=0.25):
     h_axes_top = h_axes.figure.add_axes([axes_rect.x0, axes_rect.y0+axes_rect.height*(1-r), axes_rect.width, axes_rect.height*r], sharex=h_axes)
     h_axes_top.invert_yaxis()
     # h_axes_top.set_xticklabels({})
-    h_axes_top.set_axis_bgcolor([0.95,0.95,0.95])
+    try:    # for differenet versions of matploblib
+        try:
+            h_axes_top.set_facecolor([0.95, 0.95, 0.95])
+        else:
+            h_axes_top.set_axis_bgcolor([0.95, 0.95, 0.95])
+    except:
+        pass
+
+
+
 
     return h_axes_top
 
