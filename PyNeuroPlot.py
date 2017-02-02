@@ -42,7 +42,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
     N_chan = max([item.annotations['channel_index'] for item in seg.spiketrains])   # ! depend on the frame !
     nrows  = int(np.ceil(1.0 * N_chan / ncols))
     # spike waveforms:
-    fig, axes2d = plt.subplots(nrows=nrows, ncols=ncols, sharex=True, sharey=True)
+    fig, axes2d = plt.subplots(nrows=nrows, ncols=ncols, sharex=True, sharey=True, figsize=(8,6))
     plt.tight_layout()
     fig.subplots_adjust(hspace=0.05, wspace=0.05)
     axes1d = [item for sublist in axes2d for item in sublist]  # flatten axis
@@ -69,7 +69,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
         if sortcode_min <= cur_code < sortcode_max:
             axes_cur = axes1d[cur_chan - 1]
             plt.sca(axes_cur)
-            h_text = plt.text(0.5, 0.12 * cur_code, 'N={}'.format(len(seg.spiketrains[i])), transform=axes_cur.transAxes, fontsize='smaller')
+            h_text = plt.text(0.4, 0.12 * cur_code, 'N={}'.format(len(seg.spiketrains[i])), transform=axes_cur.transAxes, fontsize='smaller')
             h_waveform = plt.plot(np.squeeze(np.mean(seg.spiketrains[i].waveforms, axis=0)))
             if cur_code >= 0 and cur_code <= 5:
                 h_waveform[0].set_color(sortcode_color[cur_code])
@@ -172,7 +172,7 @@ def RfPlot(data_neuro, indx_sgnl=0, x_scale=0.1, y_scale=50):
 
 
 
-def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
+def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_colorbar=False):
     """
     Smart subplots based on the data_neuro['cdtn']
 
@@ -180,16 +180,18 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
     if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and dim1 as columns
     :param data_neuro:    dictionary containing field 'cdtn' and 'cdtn_indx', which directing the subplot layout
     :param functionPlot:  the plot function in each panel
-    :param dataPlot:      the data that plot function applies on; in each panel, its first dim is sliced using data_neuro['cdtn_indx']
+    :param dataPlot:      the data that plot function applies on; in each panel, its first dim is sliced using data_neuro['cdtn_indx'], if None, use data_neuro[data]
     :return:              [h_fig, h_ax]
     """
     if 'cdtn' not in data_neuro.keys():            # if the input data does not contain the field for sorting
         raise Exception('data does not contain fields "cdtn" for subplot')
+    if ('data' in data_neuro.keys()) and dataPlot is None:  # if dataPlot is None, use data_neuro[data]
+        dataPlot = data_neuro['data']
     if isSingle(data_neuro['cdtn'][0]):            # if cdtn is 1D, automatically decide row and column
         N_cdtn = len(data_neuro['cdtn'])
         [n_rows, n_cols] = cal_rc(N_cdtn)
         [h_fig, h_ax]= plt.subplots(n_rows, n_cols, sharex=True, sharey=True)      # creates subplots
-        h_ax = h_ax.flatten()
+        h_ax = np.array(h_ax).flatten()
         for i, cdtn in enumerate(data_neuro['cdtn']):
             plt.axes(h_ax[i])
             if (functionPlot is not None) and (dataPlot is not None):    # in each panel, plot
@@ -212,19 +214,28 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None):
     else:                                          # if cdtn is more than 2D, raise exception
         raise Exception('cdtn structure does not meet the requirement of SmartSubplot')
 
-    h_fig.set_size_inches([12,9])
-
+    h_fig.set_size_inches([12,9], forward=True)
+    try:
+        plt.suptitle(suptitle.__str__() + '    ' + data_neuro['grpby'].__str__(), fontsize=16)
+    except:
+        pass
     # share clim across axes
     try:
         c_lim = share_clim(h_ax)
     except:
-        print('share clim was not successful')
+        warnings.warn('share clim was not successful')
+
+    if tf_colorbar:
+        try:
+            h_fig.colorbar(plt.gci(), ax=h_ax.flatten().tolist())
+        except:
+            warnings.warn('can not create colorbar')
 
     return [h_fig, h_ax]
 
 
 
-def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete', tf_legend=False):
+def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete', tf_legend=False, xlabel=None, ylabel=None):
     """
     funciton to plot psth with a raster panel on top of PSTH, works for both spike data and LFP data
 
@@ -244,21 +255,25 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
                         * if 'auto' : use data format to decide which plot to use
                         * if ''     : does not create subpanel
     :param color_style: 'discrete' or 'continuous'
-    :param tf_legend:   boolean
+    :param tf_legend:   boolean, true/false to plot legend
+    :param x_label:     string
+    :param y_label:     string
     :return:            axes of plot: [ax_psth, ax_raster]
     """
 
     """ ----- process the input, to work with various inputs ----- """
     if limit is not None:       # select trials of interest
         limit = np.array(limit)
-        data = np.take(np.array(data), limit, axis=0)
+        data = np.take(np.array(data), np.flatnonzero(limit), axis=0)
 
+    cdtn_unq = None
     if len(data.shape) ==3:     # if data is 3D [N_trials * N_ts * N_signals]
         [N,T,S] = data.shape
         data2D = signal_align.data3Dto2D(data)   # re-organize as 2D [(N_trials* N_signals) * N_ts ]
         if cdtn is None:                         # condition is the tag of the last dimension (e.g. signal name)
             cdtn = np.array([[i]*N for i in range(S)]).ravel()
         elif len(cdtn) == S:
+            cdtn_unq = np.array(cdtn)
             cdtn = np.array([[i]*N for i in cdtn]).ravel()
         else:
             cdtn = ['']*(N*S)
@@ -275,7 +290,8 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
         raise( Exception('input data does not have the right dimension') )
 
     cdtn = np.array(cdtn)
-    cdtn_unq  = get_unique_elements(cdtn)        # unique conditions
+    if cdtn_unq is None:
+        cdtn_unq  = get_unique_elements(cdtn)        # unique conditions
     M = len(cdtn_unq)
 
     if ts is None:
@@ -322,6 +338,11 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
     if tf_legend:
         plt.legend(cdtn_unq, labelspacing=0.1, prop={'size': 8},
                    fancybox=True, framealpha=0.5)
+
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+    if ylabel is not None:
+        plt.ylabel(ylabel)
 
     """ ========== plot a subpanel, either rasters or LFP pcolor ========== """
     if subpanel is not '':
@@ -438,9 +459,53 @@ def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_r
 
     return h_raster
 
+def DataNeuroSummaryPlot(data_neuro, sk_std=None, signal_type='auto', suptitle='', xlabel='', ylabel='', tf_legend=False):
+    """
+    Summary plot for data_neuro, uses SmartSubplot and PsthPlot
+
+    Use data_neuro['cdtn'] to sort and group trials in to sub-panels, plot all signals in every sub-panel
+
+    :param data_neuro:  data_neuro structure, see moduel signal_align.blk_align_to_evt
+    :param sk_std:      smoothness kernel, if None, set automatically based on data type
+    :param signal_type: 'spk', 'LFP' or 'auto'
+    :param suptitle:    title of figure
+    :param xlabel:      xlabel
+    :param ylabel:      ylabel
+    :return:            figure handle
+    """
+
+    ts = data_neuro['ts']
+    if signal_type == 'auto':
+        if len(np.unique(data_neuro['data'])) <=20:   # signal is spk
+            signal_type = 'spk'
+        else:
+            signal_type = 'LFP'           # signal is LFP
+
+    if sk_std is None:
+        if signal_type == 'spk':
+            sk_std = (ts[-1]-ts[0])/100
+    if xlabel =='':
+        xlabel = 't (s)'
+    if ylabel =='':
+        if signal_type == 'spk':
+            ylabel = 'firing rate (spk/s)'
+        elif signal_type == 'LFP':
+            ylabel = 'LFP (V)'
+
+    name_signals = [x['name'] for x in data_neuro['signal_info']]
+
+    # plot function for every panel
+    functionPlot = lambda x: PsthPlot(x, ts=ts, cdtn=name_signals, sk_std=sk_std, tf_legend=tf_legend,
+                                      xlabel=xlabel, ylabel=ylabel, color_style='continuous')
+
+    # plot every condition in every panel
+    h = SmartSubplot(data_neuro, functionPlot, suptitle=suptitle)
+    return h
 
 
-def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_name='', limit=None, sk_std=np.nan, subpanel='', tf_legend=False):
+def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_name='', limit=None, sk_std=None, subpanel='', tf_legend=False):
+    """ Obsolete funciton """
+
     N_cdtn0 = len(data_df[cdtn0_name].unique())
     N_cdtn1 = len(data_df[cdtn1_name].unique())
     if N_cdtn1 > 1:
@@ -461,20 +526,25 @@ def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_
 
 
 
-def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time_baseline=None,
-                 t_lim = None, f_lim = None, c_lim = None, name_cmap='inferno',
+def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase =False, tf_log=False, time_baseline=None,
+                 t_lim = None, f_lim = None, c_lim = None, c_lim_style=None, name_cmap=None,
                  rate_interp=None, tf_colorbar= False):
     """
-    plot spectrogram, input could be
+    plot power spectrogram or coherence-gram, input spcg could be [ N_t * N*f ] or [ N_trial * N_t * N*f ], real or complex
 
-    :param spcg:          2D numpy array, [ N_t * N*f ] or 3D numpy array [ N_trial, N_t * N*f ]
-    :param spcg_t:        tick of time
-    :param spcg_f:        tick of frequency
-    :param limit_trial:   index array to specicy which trials to use
+    :param spcg:          2D numpy array, [ N_t * N*f ] or 3D numpy array [ N_trial * N_t * N*f ], either real or complex:
+
+                            * if [ N_trial * N_t * N*f ], average over trial and get [ N_t * N*f ]
+                            * if complex, plot spectrogram using its abs value, and plot quiver using the complex value
+    :param spcg_t:        tick of time, length N_t
+    :param spcg_f:        tick of frequency, length N_f
+    :param limit_trial:   index array to specify which trials to use
+    :param tf_phase:      true/false, plot phase using quiver (spcg has to be complex): points down if negative phase (singal1 lags signal0 for coherence)
     :param tf_log:        true/false, use log scale
-    :param time_baseline: baseline time period to be subtracted
-    :param name_cmap:     name of color map to use
-    :param rate_interp:   rate of interpolation for plotting
+    :param c_lim_style:   'basic' (min, max), 'from_zero' (0, max), or 'diverge' (-max, max); default to None, select automatically based on tf_log and time_baseline
+    :param time_baseline: baseline time period to be subtracted, eg. [-0.1, 0.05], default to None
+    :param name_cmap:     name of color map to use, default to 'inferno', if use diverge c_map, automatically change to 'coolwarm'; another suggested one is 'veridis'
+    :param rate_interp:   rate of interpolation for plotting, if None, do not interpolate, suggested value is 8
     :param tf_colorbar:   true/false, plot colorbar
     :return:              figure handle
     """
@@ -482,27 +552,59 @@ def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time
     if tf_log:                   # if use log scale
         spcg = np.log(spcg * 10**6 + 10**(-32)) - 6         # prevent log(0) error
 
+    if limit_trial is not None:
+        spcg = spcg[limit_trial, :, :]
+
     if spcg.ndim == 3:           # if contains many trials, calculate average
-        if limit_trial is not None:
-            spcg = spcg[limit_trial,:,:]
         spcg = np.mean(spcg, axis=0)
+
+    if np.any(np.iscomplex(spcg)):     # if imaginary, keep the origianl and calculate abs
+        spcg_complex = spcg
+        spcg = np.abs(spcg)
+    else:
+        spcg_complex = None
+
+    if spcg_t is None:
+        spcg_t = np.arange(spcg.shape[1]).astype(float)
+
+    if spcg_f is None:
+        spcg_f = np.arange(spcg.shape[0]).astype(float)
 
     # if use reference period for baseline, subtract baseline
     if time_baseline is not None:
         spcg_baseline = np.mean( spcg[:,np.logical_and(spcg_t >= time_baseline[0], spcg_t < time_baseline[1])],
                                  axis=1, keepdims=True)
         spcg = spcg - spcg_baseline
-        name_cmap = 'coolwarm'           # use divergence colormap
+
 
     # set color limit
     if c_lim is None:
-        if time_baseline is not None:    # if use reference period
+        if c_lim_style is None:
+            if time_baseline is not None:  # if use reference period, symmetric about zero
+                c_lim_style = 'diverge'
+            else:
+                if (not tf_log) and (not np.any(spcg<0)):  # if not log scale and no nagative values
+                    c_lim_style = 'from_zero'
+                else:                                      # otherwise, use basic
+                    c_lim_style = 'basic'
+
+        if c_lim_style == 'diverge':       # if 'deverge', set to [-a,a]
             c_lim = [-np.max(np.abs(spcg)), np.max(np.abs(spcg))]
+        elif c_lim_style == 'from_zero':   # if 'from zero', set to [0,a]
+            c_lim = [0, np.max(spcg)]
+        elif c_lim_style == 'basic':       # otherwise, use 'basic', set to [a,b]
+            c_lim = [np.min(spcg), np.max(spcg)]
         else:
-            if tf_log is True:           # if log scale, set c_lim
-                c_lim = [np.min(spcg), np.max(spcg)]
-            else:                        # if not log scale, set c_lim with lower boundary to be 0
-                c_lim = [0, np.max(spcg)]
+            c_lim = [np.min(spcg), np.max(spcg)]
+            warnings.warn('c_lim_style not recognized, must be "basic", "from_zero", "diverge", or None ')
+
+    if name_cmap is None:
+        if c_lim_style == 'diverge':
+            name_cmap = 'coolwarm'  # use divergence colormap
+        else:
+            name_cmap = 'inferno'   # default to inferno
+
+
 
     if rate_interp is not None:
         f_interp = sp.interpolate.interp2d(spcg_t, spcg_f, spcg, kind='linear')
@@ -532,6 +634,24 @@ def SpectrogramPlot(spcg, spcg_t, spcg_f, limit_trial = None, tf_log=False, time
     # color bar
     if tf_colorbar:
         plt.colorbar()
+
+    # quiver plot of phase: pointing down if negative phase, singal1 lags signal0 for coherence
+    if tf_phase is True and spcg_complex is not None:
+        try:                   # plot a subset of quivers, to prevent them from filling the whole plot
+            max_quiver = 32    # max number of quivers every dimension (in both axis)
+            quiver_scale = 32  # about 1/32 of axis length
+            [N_fs, N_ts] = spcg.shape
+            indx_fs = np.array(keep_less_than(range(N_fs), max_quiver*1.0*(spcg_f.max()-spcg_f.min())/(f_lim[1]-f_lim[0])))
+            indx_ts = np.array(keep_less_than(range(N_ts), max_quiver))
+            plt.quiver(spcg_t[indx_ts], spcg_f[indx_fs],
+                       spcg_complex[indx_fs, :][:, indx_ts].real, spcg_complex[indx_fs, :][:, indx_ts].imag,
+                       color='r', units='height', pivot='mid', headwidth=5,
+                       scale=np.percentile(spcg, 99.5) * quiver_scale)
+        except:
+            plt.quiver(spcg_t, spcg_f, spcg_complex.real, spcg_complex.imag,
+                       color='r', units='height', pivot='mid', scale=np.percentile(spcg, 99.8) * quiver_scale)
+
+    plt.sci(h_plot) # set the current color-mappable object to be the specrogram plot but not the quiver
 
     return h_plot
 
@@ -571,24 +691,24 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, limit_gap=1, t_bin=0.2, t
     spcg_all = []
     for i_plot, i_chan in enumerate(indx_chan):
         [spcg_cur, spcg_t, spcg_f] = pna.ComputeSpectrogram(data[:,:,i_plot], data1=None, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
-        spcg_all.append(spcg_cur)
+        spcg_all.append( np.mean(spcg_cur, axis=0) )
 
     # plot
     text_props = dict(boxstyle='round', facecolor='w', alpha=0.5)
-    [h_fig, h_ax] = plt.subplots(nrows=N_plot, ncols=N_plot, sharex=True, sharey=True)
+    [h_fig, h_ax] = plt.subplots(nrows=N_plot, ncols=N_plot, sharex=True, sharey=True, figsize=[16,16])
     h_fig.set_size_inches([12,9])
     h_fig.subplots_adjust(hspace=0, wspace=0)
     for indx_row in range(N_plot):
         for indx_col in range(N_plot):
             if indx_row == indx_col:            # power spectrogram on diagonal panels
                 plt.axes(h_ax[indx_row, indx_col])
-                h_plot_pow = SpectrogramPlot(np.mean(spcg_all[indx_row], axis=0), spcg_t, spcg_f, tf_log=True, f_lim=f_lim, time_baseline=None,
+                h_plot_pow = SpectrogramPlot(spcg_all[indx_row], spcg_t, spcg_f, tf_log=True, f_lim=f_lim, time_baseline=None,
                                     rate_interp=8)
                 plt.text(0.03, 0.85, '{}'.format(signal_info[indx_row][0]), transform=plt.gca().transAxes, bbox=text_props)
             elif indx_row<indx_col:             # coherence on off diagonal panels
                 # compute coherence
                 [cohg, _, _] = pna.ComputeCoherogram(data[:, :, indx_row], data[:, :, indx_col], fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step,
-                                       t_axis=t_axis, batchsize=batchsize, data0_spcg=spcg_all[indx_row], data1_spcg=spcg_all[indx_col])
+                                       t_axis=t_axis, batchsize=batchsize, data0_spcg_ave=spcg_all[indx_row], data1_spcg_ave=spcg_all[indx_col])
 
                 # plot on two symmetric panels
                 plt.axes(h_ax[indx_row, indx_col])
