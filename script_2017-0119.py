@@ -40,7 +40,8 @@ plt.ioff()
 """ load data: (1) neural data: TDT blocks -> neo format; (2)behaverial data: stim dg -> pandas DataFrame """
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*spot.*', '.*GM32.*U16.*161228.*', tf_interactive=True,)
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv.*', '.*GM32.*U16.*161228.*', tf_interactive=True,)
-[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*match.*', '.*GM32.*U16.*161125.*', tf_interactive=True,)
+# [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*match.*', '.*GM32.*U16.*161125.*', tf_interactive=True,)
+[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', '.*GM32.*U16.*161125.*', tf_interactive=True,)
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('x_.*detection_opto_011317.*', '.*Dexter_.*U16.*170113.*', tf_interactive=True,dir_dg='/Volumes/Labfiles/projects/analysis/ruobing')
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', '.*GM32.*U16.*170117.*', tf_interactive=True,)
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*matchnot.*', '.*GM32.*U16.*170113.*', tf_interactive=True,)
@@ -164,8 +165,9 @@ N_sgnl = len(data_neuro['signal_info'])
 
 for i_neuron in range(len(data_neuro['signal_info'] )):
     name_signal = data_neuro['signal_info'][i_neuron]['name']
-    functionPlot = lambda x: pnp.SpectrogramPlot(x, spcg_t, spcg_f, tf_log=True, tf_phase=True, f_lim=[0, 100], time_baseline=None,
-                                  rate_interp=8)
+    functionPlot = lambda x: pnp.SpectrogramPlot(x, spcg_t, spcg_f, tf_log=True, tf_phase=True, tf_mesh_f=True,
+                                                 f_lim=[0, 100], time_baseline=None,
+                                                 rate_interp=8)
     pnp.SmartSubplot(data_neuro, functionPlot, spcg[:, :, i_neuron, :])
     plt.suptitle('file {},   LFP power spectrum {}'.format(filename_common, name_signal, fontsize=20))
     plt.savefig('{}/{} LFPs power spectrum by condition {}.png'.format(dir_temp_fig, filename_common, name_signal))

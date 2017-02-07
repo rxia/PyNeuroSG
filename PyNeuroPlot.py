@@ -544,7 +544,9 @@ def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_
 
 
 
-def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase =False, tf_log=False, time_baseline=None,
+def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
+                 tf_phase=False, tf_mesh_t=False, tf_mesh_f=False,
+                 tf_log=False, time_baseline=None,
                  t_lim = None, f_lim = None, c_lim = None, c_lim_style=None, name_cmap=None,
                  rate_interp=None, tf_colorbar= False):
     """
@@ -558,6 +560,8 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase
     :param spcg_f:        tick of frequency, length N_f
     :param limit_trial:   index array to specify which trials to use
     :param tf_phase:      true/false, plot phase using quiver (spcg has to be complex): points down if negative phase (singal1 lags signal0 for coherence)
+    :param tf_mesh_t:     true/false, plot LinemeshFlatPlot, focuse on t, (horizontal lines)
+    :param tf_mesh_f:     true/false, plot LinemeshFlatPlot, focuse on f, (vertical lines)
     :param tf_log:        true/false, use log scale
     :param c_lim_style:   'basic' (min, max), 'from_zero' (0, max), or 'diverge' (-max, max); default to None, select automatically based on tf_log and time_baseline
     :param time_baseline: baseline time period to be subtracted, eg. [-0.1, 0.05], default to None
@@ -622,8 +626,6 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase
         else:
             name_cmap = 'inferno'   # default to inferno
 
-
-
     if rate_interp is not None:
         f_interp = sp.interpolate.interp2d(spcg_t, spcg_f, spcg, kind='linear')
         spcg_t_plot = np.linspace(spcg_t[0], spcg_t[-1], (len(spcg_t)-1)*rate_interp+1 )
@@ -669,9 +671,53 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase
             plt.quiver(spcg_t, spcg_f, spcg_complex.real, spcg_complex.imag,
                        color='r', units='height', pivot='mid', scale=np.percentile(spcg, 99.8) * quiver_scale)
 
+    if tf_mesh_t:
+        LinemeshFlatPlot(spcg_plot, spcg_t_plot, spcg_f_plot, N_mesh=16, axis_mesh='x')
+    if tf_mesh_f:
+        LinemeshFlatPlot(spcg_plot, spcg_t_plot, spcg_f_plot, N_mesh=16, axis_mesh='y')
+
     plt.sci(h_plot) # set the current color-mappable object to be the specrogram plot but not the quiver
 
     return h_plot
+
+
+def LinemeshFlatPlot(data, x_grid=None, y_grid=None, axis_mesh='x',
+                     N_mesh=16, scale_mesh=1.0/16, color='dimgrey'):
+    """
+    an alternative to pcolor mesh, focuse on change along one dimension (x, or y)
+
+    :param data:        2D numpy array (num_y * num_x), like the imput to imshow
+    :param x_grid:      1D numpy array, num_x
+    :param y_grid:      1D numpy array, num_x
+    :param axis_mesh:   'x', or 'y', the change on which axis you are interested in
+    :param N_mesh:      number of lines to plot (controls thinning)
+    :param scale_mesh:  the scale of individual lines relative the axis limit
+    :param color:       color of lines
+    :return:            handles of the lines
+    """
+    if x_grid is None:
+        x_grid = np.arange(data.shape[1])
+    if y_grid is None:
+        y_grid = np.arange(data.shape[0])
+    x_grid_2D = np.expand_dims(x_grid, 0)
+    y_grid_2D = np.expand_dims(y_grid, 1)
+
+    if axis_mesh == 'x':
+        factor_scale = 1.0*scale_mesh * np.abs(y_grid[-1]-y_grid[0]) / np.nanmax(np.abs(data))
+        data_plot = data*factor_scale + y_grid_2D
+        if N_mesh is None:
+            N_mesh = len(y_grid)
+        indx_thin = keep_less_than( np.arange(len(y_grid)), N_mesh)
+        h_lines = plt.plot(x_grid, data_plot[indx_thin,:].transpose(), color=color)
+    elif axis_mesh == 'y':
+        factor_scale = 1.0 * scale_mesh * np.abs(x_grid[-1] - x_grid[0]) / np.nanmax(np.abs(data))
+        data_plot = data*factor_scale + x_grid_2D
+        if N_mesh is None:
+            N_mesh = len(x_grid)
+        indx_thin = keep_less_than(np.arange(len(x_grid)), N_mesh)
+        h_lines = plt.plot(data_plot[:,indx_thin], y_grid, color=color)
+    return h_lines
+
 
 
 def SpectrogramAllPairPlot(data_neuro, indx_chan=None, limit_gap=1, t_bin=0.2, t_step=None, f_lim = None, coh_lim=None, t_axis=1, batchsize=100, verbose=False):
