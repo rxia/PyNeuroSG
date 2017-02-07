@@ -262,3 +262,47 @@ def GetNearestPow2(n):
     :return:   an int, power of 2 (e.g., 2,4,8,16,32...), nearest to n
     """
     return int(2**np.round(np.log2(n)))
+
+
+def ComputeCrossCorlg(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, t_axis=1):
+    """
+    Compute Cross-correlogram
+
+    :return:
+    """
+
+    if t_bin is None:     # default to total_time/10
+        t_bin = 1.0*data0.shape[t_axis]/fs /10
+
+    nperseg = GetNearestPow2( fs * t_bin )                    # number of points per segment, power of 2
+    if t_step is None:                                        # number of overlapping points of neighboring segments
+        noverlap = int( np.round(nperseg * 0.875) )                # default 7/8 overlapping
+    else:
+        noverlap = nperseg - GetNearestPow2( fs * t_step )
+    if noverlap > nperseg:
+        noverlap = nperseg
+
+    data0_str = create_strided_array(data0, nperseg, noverlap)
+    data1_str = create_strided_array(data1, nperseg, noverlap)
+
+    t_grid = 1.0*np.arange(data0_str.shape[1])*(nperseg-noverlap)/fs + 0.5*nperseg/fs
+    t_segm = 1.0*(np.arange(nperseg)-nperseg/2) /fs
+
+    corss_corlg = data1_str*0
+    for i in range(corss_corlg.shape[0]):
+        for j in range(corss_corlg.shape[1]):
+            corss_corlg[i,j,:] = sp.signal.correlate(data0_str[i,j,:], data1_str[i,j,:], mode='same')
+
+    return (np.mean(corss_corlg, axis=0), t_grid, t_segm)
+
+def create_strided_array(x, nperseg, noverlap):
+    # Created strided array of data segments, from scipy.spectral._fft_helper
+    if nperseg == 1 and noverlap == 0:
+        result = x[..., np.newaxis]
+    else:
+        step = nperseg - noverlap
+        shape = x.shape[:-1] + ((x.shape[-1] - noverlap) // step, nperseg)
+        strides = x.strides[:-1] + (step * x.strides[-1], x.strides[-1])
+        result = np.lib.stride_tricks.as_strided(x, shape=shape,
+                                                 strides=strides)
+    return result
