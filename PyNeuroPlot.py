@@ -682,9 +682,9 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
 
 
 def LinemeshFlatPlot(data, x_grid=None, y_grid=None, axis_mesh='x',
-                     N_mesh=16, scale_mesh=1.0/16, color='dimgrey'):
+                     N_mesh=16, scale_mesh=1.0/8, color='dimgrey'):
     """
-    an alternative to pcolor mesh, focuse on change along one dimension (x, or y)
+    an alternative to pcolormesh, focuse on change along one dimension (x, or y)
 
     :param data:        2D numpy array (num_y * num_x), like the imput to imshow
     :param x_grid:      1D numpy array, num_x
@@ -703,15 +703,15 @@ def LinemeshFlatPlot(data, x_grid=None, y_grid=None, axis_mesh='x',
     y_grid_2D = np.expand_dims(y_grid, 1)
 
     if axis_mesh == 'x':
-        factor_scale = 1.0*scale_mesh * np.abs(y_grid[-1]-y_grid[0]) / np.nanmax(np.abs(data))
-        data_plot = data*factor_scale + y_grid_2D
+        factor_scale = 1.0*scale_mesh * np.abs(y_grid[-1]-y_grid[0]) / (np.nanmax(np.abs(data))-np.nanmin(np.abs(data)))
+        data_plot = (data-np.nanmean(data)) *factor_scale + y_grid_2D
         if N_mesh is None:
             N_mesh = len(y_grid)
         indx_thin = keep_less_than( np.arange(len(y_grid)), N_mesh)
         h_lines = plt.plot(x_grid, data_plot[indx_thin,:].transpose(), color=color)
     elif axis_mesh == 'y':
-        factor_scale = 1.0 * scale_mesh * np.abs(x_grid[-1] - x_grid[0]) / np.nanmax(np.abs(data))
-        data_plot = data*factor_scale + x_grid_2D
+        factor_scale = 1.0 * scale_mesh * np.abs(x_grid[-1] - x_grid[0]) / (np.nanmax(np.abs(data))-np.nanmin(np.abs(data)))
+        data_plot = (data-np.nanmean(data)) *factor_scale + x_grid_2D
         if N_mesh is None:
             N_mesh = len(x_grid)
         indx_thin = keep_less_than(np.arange(len(x_grid)), N_mesh)
@@ -720,12 +720,13 @@ def LinemeshFlatPlot(data, x_grid=None, y_grid=None, axis_mesh='x',
 
 
 
-def SpectrogramAllPairPlot(data_neuro, indx_chan=None, limit_gap=1, t_bin=0.2, t_step=None, f_lim = None, coh_lim=None, t_axis=1, batchsize=100, verbose=False):
+def SpectrogramAllPairPlot(data_neuro, indx_chan=None, max_trial=None, limit_gap=1, t_bin=0.2, t_step=None, f_lim = None, coh_lim=None, t_axis=1, batchsize=100, verbose=False):
     """
     Plot all LFP power specgtrogram (diagonal panels) and all pairwise coherence (off-diagonal panels)
 
     :param data_neuro: standard data input
     :param indx_chan:  index of channels to plot (from zero)
+    :param max_trial:  a interger, use only max_trial from all trials to speedup the calculation
     :param limit_gap:  the gap between channels to plot, used when indx_chan is None. e.g. if limit_gap=4, the indx_chan=[0,4,8,...]
     :param t_bin:      time bin size for spectrogram
     :param t_step:     time step size for spectrogram
@@ -748,18 +749,23 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, limit_gap=1, t_bin=0.2, t
     signal_info = data_neuro['signal_info'][indx_chan]
     N_plot = len(indx_chan)
 
+    # use only a subset of trials to speedup the function
+    if type(max_trial) is int:
+        if max_trial < data.shape[0]:
+            data = np.take( data, np.random.choice(range(data.shape[0]),max_trial, replace=False),  axis=0)
+
     fs = data_neuro['signal_info'][0][2]
     t_ini = np.array(data_neuro['ts'][0])
 
     # compute spectrogram
     spcg_all = []
     for i_plot, i_chan in enumerate(indx_chan):
-        [spcg_cur, spcg_t, spcg_f] = pna.ComputeSpectrogram(data[:,:,i_plot], data1=None, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
+        [spcg_cur, spcg_t, spcg_f] = pna.ComputeSpectrogram(data[:,:,i_plot], data1=None, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, f_lim=f_lim, batchsize=batchsize)
         spcg_all.append( np.mean(spcg_cur, axis=0) )
 
     # plot
     text_props = dict(boxstyle='round', facecolor='w', alpha=0.5)
-    [h_fig, h_ax] = plt.subplots(nrows=N_plot, ncols=N_plot, sharex=True, sharey=True, figsize=[16,16])
+    [h_fig, h_ax] = plt.subplots(nrows=N_plot, ncols=N_plot, sharex=True, sharey=True, figsize=[20,20])
     h_fig.set_size_inches([12,9])
     h_fig.subplots_adjust(hspace=0, wspace=0)
     for indx_row in range(N_plot):
@@ -771,8 +777,8 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, limit_gap=1, t_bin=0.2, t
                 plt.text(0.03, 0.85, '{}'.format(signal_info[indx_row][0]), transform=plt.gca().transAxes, bbox=text_props)
             elif indx_row<indx_col:             # coherence on off diagonal panels
                 # compute coherence
-                [cohg, _, _] = pna.ComputeCoherogram(data[:, :, indx_row], data[:, :, indx_col], fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step,
-                                       t_axis=t_axis, batchsize=batchsize, data0_spcg_ave=spcg_all[indx_row], data1_spcg_ave=spcg_all[indx_col])
+                [cohg, _, _] = pna.ComputeCoherogram(data[:, :, indx_row], data[:, :, indx_col], fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, f_lim=f_lim,
+                                       batchsize=batchsize, data0_spcg_ave=spcg_all[indx_row], data1_spcg_ave=spcg_all[indx_col])
 
                 # plot on two symmetric panels
                 plt.axes(h_ax[indx_row, indx_col])
