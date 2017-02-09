@@ -178,17 +178,53 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
     return h_fig
 
 
-def RfPlot(data_neuro, indx_sgnl=0, x_scale=0.1, y_scale=50):
+def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None):
     """
-    plot RF using one single plot, the data_neuro['cdtn'] contains 'x' and 'y', which represents the location of stimulus
+    plot RF using one single plot
+
+    :param data_neuro:  the data_neuro['cdtn'] contains 'x' and 'y', which represents the location of stimulus
+    :param indx_sgnl:   index of signal, i.e. the data_neuro['cdtn'][:,:,indx_sgnl] would be used for plotting
+    :param t_scale:     duration of time (ts) to be mapped to unit 1 of space
+    :param fr_scale:
+    :return:
     """
+
+    data = data_neuro['data'][:,:,indx_sgnl]
+    ts = np.array(data_neuro['ts'])
+    if t_focus is None:
+        t_focus = ts[[0,-1]]
+
+    # get x and y values
+    x_grid = np.unique(np.array(data_neuro['cdtn'])[:,0])
+    y_grid = np.unique(np.array(data_neuro['cdtn'])[:,1])
+    x_spacing = np.mean(np.diff(x_grid))
+    y_spacing = np.mean(np.diff(x_grid))
+    if t_scale is None:
+        t_scale = ( data_neuro['ts'][-1] - data_neuro['ts'][0] )/x_spacing*1.1
+
+    fr_2D = np.zeros([len(x_grid),len(y_grid)])
+    for i, xy in enumerate(data_neuro['cdtn']):
+        x,y = xy
+        i_x = np.flatnonzero(x_grid == x)[0]
+        i_y = np.flatnonzero(y_grid == y)[0]
+        fr_2D[i_x, i_y] = np.mean( data[ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] , np.argwhere(np.logical_and(ts>=t_focus[0], ts<t_focus[1])) ])
+
+    if fr_scale is None:
+        fr_scale = np.nanmax(fr_2D)*2
+
     plt.figure()
     plt.suptitle(data_neuro['signal_info'][indx_sgnl]['name'])
+    plt.pcolormesh( center2edge(x_grid), center2edge(y_grid), fr_2D.transpose(), cmap='inferno')
+
     for i, xy in enumerate(data_neuro['cdtn']):
-        plt.fill_between( xy[0]+np.array(data_neuro['ts'])/x_scale, xy[1], xy[1]+np.mean( data_neuro['data'][ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] ,:,indx_sgnl], axis=0 )/y_scale, color=[0,0,0,0.5] )
-        plt.plot(xy[0],xy[1],'ro', linewidth=10)
-
-
+        plt.fill_between(xy[0] - x_spacing/2 + (ts-ts[0]) / t_scale, xy[1] - y_spacing/2,
+                         xy[1] - y_spacing/2 + np.mean( data_neuro['data'][data_neuro['cdtn_indx'][data_neuro['cdtn'][i]], :, indx_sgnl], axis=0) / fr_scale,
+                         color='deepskyblue', alpha=0.5)
+        # plt.fill_between( xy[0]+np.array(data_neuro['ts'])/t_scale, xy[1], xy[1]+np.mean( data_neuro['data'][ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] ,:,indx_sgnl], axis=0 )/fr_scale, color=[0,0,0,0.5] )
+        # plt.plot(xy[0],xy[1],'r+', linewidth=1)
+    plt.xlim(center2edge(x_grid)[[0, -1]])
+    plt.ylim(center2edge(y_grid)[[0, -1]])
+    plt.axis('equal')
 
 def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_colorbar=False):
     """
@@ -740,7 +776,6 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, max_trial=None, limit_gap
 
     import PyNeuroAna as pna
 
-
     # calculate the channel index used for plotting
     N_chan = len(data_neuro['signal_info'])
     if indx_chan is None:
@@ -956,16 +991,27 @@ def create_array_layout_subplots(array_layout):
     [h_fig, h_axes] = plt.subplots(max_r+1, max_c+1, sharex=True, sharey=True)
     return [h_fig, h_axes]
 
+
 def center2edge(centers):
     # tool function to get edges from centers for plt.pcolormesh
     centers = np.array(centers,dtype='float')
     edges = np.zeros(len(centers)+1)
-    if len(centers) is 1:
-        dx = 1.0
-    else:
-        dx = centers[-1]-centers[-2]
-    edges[0:-1] = centers - dx/2
-    edges[-1] = centers[-1]+dx/2
+    if False:     # assumes even spacing
+        if len(centers) is 1:
+            dx = 1.0
+        else:
+            dx = centers[-1]-centers[-2]
+        edges[0:-1] = centers - dx/2
+        edges[-1] = centers[-1]+dx/2
+    if True:      # more universal
+        if len(centers) is 1:
+            dx = 1.0
+            edges[0] = centers - dx / 2
+            edges[1] = centers + dx / 2
+        else:
+            edges[1:-1] = (centers[0:-1] + centers[1:])/2.0
+            edges[0]  = centers[0]  - (edges[1]- centers[0])
+            edges[-1] = centers[-1] + (centers[-1]-edges[-2])
     return edges
 
 
