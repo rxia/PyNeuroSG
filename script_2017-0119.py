@@ -40,8 +40,8 @@ plt.ioff()
 """ load data: (1) neural data: TDT blocks -> neo format; (2)behaverial data: stim dg -> pandas DataFrame """
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*spot.*', '.*GM32.*U16.*161228.*', tf_interactive=True,)
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv.*', '.*GM32.*U16.*161228.*', tf_interactive=True,)
-# [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*match.*', '.*GM32.*U16.*161125.*', tf_interactive=True,)
-[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', '.*GM32.*U16.*161125.*', tf_interactive=True,)
+[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*match.*', '.*GM32.*U16.*161125.*', tf_interactive=True,)
+# [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', '.*GM32.*U16.*161125.*', tf_interactive=True,)
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('x_.*detection_opto_011317.*', '.*Dexter_.*U16.*170113.*', tf_interactive=True,dir_dg='/Volumes/Labfiles/projects/analysis/ruobing')
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', '.*GM32.*U16.*170117.*', tf_interactive=True,)
 # [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*matchnot.*', '.*GM32.*U16.*170113.*', tf_interactive=True,)
@@ -158,7 +158,8 @@ for i_neuron in range(len(data_neuro['signal_info'] )):
 data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.100, 1.000], type_filter='ana.*', name_filter='LFPs.*', spike_bin_rate=50)
 data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized', 'mask_opacity_int'], [], data_neuro)
 
-[spcg, spcg_t, spcg_f] = pna.ComputeSpectrogram(data_neuro['data'], fs=data_neuro['signal_info'][0][2], t_ini=np.array( data_neuro['ts'][0] ), t_bin=0.1, t_step=None, t_axis=1)
+[spcg, spcg_t, spcg_f] = pna.ComputeSpectrogram(data_neuro['data'], fs=data_neuro['signal_info'][0][2], f_lim=[0, 100],
+                                                t_ini=np.array( data_neuro['ts'][0] ), t_bin=0.1, t_step=None, t_axis=1)
 time_baseline = [-0.05, 0.05]
 tf_baseline = True
 N_sgnl = len(data_neuro['signal_info'])
@@ -175,37 +176,42 @@ for i_neuron in range(len(data_neuro['signal_info'] )):
 
 
 """ coherence of all pairs """
-pnp.SpectrogramAllPairPlot(data_neuro, limit_gap=4, t_bin=0.15, f_lim=[0,100])
+pnp.SpectrogramAllPairPlot(data_neuro, indx_chan=range(32), max_trial=200, limit_gap=1, t_bin=0.15, f_lim=[0,60],coh_lim=[0,0.5], verbose=True)
 plt.savefig('{}/{} LFPs power spectrum and coherence of all pairs.png'.format(dir_temp_fig, filename_common))
 plt.close()
 
 
 """ cohrence plot of one pair """
-window_offset = [-0.100, 0.7]
+window_offset = [-0.200, 1.0]
 data_neuro_LFP = signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset, type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1))
-# data_neuro_LFP = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_LFP)
+data_neuro_LFP = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_LFP)
 # data_neuro_LFP = signal_align.neuro_sort(data_df, ['stim_sname'], [], data_neuro_LFP)
-data_neuro_LFP = signal_align.neuro_sort(data_df, [''], [], data_neuro_LFP)
+# data_neuro_LFP = signal_align.neuro_sort(data_df, [''], [], data_neuro_LFP)
 # list_ch0 = [1,3,5,10,11,14,16,19,21,28]
 # list_ch1 = [33,40,48]
 # list_ch0 = [1,5,11,16,19,28]
 # list_ch1 = [3,10,14,21]
 # list_ch0 = [1,5,11,16,19,28]
 # list_ch1 = [33,37,41,45,48]
-list_ch0 = [5]
-list_ch1 = [37]
+list_ch0 = [1,5,11,16,19,28]
+list_ch1 = [1,5,11,16,19,28]
 # list_ch0 = [2,5,11,16,21 ,28]
+# list_ch1 = [34,36,40,43,45,48]
+# list_ch0 = [1,5,11,16,19,28]
 # list_ch1 = [34,36,40,43,45,48]
 
 for ch0 in list_ch0:
     for ch1 in list_ch1:
+        if ch0 == ch1:
+            continue
         def functionPlot(x):
             [cohg, spcg_t, spcg_f] = pna.ComputeCoherogram(x, data1=None, tf_phase=True, tf_vs_shuffle=False, fs=data_neuro_LFP['signal_info'][0][2],
                                                            t_ini=np.array( data_neuro_LFP['ts'][0] ), t_bin=0.2, t_step=None, f_lim=[0, 70])
-            pnp.SpectrogramPlot(cohg, spcg_t, spcg_f, tf_log=False, f_lim=[0, 70], tf_phase=True, time_baseline=None, rate_interp=8, c_lim_style='from_zero', name_cmap='inferno', tf_colorbar=False)
+            pnp.SpectrogramPlot(cohg, spcg_t, spcg_f, tf_log=False, f_lim=[0, 70], tf_phase=True, tf_mesh_f=True,
+                                time_baseline=None, rate_interp=8, c_lim_style='from_zero',
+                                name_cmap='viridis', tf_colorbar=False)
             del(cohg)
         pnp.SmartSubplot(data_neuro_LFP, functionPlot, data_neuro_LFP['data'][:,:,[ch0-1,ch1-1]], suptitle='coherence {}_{},    {}'.format(ch0, ch1, filename_common), tf_colorbar=True)
-        plt.gcf().set_size_inches(6,6)
         plt.savefig('{}/{} LFPs coherence by condition {}-{}.png'.format(dir_temp_fig, filename_common, ch0, ch1))
         plt.close()
 
