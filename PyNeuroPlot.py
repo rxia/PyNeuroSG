@@ -57,7 +57,13 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
         plt.xticks([])
         plt.yticks([])
         plt.text(0.1, 0.8, 'C{}'.format(i + 1), transform=axes.transAxes)
-        axes.set_axis_bgcolor([0.98,0.98,0.98])
+        try:  # for differenet versions of matploblib
+            try:
+                h_axes_top.set_facecolor([0.98, 0.98, 0.98])
+            except:
+                h_axes_top.set_axis_bgcolor([0.98, 0.98, 0.98])
+        except:
+            pass
     for i in range(len(seg.spiketrains)):
         try:
             cur_chan = int(re.match('Chan(\d*) .*', seg.spiketrains[i].name).group(1))  # ! depend on the naming !
@@ -79,7 +85,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
 
     return fig
 
-def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
+def ErpPlot(array_erp, ts, array_layout=None, depth_linear=None):
     """
     ERP (event-evoked potential) plot
 
@@ -98,7 +104,16 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
     if array_layout is None:                # if None, assumes linear layout
         offset_plot_chan = (array_erp.max()-array_erp.min())/5
 
-        array_erp_offset = (array_erp - np.array(np.arange(array_erp.shape[0]), ndmin=2).transpose() * offset_plot_chan).transpose()
+        if depth_linear is None:
+            depth_linear = np.array(np.arange(array_erp.shape[0]), ndmin=2).transpose() * offset_plot_chan
+            array_erp_offset = (array_erp - depth_linear).transpose()
+        else:
+            depth_linear = np.array(depth_linear)
+            depth_scale = depth_linear.max()-depth_linear.min()
+            if depth_scale < 10**(-9):
+                depth_scale = 1
+            depth_linear = np.expand_dims(depth_linear, axis=1)
+            array_erp_offset = (array_erp / offset_plot_chan /15.0 * depth_scale - depth_linear).transpose()
 
         name_colormap = 'rainbow'
         cycle_color = plt.cm.get_cmap(name_colormap)(np.linspace(0, 1, N_chan))
@@ -107,9 +122,15 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
         plt.subplot(1,2,1)
         for i in range(N_chan):
             plt.plot(ts, array_erp_offset[:,i], c=cycle_color[i]*0.9, lw=2)
-        plt.gca().set_axis_bgcolor([0.95, 0.95, 0.95])
+        try:  # for differenet versions of matploblib
+            try:
+                h_axes_top.set_facecolor([0.95, 0.95, 0.95])
+            except:
+                h_axes_top.set_axis_bgcolor([0.95, 0.95, 0.95])
+        except:
+            pass
         plt.xlim(ts[0],ts[-1])
-        plt.ylim( -(N_chan+2)*offset_plot_chan, -(0-3)*offset_plot_chan,  )
+        # plt.ylim( -(N_chan+2)*offset_plot_chan, -(0-3)*offset_plot_chan,  )
         plt.title('ERPs')
         plt.xlabel('time from event onset (s)')
         plt.ylabel('Voltage (V)')
@@ -142,7 +163,13 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
             if len(ax.lines)==0:
-                ax.set_axis_bgcolor([1,1,1,0])
+                try:  # for differenet versions of matploblib
+                    try:
+                        h_axes_top.set_facecolor([1,1,1,0])
+                    except:
+                        h_axes_top.set_axis_bgcolor([1,1,1,0])
+                except:
+                    pass
         ax_bottomleft = h_axes[-1,0]
         plt.axes(ax_bottomleft)
         ax_bottomleft.get_xaxis().set_visible(True)
@@ -160,17 +187,53 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
     return h_fig
 
 
-def RfPlot(data_neuro, indx_sgnl=0, x_scale=0.1, y_scale=50):
+def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None):
     """
-    plot RF using one single plot, the data_neuro['cdtn'] contains 'x' and 'y', which represents the location of stimulus
+    plot RF using one single plot
+
+    :param data_neuro:  the data_neuro['cdtn'] contains 'x' and 'y', which represents the location of stimulus
+    :param indx_sgnl:   index of signal, i.e. the data_neuro['cdtn'][:,:,indx_sgnl] would be used for plotting
+    :param t_scale:     duration of time (ts) to be mapped to unit 1 of space
+    :param fr_scale:
+    :return:
     """
+
+    data = data_neuro['data'][:,:,indx_sgnl]
+    ts = np.array(data_neuro['ts'])
+    if t_focus is None:
+        t_focus = ts[[0,-1]]
+
+    # get x and y values
+    x_grid = np.unique(np.array(data_neuro['cdtn'])[:,0])
+    y_grid = np.unique(np.array(data_neuro['cdtn'])[:,1])
+    x_spacing = np.mean(np.diff(x_grid))
+    y_spacing = np.mean(np.diff(x_grid))
+    if t_scale is None:
+        t_scale = ( data_neuro['ts'][-1] - data_neuro['ts'][0] )/x_spacing*1.1
+
+    fr_2D = np.zeros([len(x_grid),len(y_grid)])
+    for i, xy in enumerate(data_neuro['cdtn']):
+        x,y = xy
+        i_x = np.flatnonzero(x_grid == x)[0]
+        i_y = np.flatnonzero(y_grid == y)[0]
+        fr_2D[i_x, i_y] = np.mean( data[ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] , np.argwhere(np.logical_and(ts>=t_focus[0], ts<t_focus[1])) ])
+
+    if fr_scale is None:
+        fr_scale = np.nanmax(fr_2D)*2
+
     plt.figure()
     plt.suptitle(data_neuro['signal_info'][indx_sgnl]['name'])
+    plt.pcolormesh( center2edge(x_grid), center2edge(y_grid), fr_2D.transpose(), cmap='inferno')
+
     for i, xy in enumerate(data_neuro['cdtn']):
-        plt.fill_between( xy[0]+np.array(data_neuro['ts'])/x_scale, xy[1], xy[1]+np.mean( data_neuro['data'][ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] ,:,indx_sgnl], axis=0 )/y_scale, color=[0,0,0,0.5] )
-        plt.plot(xy[0],xy[1],'ro', linewidth=10)
-
-
+        plt.fill_between(xy[0] - x_spacing/2 + (ts-ts[0]) / t_scale, xy[1] - y_spacing/2,
+                         xy[1] - y_spacing/2 + np.mean( data_neuro['data'][data_neuro['cdtn_indx'][data_neuro['cdtn'][i]], :, indx_sgnl], axis=0) / fr_scale,
+                         color='deepskyblue', alpha=0.5)
+        # plt.fill_between( xy[0]+np.array(data_neuro['ts'])/t_scale, xy[1], xy[1]+np.mean( data_neuro['data'][ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] ,:,indx_sgnl], axis=0 )/fr_scale, color=[0,0,0,0.5] )
+        # plt.plot(xy[0],xy[1],'r+', linewidth=1)
+    plt.xlim(center2edge(x_grid)[[0, -1]])
+    plt.ylim(center2edge(y_grid)[[0, -1]])
+    plt.axis('equal')
 
 def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_colorbar=False):
     """
@@ -526,7 +589,9 @@ def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_
 
 
 
-def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase =False, tf_log=False, time_baseline=None,
+def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
+                 tf_phase=False, tf_mesh_t=False, tf_mesh_f=False,
+                 tf_log=False, time_baseline=None,
                  t_lim = None, f_lim = None, c_lim = None, c_lim_style=None, name_cmap=None,
                  rate_interp=None, tf_colorbar= False):
     """
@@ -540,6 +605,8 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase
     :param spcg_f:        tick of frequency, length N_f
     :param limit_trial:   index array to specify which trials to use
     :param tf_phase:      true/false, plot phase using quiver (spcg has to be complex): points down if negative phase (singal1 lags signal0 for coherence)
+    :param tf_mesh_t:     true/false, plot LinemeshFlatPlot, focuse on t, (horizontal lines)
+    :param tf_mesh_f:     true/false, plot LinemeshFlatPlot, focuse on f, (vertical lines)
     :param tf_log:        true/false, use log scale
     :param c_lim_style:   'basic' (min, max), 'from_zero' (0, max), or 'diverge' (-max, max); default to None, select automatically based on tf_log and time_baseline
     :param time_baseline: baseline time period to be subtracted, eg. [-0.1, 0.05], default to None
@@ -604,8 +671,6 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase
         else:
             name_cmap = 'inferno'   # default to inferno
 
-
-
     if rate_interp is not None:
         f_interp = sp.interpolate.interp2d(spcg_t, spcg_f, spcg, kind='linear')
         spcg_t_plot = np.linspace(spcg_t[0], spcg_t[-1], (len(spcg_t)-1)*rate_interp+1 )
@@ -651,17 +716,62 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None, tf_phase
             plt.quiver(spcg_t, spcg_f, spcg_complex.real, spcg_complex.imag,
                        color='r', units='height', pivot='mid', scale=np.percentile(spcg, 99.8) * quiver_scale)
 
+    if tf_mesh_t:
+        LinemeshFlatPlot(spcg_plot, spcg_t_plot, spcg_f_plot, N_mesh=16, axis_mesh='x')
+    if tf_mesh_f:
+        LinemeshFlatPlot(spcg_plot, spcg_t_plot, spcg_f_plot, N_mesh=16, axis_mesh='y')
+
     plt.sci(h_plot) # set the current color-mappable object to be the specrogram plot but not the quiver
 
     return h_plot
 
 
-def SpectrogramAllPairPlot(data_neuro, indx_chan=None, limit_gap=1, t_bin=0.2, t_step=None, f_lim = None, coh_lim=None, t_axis=1, batchsize=100, verbose=False):
+def LinemeshFlatPlot(data, x_grid=None, y_grid=None, axis_mesh='x',
+                     N_mesh=16, scale_mesh=1.0/8, color='dimgrey'):
+    """
+    an alternative to pcolormesh, focuse on change along one dimension (x, or y)
+
+    :param data:        2D numpy array (num_y * num_x), like the imput to imshow
+    :param x_grid:      1D numpy array, num_x
+    :param y_grid:      1D numpy array, num_x
+    :param axis_mesh:   'x', or 'y', the change on which axis you are interested in
+    :param N_mesh:      number of lines to plot (controls thinning)
+    :param scale_mesh:  the scale of individual lines relative the axis limit
+    :param color:       color of lines
+    :return:            handles of the lines
+    """
+    if x_grid is None:
+        x_grid = np.arange(data.shape[1])
+    if y_grid is None:
+        y_grid = np.arange(data.shape[0])
+    x_grid_2D = np.expand_dims(x_grid, 0)
+    y_grid_2D = np.expand_dims(y_grid, 1)
+
+    if axis_mesh == 'x':
+        factor_scale = 1.0*scale_mesh * np.abs(y_grid[-1]-y_grid[0]) / (np.nanmax(np.abs(data))-np.nanmin(np.abs(data)))
+        data_plot = (data-np.nanmean(data)) *factor_scale + y_grid_2D
+        if N_mesh is None:
+            N_mesh = len(y_grid)
+        indx_thin = keep_less_than( np.arange(len(y_grid)), N_mesh)
+        h_lines = plt.plot(x_grid, data_plot[indx_thin,:].transpose(), color=color)
+    elif axis_mesh == 'y':
+        factor_scale = 1.0 * scale_mesh * np.abs(x_grid[-1] - x_grid[0]) / (np.nanmax(np.abs(data))-np.nanmin(np.abs(data)))
+        data_plot = (data-np.nanmean(data)) *factor_scale + x_grid_2D
+        if N_mesh is None:
+            N_mesh = len(x_grid)
+        indx_thin = keep_less_than(np.arange(len(x_grid)), N_mesh)
+        h_lines = plt.plot(data_plot[:,indx_thin], y_grid, color=color)
+    return h_lines
+
+
+
+def SpectrogramAllPairPlot(data_neuro, indx_chan=None, max_trial=None, limit_gap=1, t_bin=0.2, t_step=None, f_lim = None, coh_lim=None, t_axis=1, batchsize=100, verbose=False):
     """
     Plot all LFP power specgtrogram (diagonal panels) and all pairwise coherence (off-diagonal panels)
 
     :param data_neuro: standard data input
     :param indx_chan:  index of channels to plot (from zero)
+    :param max_trial:  a interger, use only max_trial from all trials to speedup the calculation
     :param limit_gap:  the gap between channels to plot, used when indx_chan is None. e.g. if limit_gap=4, the indx_chan=[0,4,8,...]
     :param t_bin:      time bin size for spectrogram
     :param t_step:     time step size for spectrogram
@@ -675,7 +785,6 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, limit_gap=1, t_bin=0.2, t
 
     import PyNeuroAna as pna
 
-
     # calculate the channel index used for plotting
     N_chan = len(data_neuro['signal_info'])
     if indx_chan is None:
@@ -684,18 +793,23 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, limit_gap=1, t_bin=0.2, t
     signal_info = data_neuro['signal_info'][indx_chan]
     N_plot = len(indx_chan)
 
+    # use only a subset of trials to speedup the function
+    if type(max_trial) is int:
+        if max_trial < data.shape[0]:
+            data = np.take( data, np.random.choice(range(data.shape[0]),max_trial, replace=False),  axis=0)
+
     fs = data_neuro['signal_info'][0][2]
     t_ini = np.array(data_neuro['ts'][0])
 
     # compute spectrogram
     spcg_all = []
     for i_plot, i_chan in enumerate(indx_chan):
-        [spcg_cur, spcg_t, spcg_f] = pna.ComputeSpectrogram(data[:,:,i_plot], data1=None, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, batchsize=batchsize)
+        [spcg_cur, spcg_t, spcg_f] = pna.ComputeSpectrogram(data[:,:,i_plot], data1=None, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis, f_lim=f_lim, batchsize=batchsize)
         spcg_all.append( np.mean(spcg_cur, axis=0) )
 
     # plot
     text_props = dict(boxstyle='round', facecolor='w', alpha=0.5)
-    [h_fig, h_ax] = plt.subplots(nrows=N_plot, ncols=N_plot, sharex=True, sharey=True, figsize=[16,16])
+    [h_fig, h_ax] = plt.subplots(nrows=N_plot, ncols=N_plot, sharex=True, sharey=True, figsize=[20,20])
     h_fig.set_size_inches([12,9])
     h_fig.subplots_adjust(hspace=0, wspace=0)
     for indx_row in range(N_plot):
@@ -707,8 +821,8 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, limit_gap=1, t_bin=0.2, t
                 plt.text(0.03, 0.85, '{}'.format(signal_info[indx_row][0]), transform=plt.gca().transAxes, bbox=text_props)
             elif indx_row<indx_col:             # coherence on off diagonal panels
                 # compute coherence
-                [cohg, _, _] = pna.ComputeCoherogram(data[:, :, indx_row], data[:, :, indx_col], fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step,
-                                       t_axis=t_axis, batchsize=batchsize, data0_spcg_ave=spcg_all[indx_row], data1_spcg_ave=spcg_all[indx_col])
+                [cohg, _, _] = pna.ComputeCoherogram(data[:, :, indx_row], data[:, :, indx_col], fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, f_lim=f_lim,
+                                       batchsize=batchsize, data0_spcg_ave=spcg_all[indx_row], data1_spcg_ave=spcg_all[indx_col])
 
                 # plot on two symmetric panels
                 plt.axes(h_ax[indx_row, indx_col])
@@ -756,9 +870,17 @@ def add_axes_on_top(h_axes, r=0.25):
     h_axes_top = h_axes.figure.add_axes([axes_rect.x0, axes_rect.y0+axes_rect.height*(1-r), axes_rect.width, axes_rect.height*r], sharex=h_axes)
     h_axes_top.invert_yaxis()
     # h_axes_top.set_xticklabels({})
-    h_axes_top.set_axis_bgcolor([0.95,0.95,0.95])
+    try:    # for differenet versions of matploblib
+        try:
+            h_axes_top.set_facecolor([0.95, 0.95, 0.95])
+        except:
+            h_axes_top.set_axis_bgcolor([0.95, 0.95, 0.95])
+    except:
+        pass
 
     return h_axes_top
+
+
 
 def NeuroPlot(data_neuro, layout=[], sk_std=np.nan, tf_seperate_window=False, tf_legend=True):
 
@@ -878,16 +1000,27 @@ def create_array_layout_subplots(array_layout):
     [h_fig, h_axes] = plt.subplots(max_r+1, max_c+1, sharex=True, sharey=True)
     return [h_fig, h_axes]
 
+
 def center2edge(centers):
     # tool function to get edges from centers for plt.pcolormesh
     centers = np.array(centers,dtype='float')
     edges = np.zeros(len(centers)+1)
-    if len(centers) is 1:
-        dx = 1.0
-    else:
-        dx = centers[-1]-centers[-2]
-    edges[0:-1] = centers - dx/2
-    edges[-1] = centers[-1]+dx/2
+    if False:     # assumes even spacing
+        if len(centers) is 1:
+            dx = 1.0
+        else:
+            dx = centers[-1]-centers[-2]
+        edges[0:-1] = centers - dx/2
+        edges[-1] = centers[-1]+dx/2
+    if True:      # more universal
+        if len(centers) is 1:
+            dx = 1.0
+            edges[0] = centers - dx / 2
+            edges[1] = centers + dx / 2
+        else:
+            edges[1:-1] = (centers[0:-1] + centers[1:])/2.0
+            edges[0]  = centers[0]  - (edges[1]- centers[0])
+            edges[-1] = centers[-1] + (centers[-1]-edges[-2])
     return edges
 
 
