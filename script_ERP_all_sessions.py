@@ -68,6 +68,7 @@ def GetERP(tankname='GM32.*U16.*161125'):
     # for U16 array in IT
     # pnp.ErpPlot(ERP[0:32, :], data_neuro['ts'], array_layout=layout_GM32)
     # plt.close()
+    GM32_depth = pd.read_csv('./temp_data/GM32_depth.csv', sep='\t')
 
     return ERP
 
@@ -90,9 +91,17 @@ ERP_all_info = {'data': ERP_all, 'tankname': tankname_all, }
 with open('./temp_data/ERP_all_info', 'wb') as f:
     pickle.dump(ERP_all_info, f)
 
+""" ==========  ========== """
 with open('./temp_data/ERP_all_info', 'rb') as f:
     ERP_all_info = pickle.load(f)
 ERP_all = ERP_all_info['data']
 
-pnp.ErpPlot(ERP_all[4,:,:].transpose(), range(ERP_all.shape[1]) )
+GM32_depth = pd.read_csv('./temp_data/GM32_depth.csv')
+
+for chan in range(1,32+1):
+    pnp.ErpPlot(ERP_all[chan-1,:,:].transpose(), range(ERP_all.shape[1]), depth_linear=GM32_depth['{}'.format(chan)]*0.125 )
+    plt.suptitle('ERP GM32 channel {}'.format(chan))
+    plt.savefig('./temp_figs/GM32_ERP_chan_{}.png'.format(chan))
+    plt.close()
+
 plt.show()

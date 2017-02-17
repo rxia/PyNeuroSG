@@ -85,7 +85,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
 
     return fig
 
-def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
+def ErpPlot(array_erp, ts, array_layout=None, depth_linear=None):
     """
     ERP (event-evoked potential) plot
 
@@ -104,7 +104,16 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
     if array_layout is None:                # if None, assumes linear layout
         offset_plot_chan = (array_erp.max()-array_erp.min())/5
 
-        array_erp_offset = (array_erp - np.array(np.arange(array_erp.shape[0]), ndmin=2).transpose() * offset_plot_chan).transpose()
+        if depth_linear is None:
+            depth_linear = np.array(np.arange(array_erp.shape[0]), ndmin=2).transpose() * offset_plot_chan
+            array_erp_offset = (array_erp - depth_linear).transpose()
+        else:
+            depth_linear = np.array(depth_linear)
+            depth_scale = depth_linear.max()-depth_linear.min()
+            if depth_scale < 10**(-9):
+                depth_scale = 1
+            depth_linear = np.expand_dims(depth_linear, axis=1)
+            array_erp_offset = (array_erp / offset_plot_chan /15.0 * depth_scale - depth_linear).transpose()
 
         name_colormap = 'rainbow'
         cycle_color = plt.cm.get_cmap(name_colormap)(np.linspace(0, 1, N_chan))
@@ -121,7 +130,7 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_start=0, depth_incr=0.1):
         except:
             pass
         plt.xlim(ts[0],ts[-1])
-        plt.ylim( -(N_chan+2)*offset_plot_chan, -(0-3)*offset_plot_chan,  )
+        # plt.ylim( -(N_chan+2)*offset_plot_chan, -(0-3)*offset_plot_chan,  )
         plt.title('ERPs')
         plt.xlabel('time from event onset (s)')
         plt.ylabel('Voltage (V)')
