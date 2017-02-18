@@ -5,6 +5,7 @@ from scipy import signal
 from scipy.signal import spectral
 
 
+
 def ComputeSpectrogram(data, data1=None, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, t_axis=1, batchsize=100, f_lim=None):
     """
     Compuate power spectrogram in sliding windows

@@ -85,6 +85,8 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
 
     return fig
 
+
+
 def ErpPlot(array_erp, ts, array_layout=None, depth_linear=None):
     """
     ERP (event-evoked potential) plot
@@ -95,8 +97,7 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_linear=None):
 
                           * if None, assume linear layout,
                           * otherwise, use the the give array_layout in the format: {chan: (row, col)}
-    :param depth_start:   starting depth of channel 1
-    :param depth_incr:    depth increment
+    :param depth_linear:   a list of depth
     :return:              figure handle
     """
 
