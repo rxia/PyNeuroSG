@@ -45,8 +45,6 @@ list_name_tanks_1 = [name_tank for name_tank in list_name_tanks if re.match('Dan
 list_name_tanks = sorted(list_name_tanks_0) + sorted(list_name_tanks_1)
 
 
-tankname = list_name_tanks[0]
-
 def GetGroupAve(tankname):
     try:
         [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', tankname, tf_interactive=False,
@@ -73,13 +71,59 @@ def GetGroupAve(tankname):
 
     ts = data_neuro_spk['ts']
     signal_info = data_neuro_spk['signal_info']
-    data_grupave = pna.GroupAve(data_neuro_spk)
+    cdtn = data_neuro_spk['cdtn']
+    data_groupave = pna.GroupAve(data_neuro_spk)
 
-    return [data_grupave, ts, signal_info]
+    return [data_groupave, ts, signal_info, cdtn]
+
+list_data_groupave = []
+list_ts = []
+list_cdtn = []
+list_signal_info = []
+
+for tankname in list_name_tanks:
+    try:
+        [data_groupave, ts, signal_info, cdtn] = GetGroupAve(tankname)
+        list_data_groupave.append(data_groupave)
+        list_ts.append(ts)
+        list_signal_info.append(signal_info)
+        list_cdtn.append(cdtn)
+        pickle.dump([list_data_groupave, list_ts, list_signal_info, list_cdtn], open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask', "wb"))
+    except:
+        pass
+pickle.dump([list_data_groupave, list_ts, list_signal_info, list_cdtn, ], open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask', "wb"))
+
+def GetDataCat( list_data_groupave, list_ts, list_signal_info, list_cdtn ):
+    return [np.dstack(list_data_groupave), list_ts[0], np.concatenate(list_signal_info), list_cdtn[0]]
+
+[data_groupave, ts, signal_info, cdtn] = GetDataCat( list_data_groupave, list_ts, list_signal_info, list_cdtn )
+
+
+
+colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), pnp.gen_distinct_colors(3, luminance=0.6)])
+linestyles = ['-', '-', '-', '--', '--', '--']
+[h_fig, h_ax]=plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=[12,6])
+plt.axes(h_ax[0])
+psth = pna.SmoothTrace(np.mean(data_groupave[:,:,signal_info['channel_index']<=32], axis=2), ts=ts, sk_std=0.007, axis=1)
+for i in range(psth.shape[0]):
+    plt.plot( ts, psth[i,:], color=colors[i], linestyle=linestyles[i])
+plt.title('V4')
+plt.xlabel('t (s)')
+plt.ylabel('spk/sec')
+
+plt.axes(h_ax[1])
+psth = pna.SmoothTrace(np.mean(data_groupave[:,:,signal_info['channel_index']>32], axis=2), ts=ts, sk_std=0.007, axis=1)
+for i in range(psth.shape[0]):
+    plt.plot( ts, psth[i,:], color=colors[i], linestyle=linestyles[i])
+plt.legend(cdtn)
+plt.title('IT')
+
+plt.suptitle('firing rate, average over all session & all neurons')
+plt.savefig('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask.pdf')
+
 
 plt.figure()
-plt.plot( pna.SmoothTrace(np.mean(temp, axis=2).transpose(), fs=1000, sk_std=0.01, axis=0))
-plt.legend(data_neuro_spk['cdtn'])
-
-""" save test """
-pickle.dump(data_neuro, open( '/shared/homes/sguan/Coding_Projects/support_data/temp', "wb" ))
+plt.plot( pna.SmoothTrace(np.mean(data_groupave[:,:,signal_info['channel_index']>32], axis=2).transpose(),
+                          ts=ts, sk_std=0.01, axis=0))
+plt.legend(cdtn)
+plt.title('V4 spk, all sessions average')
