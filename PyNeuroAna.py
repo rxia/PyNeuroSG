@@ -5,6 +5,65 @@ from scipy import signal
 from scipy.signal import spectral
 
 
+def SmoothTrace(data, sk_std=None, fs=1.0, ts=None, axis=1):
+    """
+    smooth data using a gaussian kernel
+
+    :param data:    a N dimensional array, default to [num_trials * num_timestamps * num_channels]
+    :param sk_std:  smooth kernel (sk) standard deviation (std), default to None, do nothing
+    :param fs:      sampling frequency, default to 1 Hz
+    :param ts:      timestamps, an array, which can overwrite fs;   len(ts)==data.shape[axis] should hold,
+    :param axis:    a axis of data along which data will be smoothed
+    :return:        smoothed data of the same size
+    """
+
+    if ts is None:     # use fs to determine ts
+        ts = np.arange(0, data.shape[axis])*(1.0/fs)
+    else:              # use ts to determine fs
+        fs = 1.0/np.mean(np.diff(ts))
+
+    if sk_std is not None:  # condition for using smoothness kernel
+        ts_interval = 1.0/fs  # get sampling interval
+        kernel_std = sk_std / ts_interval  # std in frames
+        kernel_len = int(np.ceil(kernel_std) * 3 * 2 + 1)  # num of frames, 3*std on each side, an odd number
+        smooth_kernel = sp.signal.gaussian(kernel_len, kernel_std)
+        smooth_kernel = smooth_kernel / smooth_kernel.sum()  # normalized smooth kernel
+
+        # expand the dimension of the smooth kernel for convolution
+        smooth_kernel_nD_shape = np.ones(len(data.shape), dtype=int)
+        smooth_kernel_nD_shape[axis] = len(smooth_kernel)
+        smooth_kernel_nD = np.resize(smooth_kernel, smooth_kernel_nD_shape)
+
+        # convolution using fftconvolve(), whihc is faster than convolve()
+        data_smooth = sp.signal.fftconvolve(data, smooth_kernel_nD, mode='same')
+
+    else:
+        data_smooth = data
+
+    return data_smooth
+
+
+def GroupAve(data_neuro):
+    """
+    for data_neuro object, get average response using the groupby information
+
+    :param data_neuro: data neuro object after signal_align.neuro_sort() function
+    :return:           data_groupave, e.g. array with the size of [num_cdtn * num_ts* num_chan]
+    """
+
+    data = data_neuro['data']
+    data_grpave_shape = list(data.shape)
+    data_grpave_shape[0] = len(data_neuro['cdtn'])
+    data_groupave = np.zeros(data_grpave_shape)
+    for i, cdtn in enumerate(data_neuro['cdtn']):
+        ave = np.mean(np.take(data_neuro['data'], data_neuro['cdtn_indx'][cdtn], axis=0), axis=0)
+        try:
+            data_groupave[i, :, :] = ave
+        except:
+            data_groupave[i, :] = ave
+    return data_groupave
+
+
 
 def ComputeSpectrogram(data, data1=None, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, t_axis=1, batchsize=100, f_lim=None):
     """
