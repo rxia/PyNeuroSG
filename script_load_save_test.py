@@ -120,10 +120,3 @@ plt.title('IT')
 
 plt.suptitle('firing rate, average over all session & all neurons')
 plt.savefig('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask.pdf')
-
-
-plt.figure()
-plt.plot( pna.SmoothTrace(np.mean(data_groupave[:,:,signal_info['channel_index']>32], axis=2).transpose(),
-                          ts=ts, sk_std=0.01, axis=0))
-plt.legend(cdtn)
-plt.title('V4 spk, all sessions average')
