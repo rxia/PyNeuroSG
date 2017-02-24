@@ -65,6 +65,49 @@ def GroupAve(data_neuro):
 
 
 
+def TuningCurve(data, label, type='rank', ts=None, t_window=None, limit=None):
+    """
+    Calculate the tuning curve of a neuron's response
+
+    :param data:     2D array, [ num_trials * num_ts ]
+    :param label:    1D array or list, [ num_trials ]
+    :param type:     type of tuning curve, one of the following: 'rank'
+    :param ts:       1D array of time stamps, [ num_ts ], default to 1 Hz sampling rate start from 0
+    :param t_window: list, [ t_start, t_end ], if not give, use the full range
+    :param limit:    1D array, boolean or index array, instructing whether to use a subset of trials
+    :return:
+    """
+
+    label = np.array(label)
+    if limit is not None:
+        data  = data[limit, :]
+        label = label[limit]
+    if ts is None:
+        ts = np.arange(0, data.shape[1])*1.0
+    if t_window is None:
+        t_window = ts[[0,-1]]
+
+    def InRange(x, x_range):
+        return np.logical_and(x>=x_range[0], x<=x_range[1])
+
+    # get the mean response in the t_window
+    response = np.mean( data[:, InRange(ts, t_window) ], axis=1)
+
+
+    x = np.unique(label)
+    y = np.zeros(len(x))
+    for i, xx in enumerate(x):
+        y[i] = np.mean(response[label==xx])
+
+    if type == 'rank':   # sort in descending order
+        i_sort = np.argsort(y)[::-1]
+        x = x[i_sort]
+        y = y[i_sort]
+
+    return (x, y)
+
+
+
 def ComputeSpectrogram(data, data1=None, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, t_axis=1, batchsize=100, f_lim=None):
     """
     Compuate power spectrogram in sliding windows

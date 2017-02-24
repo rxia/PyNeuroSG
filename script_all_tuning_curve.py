@@ -1,5 +1,5 @@
 
-""" script to load and save file, a test """
+""" script to load all dataset and get the six conditions, designed to run on Pogo """
 
 import os
 import sys
@@ -45,7 +45,7 @@ list_name_tanks_1 = [name_tank for name_tank in list_name_tanks if re.match('Dan
 list_name_tanks = sorted(list_name_tanks_0) + sorted(list_name_tanks_1)
 
 
-def GetGroupAve(tankname):
+def GetTuningCurve(tankname):
     try:
         [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', tankname, tf_interactive=False,
                                                                dir_tdt_tank='/shared/homes/sguan/neuro_data/tdt_tank',
@@ -72,32 +72,44 @@ def GetGroupAve(tankname):
     ts = data_neuro_spk['ts']
     signal_info = data_neuro_spk['signal_info']
     cdtn = data_neuro_spk['cdtn']
-    data_groupave = pna.GroupAve(data_neuro_spk)
 
-    return [data_groupave, ts, signal_info, cdtn]
+    list_rank_tuning_all = []
+    for i in range(len(signal_info)):
+        list_rank_tuning = []
+        for cdtn in data_neuro_spk['cdtn']:
+            [_, rank_tuning_cur] = pna.TuningCurve(data_neuro_spk['data'][:, :, i], label=data_df['stim_sname'],
+                                     limit=data_neuro_spk['cdtn_indx'][cdtn],
+                                     ts=data_neuro_cur['ts'], t_window=[0.050, 0.350])
+            list_rank_tuning.append(rank_tuning_cur)
+        rank_tuning_neuron = np.vstack(list_rank_tuning)
+        list_rank_tuning_all.append(rank_tuning_neuron)
+    rank_tuning = np.dstack(list_rank_tuning_all)
 
-list_data_groupave = []
+    return [rank_tuning, ts, signal_info, cdtn]
+
+list_rank_tuning = []
 list_ts = []
 list_cdtn = []
 list_signal_info = []
+list_tankname = []
 
 for tankname in list_name_tanks:
     try:
-        [data_groupave, ts, signal_info, cdtn] = GetGroupAve(tankname)
-        list_data_groupave.append(data_groupave)
+        list_tankname.append(tankname)
+        [rank_tuning, ts, signal_info, cdtn] = GetTuningCurve(tankname)
+        list_rank_tuning.append(rank_tuning)
         list_ts.append(ts)
         list_signal_info.append(signal_info)
         list_cdtn.append(cdtn)
-        pickle.dump([list_data_groupave, list_ts, list_signal_info, list_cdtn], open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask', "wb"))
+        pickle.dump([list_rank_tuning, list_ts, list_signal_info, list_cdtn], open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask', "wb"))
     except:
         pass
-pickle.dump([list_data_groupave, list_ts, list_signal_info, list_cdtn, ], open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask', "wb"))
+pickle.dump([list_rank_tuning, list_ts, list_signal_info, list_cdtn, ], open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask', "wb"))
 
-def GetDataCat( list_data_groupave, list_ts, list_signal_info, list_cdtn ):
-    return [np.dstack(list_data_groupave), list_ts[0], np.concatenate(list_signal_info), list_cdtn[0]]
+def GetDataCat( list_rank_tuning, list_ts, list_signal_info, list_cdtn ):
+    return [np.dstack(list_rank_tuning), list_ts[0], np.concatenate(list_signal_info), list_cdtn[0]]
 
-[data_groupave, ts, signal_info, cdtn] = GetDataCat( list_data_groupave, list_ts, list_signal_info, list_cdtn )
-
+[data_groupave, ts, signal_info, cdtn] = GetDataCat( list_rank_tuning, list_ts, list_signal_info, list_cdtn )
 
 
 colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), pnp.gen_distinct_colors(3, luminance=0.6)])
@@ -118,5 +130,20 @@ for i in range(psth.shape[0]):
 plt.legend(cdtn)
 plt.title('IT')
 
-plt.suptitle('firing rate, average over all session & all neurons')
+plt.suptitle('rank tuning, average over all session & all neurons')
 plt.savefig('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask.pdf')
+#
+#
+
+
+data_neuro_cur = signal_align.select_signal(data_neuro_spk, chan_filter=range( 0,32), sortcode_filter=range(1,4))
+data_neuro_cur = signal_align.select_signal(data_neuro_spk, chan_filter=range(33,48), sortcode_filter=range(1,4))
+plt.figure()
+for i in range(data_neuro_cur['data'].shape[2]):
+    [x, y] = pna.TuningCurve(data_neuro_cur['data'][:, :, i], label=data_df['stim_sname'],
+                             limit=data_neuro_cur['cdtn_indx'][data_neuro_cur['cdtn'][3]],
+                             ts = data_neuro_cur['ts'], t_window=[0.050, 0.350])
+    plt.plot(y)
+
+
+
