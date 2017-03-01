@@ -45,11 +45,12 @@ list_name_tanks_1 = [name_tank for name_tank in list_name_tanks if re.match('Dan
 list_name_tanks = sorted(list_name_tanks_0) + sorted(list_name_tanks_1)
 
 
-def GetTuningCurve(tankname):
+def GetTuningCurve(tankname, t_window=[0,050, 0.350]):
     try:
         [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', tankname, tf_interactive=False,
                                                                dir_tdt_tank='/shared/homes/sguan/neuro_data/tdt_tank',
-                                                               dir_dg='/shared/homes/sguan/neuro_data/stim_dg')
+                                                               dir_dg='/shared/homes/sguan/neuro_data/stim_dg',
+                                                               tf_verbose=True)
     except:
         [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', tankname, tf_interactive=False)
 
@@ -76,10 +77,10 @@ def GetTuningCurve(tankname):
     list_rank_tuning_all = []
     for i in range(len(signal_info)):
         list_rank_tuning = []
-        for cdtn in data_neuro_spk['cdtn']:
+        for cdtn_cur in data_neuro_spk['cdtn']:
             [_, rank_tuning_cur] = pna.TuningCurve(data_neuro_spk['data'][:, :, i], label=data_df['stim_sname'],
-                                     limit=data_neuro_spk['cdtn_indx'][cdtn],
-                                     ts=data_neuro_cur['ts'], t_window=[0.050, 0.350])
+                                     limit=data_neuro_spk['cdtn_indx'][cdtn_cur],
+                                     ts=data_neuro_spk['ts'], t_window=t_window)
             list_rank_tuning.append(rank_tuning_cur)
         rank_tuning_neuron = np.vstack(list_rank_tuning)
         list_rank_tuning_all.append(rank_tuning_neuron)
@@ -88,6 +89,8 @@ def GetTuningCurve(tankname):
     return [rank_tuning, ts, signal_info, cdtn]
 
 list_rank_tuning = []
+list_rank_tuning_early = []
+list_rank_tuning_late = []
 list_ts = []
 list_cdtn = []
 list_signal_info = []
@@ -96,42 +99,46 @@ list_tankname = []
 for tankname in list_name_tanks:
     try:
         list_tankname.append(tankname)
-        [rank_tuning, ts, signal_info, cdtn] = GetTuningCurve(tankname)
+        [rank_tuning, ts, signal_info, cdtn] = GetTuningCurve(tankname, t_window=[0.050, 0.350])
+        [rank_tuning_early, _, _, _] = GetTuningCurve(tankname, t_window=[0.050, 0.150])
+        [rank_tuning_late,  _, _, _] = GetTuningCurve(tankname, t_window=[0.200, 0.350])
         list_rank_tuning.append(rank_tuning)
+        list_rank_tuning_early.append(rank_tuning_early)
+        list_rank_tuning_late.append(rank_tuning_late)
         list_ts.append(ts)
         list_signal_info.append(signal_info)
         list_cdtn.append(cdtn)
-        pickle.dump([list_rank_tuning, list_ts, list_signal_info, list_cdtn], open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask', "wb"))
+        pickle.dump([list_rank_tuning, list_rank_tuning_early, list_rank_tuning_late, list_ts, list_signal_info, list_cdtn], open('/shared/homes/sguan/Coding_Projects/support_data/RankTuning_srv_mask', "wb"))
     except:
         pass
-pickle.dump([list_rank_tuning, list_ts, list_signal_info, list_cdtn, ], open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask', "wb"))
+pickle.dump([list_rank_tuning, list_rank_tuning_early, list_rank_tuning_late, list_ts, list_signal_info, list_cdtn], open('/shared/homes/sguan/Coding_Projects/support_data/RankTuning_srv_mask', "wb"))
 
 def GetDataCat( list_rank_tuning, list_ts, list_signal_info, list_cdtn ):
     return [np.dstack(list_rank_tuning), list_ts[0], np.concatenate(list_signal_info), list_cdtn[0]]
 
-[data_groupave, ts, signal_info, cdtn] = GetDataCat( list_rank_tuning, list_ts, list_signal_info, list_cdtn )
-
+[data_RankTuning, ts, signal_info, cdtn] = GetDataCat( list_rank_tuning, list_ts, list_signal_info, list_cdtn )
+# [data_RankTuning, ts, signal_info, cdtn] = GetDataCat( list_rank_tuning_early, list_ts, list_signal_info, list_cdtn )
+# [data_RankTuning, ts, signal_info, cdtn] = GetDataCat( list_rank_tuning_late, list_ts, list_signal_info, list_cdtn )
 
 colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), pnp.gen_distinct_colors(3, luminance=0.6)])
 linestyles = ['-', '-', '-', '--', '--', '--']
 [h_fig, h_ax]=plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=[12,6])
 plt.axes(h_ax[0])
-psth = pna.SmoothTrace(np.mean(data_groupave[:,:,signal_info['channel_index']<=32], axis=2), ts=ts, sk_std=0.007, axis=1)
-for i in range(psth.shape[0]):
-    plt.plot( ts, psth[i,:], color=colors[i], linestyle=linestyles[i])
+for i in range(data_RankTuning.shape[0]):
+    plt.plot(np.mean(data_RankTuning[i, :, signal_info['channel_index'] <= 32], axis=0), color=colors[i],
+             linestyle=linestyles[i])
 plt.title('V4')
-plt.xlabel('t (s)')
+plt.xlabel('rank')
 plt.ylabel('spk/sec')
 
 plt.axes(h_ax[1])
-psth = pna.SmoothTrace(np.mean(data_groupave[:,:,signal_info['channel_index']>32], axis=2), ts=ts, sk_std=0.007, axis=1)
-for i in range(psth.shape[0]):
-    plt.plot( ts, psth[i,:], color=colors[i], linestyle=linestyles[i])
+for i in range(data_RankTuning.shape[0]):
+    plt.plot( np.mean(data_RankTuning[i,:, signal_info['channel_index']>32], axis=0), color=colors[i], linestyle=linestyles[i])
 plt.legend(cdtn)
 plt.title('IT')
 
 plt.suptitle('rank tuning, average over all session & all neurons')
-plt.savefig('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask.pdf')
+plt.savefig('/shared/homes/sguan/Coding_Projects/support_data/RangkTuning_srv_mask.pdf')
 #
 #
 

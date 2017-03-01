@@ -75,7 +75,7 @@ def TuningCurve(data, label, type='rank', ts=None, t_window=None, limit=None):
     :param ts:       1D array of time stamps, [ num_ts ], default to 1 Hz sampling rate start from 0
     :param t_window: list, [ t_start, t_end ], if not give, use the full range
     :param limit:    1D array, boolean or index array, instructing whether to use a subset of trials
-    :return:
+    :return:         [condition, activity], they both are 1D arrays, of the same length,
     """
 
     label = np.array(label)
