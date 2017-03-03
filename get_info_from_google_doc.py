@@ -1,4 +1,4 @@
-""" this module is to get information fro the google doc """
+""" this module is to get information fro the google doc and plot the signal quality over time """
 
 """ import modules """
 import csv
