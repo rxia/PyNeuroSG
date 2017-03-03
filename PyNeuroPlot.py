@@ -148,7 +148,7 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_linear=None):
         plt.ylabel('channel index')
     else:                                 # use customized 2D layout
         text_props = dict(boxstyle='round', facecolor='w', alpha=0.5)
-        [h_fig, h_axes] = create_array_layout_subplots(array_layout)
+        [h_fig, h_axes] = create_array_layout_subplots(array_layout, tf_linear_indx=False)
         plt.tight_layout()
         h_fig.subplots_adjust(hspace=0.02, wspace=0.02)
         h_fig.set_size_inches([8, 8],forward=True)
@@ -987,18 +987,44 @@ def SignalPlot(ts, data3D, sk_std=np.nan):
 
 
 
-def create_array_layout_subplots(array_layout):
+def create_array_layout_subplots(array_layout, tf_linear_indx=True, tf_text_ch=False):
     """
     create the subplots based on the electrode array's spatial layout
 
-    :param array_layout: electrode array's spatial layout, a dict, {chan: (row, column)}
-    :return: as the plt.subplots
+    :param array_layout:   electrode array's spatial layout, a dict, {chan: (row, column)}
+    :param tf_linear_indx: True/False the returned subplot axis is a 1D array, indexed in the channel orders, default to True
+    :param tf_text_ch:     True/False show the channel index for every axes
+    :return: [h_fig, h_axes],as the plt.subplots
     """
     [ch, r, c] = zip(*sorted([[ch, r, c] for ch, (r, c) in array_layout.items()]))
     max_r = max(r)
     max_c = max(c)
 
+    # create subplots
     [h_fig, h_axes] = plt.subplots(max_r+1, max_c+1, sharex=True, sharey=True)
+    h_axes = np.array(h_axes, ndmin=2)
+
+    # set all axes off
+    for r_cur in r:
+        for c_cur in c:
+            h_axes[r_cur, c_cur].set_axis_off()
+
+    # for the valid axes, set them on, and create a list of axes according to the order of channels
+    h_axes_linear = []
+    for ch_cur, ch_loc  in array_layout.items():
+        h_axes_linear.append(h_axes[ch_loc])
+        h_axes[ch_loc].set_axis_on()
+
+        if tf_text_ch:
+            plt.axes(h_axes[ch_loc])
+            plt.text(0.02, 0.98, 'Ch {}'.format(ch_cur), transform=plt.gca().transAxes,
+                     fontsize=8, verticalalignment='top',
+                     bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+    # if true, return the axes according to the channel, otherwise, returns 2D axes array
+    if tf_linear_indx:
+        h_axes = h_axes_linear
+
     return [h_fig, h_axes]
 
 

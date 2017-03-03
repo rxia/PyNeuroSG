@@ -50,6 +50,7 @@ result_log = {'date': date, 'total_turn': total_turn, 'total_depth': total_depth
 plt.figure()
 plt.plot(date, total_turn, '-o')
 
+%""" Plot depth over time, signal quality shown as colored docs  """
 from GM32_layout import layout_GM32
 [h_fig, h_axes] = pnp.create_array_layout_subplots(layout_GM32)
 plt.tight_layout()
@@ -70,3 +71,13 @@ for i in range(32):
 plt.suptitle('depth over recording days')
 plt.savefig('./temp_figs/GM32_advance_log.png')
 
+for i in range(32):
+    plt.axes(h_axes[layout_GM32[i+1]])
+    plt.plot(date, -total_depth[:,i], '-k')
+    plt.scatter(date, -total_depth[:,i], c=[spike_color_dict[x] for x in spikes[:,i]])
+    plt.gca().xaxis.set_major_formatter(formatter)
+    # plt.gca().set_xlabel('date')
+    # plt.gca().set_ylabel('depth')
+    plt.text(0.05, 0.95, 'Chan {}'.format(i+1), transform=plt.gca().transAxes,fontsize=12,verticalalignment='top',bbox=text_props)
+plt.suptitle('depth over recording days')
+plt.savefig('./temp_figs/GM32_advance_log.png')
