@@ -50,34 +50,35 @@ result_log = {'date': date, 'total_turn': total_turn, 'total_depth': total_depth
 plt.figure()
 plt.plot(date, total_turn, '-o')
 
-%""" Plot depth over time, signal quality shown as colored docs  """
+
+
+""" Plot depth over time, signal quality shown as colored docs  """
+# colormap for signal quanlity
+spike_color_dict={-2:'grey', -1:'silver', 0:'darkorange',1:'olivedrab',2:'lightseagreen',3:'royalblue'}
+spike_description_dict={-2:'broken', -1:'disconnected', 0:'LFP',1:'MUA',2:'mixed SUA',3:'good SUA'}
+# generate axes according to GM32 layout
 from GM32_layout import layout_GM32
-[h_fig, h_axes] = pnp.create_array_layout_subplots(layout_GM32)
+[h_fig, h_axes] = pnp.create_array_layout_subplots(layout_GM32, tf_text_ch=True)
 plt.tight_layout()
 h_fig.subplots_adjust(hspace=0.02, wspace=0.02)
 h_fig.set_size_inches([10, 10], forward=True)
-spike_color_dict={-2:'grey', -1:'grey', 0:'y',1:'g',2:'c',3:'b'}
+# handling date string
 import matplotlib.dates as mdates
 formatter = mdates.DateFormatter('%b')
 text_props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+# plot electrode advancement and signal quality with recording date
 for i in range(32):
-    plt.axes(h_axes[layout_GM32[i+1]])
+    plt.axes(h_axes[i])
     plt.plot(date, -total_depth[:,i], '-k')
-    plt.scatter(date, -total_depth[:,i], c=[spike_color_dict[x] for x in spikes[:,i]])
+    plt.scatter(date, -total_depth[:,i], c=[spike_color_dict[x] for x in spikes[:,i]], marker='o', edgecolor=None)
     plt.gca().xaxis.set_major_formatter(formatter)
     # plt.gca().set_xlabel('date')
     # plt.gca().set_ylabel('depth')
-    plt.text(0.05, 0.95, 'Chan {}'.format(i+1), transform=plt.gca().transAxes,fontsize=12,verticalalignment='top',bbox=text_props)
-plt.suptitle('depth over recording days')
-plt.savefig('./temp_figs/GM32_advance_log.png')
+# create legend
+list_dot_for_legend = []
+for c in  spike_color_dict.values():
+    list_dot_for_legend.append(plt.Line2D([0,1],[0,1], color=c, marker='o'))
+plt.figlegend(list_dot_for_legend, spike_description_dict.values(), 'upper right')
 
-for i in range(32):
-    plt.axes(h_axes[layout_GM32[i+1]])
-    plt.plot(date, -total_depth[:,i], '-k')
-    plt.scatter(date, -total_depth[:,i], c=[spike_color_dict[x] for x in spikes[:,i]])
-    plt.gca().xaxis.set_major_formatter(formatter)
-    # plt.gca().set_xlabel('date')
-    # plt.gca().set_ylabel('depth')
-    plt.text(0.05, 0.95, 'Chan {}'.format(i+1), transform=plt.gca().transAxes,fontsize=12,verticalalignment='top',bbox=text_props)
 plt.suptitle('depth over recording days')
 plt.savefig('./temp_figs/GM32_advance_log.png')

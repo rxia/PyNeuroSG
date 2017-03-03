@@ -1018,7 +1018,7 @@ def create_array_layout_subplots(array_layout, tf_linear_indx=True, tf_text_ch=F
         if tf_text_ch:
             plt.axes(h_axes[ch_loc])
             plt.text(0.02, 0.98, 'Ch {}'.format(ch_cur), transform=plt.gca().transAxes,
-                     fontsize=8, verticalalignment='top',
+                     fontsize=10, verticalalignment='top',
                      bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
     # if true, return the axes according to the channel, otherwise, returns 2D axes array
