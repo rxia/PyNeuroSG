@@ -11,6 +11,7 @@ import matplotlib as mpl    # plot
 import matplotlib.pyplot as plt
 import re                   # regular expression
 import time                 # time code execution
+import datetime
 import pickle
 
 # ----- modules used to read neuro data -----
@@ -34,18 +35,20 @@ from scipy.signal import spectral
 from PyNeuroPlot import center2edge
 
 
+# get tank names
 dir_tdt_tank='/shared/lab/projects/encounter/data/TDT/'
 list_name_tanks = os.listdir(dir_tdt_tank)
-keyword_tank = '.*GM32.*U16'
+keyword_tank = '.*GM32.*'
+# sort by date recorded
 list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keyword_tank, name_tank) is not None]
-list_name_tanks_0 = [name_tank for name_tank in list_name_tanks if re.match('Dante.*', name_tank) is None]
-list_name_tanks_1 = [name_tank for name_tank in list_name_tanks if re.match('Dante.*', name_tank) is not None]
-list_name_tanks = sorted(list_name_tanks_0) + sorted(list_name_tanks_1)
+list_str_date = [re.match('.*-(\d{6})-.*', name_tank).group(1) for name_tank in list_name_tanks]
+list_name_tanks = [y for x,y in sorted(zip(list_str_date, list_name_tanks))]
+
 
 def GetERP(tankname='GM32.*U16.*161125'):
     [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', tankname, tf_interactive=False,
-                                                              dir_tdt_tank='/shared/lab/projects/encounter/data/TDT/',
-                                                              dir_dg = '/shared/lab/projects/analysis/shaobo/data_dg')
+                                                              dir_tdt_tank='/shared/homes/sguan/neuro_data/tdt_tank/',
+                                                              dir_dg = '/shared/homes/sguan/neuro_data/stim_dg')
 
     """ Get StimOn time stamps in neo time frame """
     ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
@@ -62,13 +65,9 @@ def GetERP(tankname='GM32.*U16.*161125'):
 
     t_plot = [-0.100, 0.500]
 
-    data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='ana.*', name_filter='LFPs.*')
+    data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot,
+                                             type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,32+1))
     ERP = np.mean(data_neuro['data'], axis=0).transpose()
-
-    # for U16 array in IT
-    # pnp.ErpPlot(ERP[0:32, :], data_neuro['ts'], array_layout=layout_GM32)
-    # plt.close()
-    GM32_depth = pd.read_csv('./temp_data/GM32_depth.csv', sep='\t')
 
     return ERP
 
@@ -95,13 +94,38 @@ with open('./temp_data/ERP_all_info', 'wb') as f:
 with open('./temp_data/ERP_all_info', 'rb') as f:
     ERP_all_info = pickle.load(f)
 ERP_all = ERP_all_info['data']
+tankname = ERP_all_info['tankname']
 
-GM32_depth = pd.read_csv('./temp_data/GM32_depth.csv')
+
+# GM32_depth = pd.read_csv('./temp_data/GM32_depth.csv')
+#
+# for chan in range(1,32+1):
+#     pnp.ErpPlot(ERP_all[chan-1,:,:].transpose(), range(ERP_all.shape[1]), depth_linear=GM32_depth['{}'.format(chan)]*0.125 )
+#     plt.suptitle('ERP GM32 channel {}'.format(chan))
+#     plt.savefig('./temp_figs/GM32_ERP_chan_{}.png'.format(chan))
+#     plt.close()
+
+""" use the log file to determine electrode depth """
+tankdate = np.array([datetime.datetime.strptime(re.match('.*-(\d{6})-.*', tank).group(1), '%y%m%d')  for tank in tankname ])
+with open('./temp_data/GM32_log_info.pkl', 'rb') as f:
+    GM32_log = pickle.load(f)
+date_valid = np.sort(np.intersect1d(tankdate, GM32_log['date'] ))
+
+def arg_select_sort(label, label_ss):
+    array_indx = np.zeros(len(label_ss)).astype(int)
+    for i, x in enumerate(label_ss):
+        array_indx[i] = np.flatnonzero(label==x)
+    return array_indx
+
+ERP_valid  = ERP_all[:,:, arg_select_sort(tankdate, date_valid) ]
+depth_valid = GM32_log['total_depth'][arg_select_sort( GM32_log['date'], date_valid), :]
 
 for chan in range(1,32+1):
-    pnp.ErpPlot(ERP_all[chan-1,:,:].transpose(), range(ERP_all.shape[1]), depth_linear=GM32_depth['{}'.format(chan)]*0.125 )
+    pnp.ErpPlot(ERP_valid[chan-1,:,:].transpose(), range(ERP_all.shape[1]), depth_linear=depth_valid[:,chan-1] )
     plt.suptitle('ERP GM32 channel {}'.format(chan))
     plt.savefig('./temp_figs/GM32_ERP_chan_{}.png'.format(chan))
     plt.close()
+
+
 
 plt.show()
