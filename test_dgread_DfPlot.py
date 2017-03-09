@@ -52,6 +52,8 @@ for i in range(len(path_dgs)):
         temp = dg2df.dg2df(path_dg)
         data_df = pd.concat([data_df,temp])
 
+""" Note: pnp.PyNeuroPlot() was reanmed as pnp.DfPlot() """
+
 # save df to disk
 # data_df.to_hdf('test_hdf_store.h5', 'stimdg', mode='w')
 # data_df.to_json('test_json_store.json')

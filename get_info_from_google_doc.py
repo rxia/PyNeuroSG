@@ -37,7 +37,7 @@ with open(path_to_original_csv, 'rb') as csvfile:
             item_count += 1
             tf_spikes = True
 
-
+# convert the gather information to the right data type
 date = np.array(list_date)
 total_turn = np.array(list_total_turn, dtype=float)
 spikes = np.array(list_spikes)
@@ -46,6 +46,8 @@ spikes = spikes.astype(float)
 total_depth = total_turn*0.125
 
 result_log = {'date': date, 'total_turn': total_turn, 'total_depth': total_depth}
+
+
 
 plt.figure()
 plt.plot(date, total_turn, '-o')

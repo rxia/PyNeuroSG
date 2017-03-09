@@ -11,21 +11,58 @@ import warnings
 import misc_tools
 import signal_align
 
-def PyNeuroPlot(df, y, x, c=[], p=[]):
-    df_plot = pd.DataFrame()
+def DfPlot(df, y, x, c='', p='', test_version=False):
+    """
+    Plot behaviorl data using data_df
 
-    if len(c)==0:
-        df_plot = df.groupby(x) [y].agg(np.mean)
-        df_plot.plot(kind='bar',title= y )
+    :param df: data_df, a pandas dataframe that stores behaviral data
+    :param y:  data to plot, as the name of column
+    :param x:  data grouped by x, shown on x_axis
+    :param c:  data grouped by c, shonw as seperate bars
+    :param p:  daaa grouped bgy p, shwon as seperate pannels
+    :return:
+    """
+
+    if test_version:
+        df[''] = [''] * len(df)  # empty column, make some default condition easy
+        df_grpby = df.groupby([x, c, p])
+        df_grpby_indx = df_grpby.indices
+        df_grpby_keys = sorted(df_grpby_indx.keys())
+        df_grpby_means= df_grpby[y].agg(np.mean)
+
+        v_x, v_c, v_p = zip(*df_grpby_keys)
+        len_x, len_c, len_p = (len(v_x), len(v_c), len(v_p))
+        h_fig, h_ax = plt.subplots(nrows=1, ncols=len(set(v_p)), sharex=True, sharey=True)
+
+        try:
+            h_ax[0]
+        except:
+            h_ax = [h_ax]
+        h_ax = np.array(h_ax)
+        for i_p, c_p in enumerate(sorted(list(set(v_p)))):
+            plt.axes(h_ax[i_p])
+            plt.title(c_p)
+            for i_c, c_c in enumerate(list(set(v_c))):
+                for i_x, c_x in enumerate( list(set(v_x))):
+                    plt.bar(i_x+i_c*0.3, df_grpby_means[c_x, c_c, c_p], width=0.3)
+
+
     else:
-        catg = sorted(df[c].unique())
-        for i in range(len(catg)):
-            df_plot[catg[i]] = df [df[c]==catg[i]].groupby(x) [y].agg(np.mean)
-        df_plot.plot(kind='bar',title= y )
-    plt.legend(bbox_to_anchor=(1.1, 1.1), fancybox=True, framealpha=0.5)
-    plt.gca().get_legend().set_title(c)
+        df_plot = pd.DataFrame()
 
-    return 1
+        if len(c)==0:
+            df_plot = df.groupby(x) [y].agg(np.mean)
+            df_plot.plot(kind='bar',title= y )
+        else:
+            list_color = gen_distinct_colors(len(df[c].unique()), luminance=0.8)
+            catg = sorted(df[c].unique())
+            for i in range(len(catg)):
+                df_plot[catg[i]] = df [df[c]==catg[i]].groupby(x) [y].agg(np.mean)
+            df_plot.plot(kind='bar',title= y, color=list_color)
+        plt.legend(loc='lower right', fancybox=True, framealpha=0.8)
+        plt.gca().get_legend().set_title(c)
+
+    return plt.gcf()
 
 
 def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):

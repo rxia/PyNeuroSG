@@ -30,11 +30,6 @@ import data_load_DLSH       # package specific for DLSH lab data
 from GM32_layout import layout_GM32
 
 
-from scipy import signal
-from scipy.signal import spectral
-from PyNeuroPlot import center2edge
-
-
 # get tank names
 dir_tdt_tank='/shared/lab/projects/encounter/data/TDT/'
 list_name_tanks = os.listdir(dir_tdt_tank)
