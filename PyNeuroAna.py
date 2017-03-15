@@ -3,7 +3,11 @@ import scipy as sp
 import pandas as pd
 from scipy import signal
 from scipy.signal import spectral
+import sklearn
+import sklearn.decomposition as decomposition
+import sklearn.manifold as manifold
 
+""" ===== basic operation: smooth and average ===== """
 
 def SmoothTrace(data, sk_std=None, fs=1.0, ts=None, axis=1):
     """
@@ -43,20 +47,22 @@ def SmoothTrace(data, sk_std=None, fs=1.0, ts=None, axis=1):
     return data_smooth
 
 
-def GroupAve(data_neuro):
+def GroupAve(data_neuro, data=None):
     """
     for data_neuro object, get average response using the groupby information
 
-    :param data_neuro: data neuro object after signal_align.neuro_sort() function
+    :param data_neuro: data neuro object after signal_align.neuro_sort() function, contains 'cdtn' and 'cdtn_indx' which directs the grouping rule
+    :param data:       data, if not give, set to data_neuro['data].  It's zero-th dimension correspond to the index of data_neuro['cdtn_indx]
     :return:           data_groupave, e.g. array with the size of [num_cdtn * num_ts* num_chan]
     """
 
-    data = data_neuro['data']
+    if data is None:
+        data = data_neuro['data']
     data_grpave_shape = list(data.shape)
     data_grpave_shape[0] = len(data_neuro['cdtn'])
     data_groupave = np.zeros(data_grpave_shape)
     for i, cdtn in enumerate(data_neuro['cdtn']):
-        ave = np.mean(np.take(data_neuro['data'], data_neuro['cdtn_indx'][cdtn], axis=0), axis=0)
+        ave = np.mean(np.take(data, data_neuro['cdtn_indx'][cdtn], axis=0), axis=0)
         try:
             data_groupave[i, :, :] = ave
         except:
@@ -107,6 +113,22 @@ def TuningCurve(data, label, type='rank', ts=None, t_window=None, limit=None):
     return (x, y)
 
 
+""" ===== spectral analysis ===== """
+
+def ComputeWelchSpectrum(data, data1=None, fs=1000.0, t_ini=0.0, t_window=None, t_bin=None, t_step=None, t_axis=1, batchsize=100, f_lim=None):
+
+    ts = t_ini + 1.0/fs*np.arange(data.shape[t_axis])
+    if t_window is not None:      # get the data of interest
+        data = np.take(data, np.flatnonzero(np.logical_and(ts >= t_window[0], ts <= t_window[1])), axis=t_axis)
+        if data1 is not None:
+            data1 =np.take(data1, np.flatnonzero(np.logical_and(ts >= t_window[0], ts <= t_window[1])), axis=t_axis)
+        t_ini = ts[ts>=t_window[0]][0]
+
+    [spcg, spcg_t, spcg_f] = ComputeSpectrogram(data, data1=data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, t_axis=t_axis,
+                       batchsize=batchsize, f_lim=f_lim)
+
+    spct = np.mean(spcg, axis=-1)
+    return [spct, spcg_f]
 
 def ComputeSpectrogram(data, data1=None, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, t_axis=1, batchsize=100, f_lim=None):
     """
@@ -398,6 +420,7 @@ def ComputeCrossCorlg(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=Non
 
     return (np.mean(corss_corlg, axis=0), t_grid, t_segm)
 
+
 def create_strided_array(x, nperseg, noverlap):
     # Created strided array of data segments, from scipy.spectral._fft_helper
     if nperseg == 1 and noverlap == 0:
@@ -409,3 +432,23 @@ def create_strided_array(x, nperseg, noverlap):
         result = np.lib.stride_tricks.as_strided(x, shape=shape,
                                                  strides=strides)
     return result
+
+
+""" ===== machine learning related ===== """
+
+def LowDimEmbedding(data, type='PCA'):
+    data = data/np.std(data)
+    if type =='PCA':
+        model_embedding =  decomposition.PCA(n_components=2)
+    elif type == 'Isomap':
+        model_embedding = manifold.Isomap(n_components=2)
+    elif type == 'MDS':
+        model_embedding = manifold.MDS(n_components=2)
+    elif type == 'TSNE':
+        model_embedding = manifold.TSNE(n_components=2, perplexity=100)
+    elif type == 'SpectralEmbedding':
+        model_embedding = manifold.SpectralEmbedding(n_components=2)
+    else:
+        model_embedding = decomposition.PCA(n_components=2)
+    result_embedding = model_embedding.fit_transform(data)
+    return result_embedding
