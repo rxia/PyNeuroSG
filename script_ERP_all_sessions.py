@@ -121,6 +121,4 @@ for chan in range(1,32+1):
     plt.savefig('./temp_figs/GM32_ERP_chan_{}.png'.format(chan))
     plt.close()
 
-
-
 plt.show()

@@ -70,9 +70,8 @@ def GetERP(tankname='GM32.*U16.*161125'):
 ERP = GetERP(tankname='GM32.*U16.*161125')
 
 
-""" embed ERP """
+""" embed ERP of one day """
 reload(pna)
-# ERP = np.vstack( [ERP_all[:,:,i] for i in range(ERP_all.shape[2]) if i%4==0] )
 result_embedding =  pna.LowDimEmbedding(ERP, type='MDS')
 plt.plot(result_embedding[:,0], result_embedding[:,1],'o')
 scale_ERP = np.nanmax(np.abs(ERP))
@@ -81,3 +80,28 @@ for i, xy in enumerate(result_embedding):
     plt.annotate('{}'.format(i+1), xy=xy)
     plt.plot( result_embedding[i,0]+ np.arange(ERP.shape[1])*scale_embedding[0]/ERP.shape[1]/20,
               result_embedding[i,1]+ERP[i,:]/scale_ERP*scale_embedding[1]/20)
+plt.savefig('./temp_figs/ERP_embedding.png')
+
+
+
+
+""" embed ERP of all recording sessions """
+
+with open('./temp_data/ERP_all_info', 'rb') as f:
+    ERP_all_info = pickle.load(f)
+ERP_all = ERP_all_info['data']
+tankname = ERP_all_info['tankname']
+
+ERP = np.vstack( [ERP_all[:,:,i] for i in range(ERP_all.shape[2]) if i%1==0] )
+result_embedding =  pna.LowDimEmbedding(ERP, type='PCA')
+
+chan_tank = zip(np.arange(len(result_embedding))%32 +1, sum([[tank]*32 for tank in tankname], []))
+for chan in range(1,32+1):
+    plt.figure(figsize=[12,12])
+    pnp.EmbedTracePlot(result_embedding, traces=ERP, labels_interactive=chan_tank,
+                                highlight=np.array(zip(*chan_tank)[0])==chan,
+                                color=pnp.gen_distinct_colors(n=len(result_embedding), style='continuous') )
+    plt.title('ERP_embedding_all_sessions_chan_{}'.format(chan))
+    plt.savefig('./temp_figs/ERP_embedding_all_sessions_chan_{}.png'.format(chan))
+    plt.close()
+plt.savefig('./temp_figs/ERP_embedding_all_sessions.png')

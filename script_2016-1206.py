@@ -69,7 +69,7 @@ plt.savefig('{}/{}_spk_waveform.png'.format(dir_temp_fig, filename_common))
 
 
 """ ERP plot """
-t_plot = [-0.500, 1.400]
+t_plot = [-0.500, 1.200]
 
 data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='ana.*', name_filter='LFPs.*')
 data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized', 'mask_opacity_int'], [], data_neuro)

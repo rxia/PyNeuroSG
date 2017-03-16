@@ -11,6 +11,7 @@ import warnings
 import misc_tools
 import signal_align
 
+
 def DfPlot(df, y, x, c='', p='', test_version=False):
     """
     Plot behaviorl data using data_df
@@ -272,6 +273,7 @@ def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None):
     plt.xlim(center2edge(x_grid)[[0, -1]])
     plt.ylim(center2edge(y_grid)[[0, -1]])
     plt.axis('equal')
+
 
 def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_colorbar=False):
     """
@@ -681,6 +683,19 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
                                  axis=1, keepdims=True)
         spcg = spcg - spcg_baseline
 
+    # set x, y limit
+    if t_lim is None:
+        t_lim = spcg_t[[0, -1]]
+    else:
+        tf_temp = np.logical_and(spcg_t>=t_lim[0], spcg_t<=t_lim[1])
+        spcg_t = spcg_t[tf_temp]
+        spcg   = spcg[:, tf_temp]
+    if f_lim is None:
+        f_lim = spcg_f[[0, -1]]
+    else:
+        tf_temp = np.logical_and(spcg_f >= f_lim[0], spcg_f <= f_lim[1])
+        spcg_f = spcg_f[tf_temp]
+        spcg = spcg[tf_temp, :]
 
     # set color limit
     if c_lim is None:
@@ -722,12 +737,6 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
     # plot using pcolormesh
     h_plot = plt.pcolormesh(center2edge(spcg_t_plot), center2edge(spcg_f_plot),
                    spcg_plot, cmap=plt.get_cmap(name_cmap), shading= 'flat')
-
-    # set x, y limit
-    if t_lim is None:
-        t_lim = spcg_t[[0, -1]]
-    if f_lim is None:
-        f_lim = spcg_f[[0, -1]]
 
     plt.xlim(t_lim)
     plt.ylim(f_lim)
@@ -889,8 +898,70 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, max_trial=None, limit_gap
 
     return [h_fig, h_ax]
 
+
+
+def EmbedTracePlot(loc_embed, traces=None, labels=None, labels_interactive=None, color=None, highlight=None):
+    """
+    Plot trances (e.g. ERPs) in the embeded 2D space, if labels_interactive is not None, the plot is interactive
+
+    :param loc_embedding: [N*2] array, where each row stores the [x, y] of every data point in the embedded space
+    :param traces:        if None, do not plot original
+    :param labels:        labels of every point
+    :param labels_interactive: labels of every point, shown as annotation when clicked by mouse
+    :return:
+    """
+
+    """" scatter plot for every data point """
+    if color is None:
+        color=np.zeros([len(loc_embed), 3])+0.5
+    h_scatter = plt.scatter(loc_embed[:, 0], loc_embed[:, 1], color='k', alpha=0.3, picker=True)
+
+    """ label shown in figure """
+    if labels is not None:
+        for i, xy in enumerate(loc_embed):
+            plt.annotate('{}'.format(labels[i]), xy=xy)
+
+    """ plot traces """
+    if traces is not None:
+        scale_trace = np.nanmax(np.abs(traces))
+        scale_embedding = np.max(loc_embed, axis=0) - np.min(loc_embed, axis=0)
+        if highlight is None:
+            for i, xy in enumerate(loc_embed):
+                plt.plot(loc_embed[i, 0] + np.arange(traces.shape[1]) * scale_embedding[0] / traces.shape[1] / 20,
+                         loc_embed[i, 1] + traces[i, :] / scale_trace * scale_embedding[1] / 20,
+                         color = color[i])
+        else:
+            for i, xy in enumerate(loc_embed):
+                if highlight[i] == True:
+                    plt.plot(loc_embed[i, 0] + np.arange(traces.shape[1]) * scale_embedding[0] / traces.shape[1] / 20,
+                             loc_embed[i, 1] + traces[i, :] / scale_trace * scale_embedding[1] / 20,
+                             color=color[i], linewidth=2)
+        h_scatter.set_sizes(h_scatter.get_sizes()/2)
+
+    if highlight is not None:
+        h_scatter.set_sizes(h_scatter.get_sizes()+ 4*h_scatter.get_sizes()*highlight)
+
+
+    """ label shown by mouse clicking """
+    if labels_interactive is not None:
+        h_text = plt.annotate('', xy=loc_embed[0])
+
+        def onpick(event, h_text=h_text):
+            ind = event.ind
+            for i in ind:
+                h_text.set_text('{}'.format(labels_interactive[i]))
+                h_text.set_x(loc_embed[i][0])
+                h_text.set_y(loc_embed[i][1])
+            plt.show()
+
+        fig = plt.gcf()
+        fig.canvas.mpl_connect('pick_event', onpick)
+
+
 def get_unique_elements(labels):
     return sorted(list(set(labels)))
+
+
 
 def add_axes_on_top(h_axes, r=0.25):
     """

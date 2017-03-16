@@ -7,6 +7,7 @@ import sklearn
 import sklearn.decomposition as decomposition
 import sklearn.manifold as manifold
 
+
 """ ===== basic operation: smooth and average ===== """
 
 def SmoothTrace(data, sk_std=None, fs=1.0, ts=None, axis=1):
@@ -437,9 +438,16 @@ def create_strided_array(x, nperseg, noverlap):
 """ ===== machine learning related ===== """
 
 def LowDimEmbedding(data, type='PCA'):
+    """
+    Low dimensional embedding of the data, using PCA or manifold leaning method
+
+    :param data: N*M array, N data points of M dimensions
+    :param type: embedding method
+    :return:     N*2 array, 2D representation of all N data points
+    """
     data = data/np.std(data)
     if type =='PCA':
-        model_embedding =  decomposition.PCA(n_components=2)
+        model_embedding =  decomposition.PCA(n_components=3)
     elif type == 'Isomap':
         model_embedding = manifold.Isomap(n_components=2)
     elif type == 'MDS':
@@ -451,4 +459,10 @@ def LowDimEmbedding(data, type='PCA'):
     else:
         model_embedding = decomposition.PCA(n_components=2)
     result_embedding = model_embedding.fit_transform(data)
+    if result_embedding.shape[1]>=2:
+        result_embedding = result_embedding[:, result_embedding.shape[1]-2:]
     return result_embedding
+
+
+
+# def DimRedDisc(X, Y):
