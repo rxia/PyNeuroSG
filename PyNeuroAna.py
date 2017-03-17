@@ -6,6 +6,8 @@ from scipy.signal import spectral
 import sklearn
 import sklearn.decomposition as decomposition
 import sklearn.manifold as manifold
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
 
 
 """ ===== basic operation: smooth and average ===== """
@@ -464,5 +466,17 @@ def LowDimEmbedding(data, type='PCA'):
     return result_embedding
 
 
+def DimRedLDA(X=None, Y=None, X_test=None, dim=2, lda=None, return_model=False):
+    """ """
+    if X_test is None:
+        X_test = X
+    if lda is None:
+        lda = LinearDiscriminantAnalysis(n_components=dim)
+        lda.fit(X, Y)
+    X_2D = lda.transform(X_test)
 
-# def DimRedDisc(X, Y):
+    if return_model:
+        return lda
+    else:
+        return X_2D
+
