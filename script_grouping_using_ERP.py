@@ -85,7 +85,7 @@ plt.savefig('./temp_figs/ERP_embedding.png')
 
 
 
-""" embed ERP of all recording sessions """
+""" embed ERP of all recording sessions (3D stored) """
 
 with open('./temp_data/ERP_all_info', 'rb') as f:
     ERP_all_info = pickle.load(f)
@@ -105,3 +105,38 @@ for chan in range(1,32+1):
     plt.savefig('./temp_figs/ERP_embedding_all_sessions_chan_{}.png'.format(chan))
     plt.close()
 plt.savefig('./temp_figs/ERP_embedding_all_sessions.png')
+
+
+""" embed ERP using all recording sessions (2D stored) """
+erp_df_full = pd.read_pickle('./temp_data/erp_all_info')
+
+erp_df = erp_df_full[erp_df_full['chan']>=33]
+
+ERP= np.array(erp_df['ERP'].tolist())
+
+reload(pna)
+# result_embedding =  pna.LowDimEmbedding(ERP, type='PCA', para=2)
+result_embedding =  pna.LowDimEmbedding(ERP, type='Isomap', para=20)
+
+
+chan = erp_df['chan'].tolist()
+date = erp_df['date'].tolist()
+chan_date = zip(erp_df['chan'].tolist(), erp_df['date'].tolist() )
+dict_color_chan = pnp.gen_distinct_colors(n=16+1, style='continuous')
+dict_color_date = pnp.gen_distinct_colors(n=len(np.unique(date))+1, style='continuous')
+chan_color = [dict_color_chan[i-32] for i in chan]
+date_color = [dict_color_date[i/16] for i,_ in enumerate(date)]
+
+
+for date_i in np.unique(date):
+    plt.figure(figsize=[12,12])
+    pnp.EmbedTracePlot(result_embedding, traces=ERP, labels_interactive=chan_date,
+                   highlight=(np.array(date) == date_i),
+                   color=chan_color)
+    plt.title('U16_ERP_embedding_all_sessions_date_{}'.format(date_i))
+    plt.savefig('./temp_figs/ERP_U16_embedding_all_sessions_date_{}.png'.format(date_i))
+    plt.close()
+
+pnp.EmbedTracePlot(result_embedding, traces=ERP, labels_interactive=chan_date,
+                   highlight=None,
+                   color=date_color)

@@ -439,7 +439,7 @@ def create_strided_array(x, nperseg, noverlap):
 
 """ ===== machine learning related ===== """
 
-def LowDimEmbedding(data, type='PCA'):
+def LowDimEmbedding(data, type='PCA', para=None):
     """
     Low dimensional embedding of the data, using PCA or manifold leaning method
 
@@ -449,13 +449,18 @@ def LowDimEmbedding(data, type='PCA'):
     """
     data = data/np.std(data)
     if type =='PCA':
-        model_embedding =  decomposition.PCA(n_components=3)
+        para = 2 if (para is None) else para
+        model_embedding =  decomposition.PCA(n_components=para)
+    elif type =='ICA':
+        model_embedding =  decomposition.FastICA(n_components=2)
     elif type == 'Isomap':
-        model_embedding = manifold.Isomap(n_components=2)
+        para = None if (para is None) else para
+        model_embedding = manifold.Isomap(n_components=2, n_neighbors=para)
     elif type == 'MDS':
         model_embedding = manifold.MDS(n_components=2)
     elif type == 'TSNE':
-        model_embedding = manifold.TSNE(n_components=2, perplexity=100)
+        para = None if (para is None) else para
+        model_embedding = manifold.TSNE(n_components=2, perplexity=para)
     elif type == 'SpectralEmbedding':
         model_embedding = manifold.SpectralEmbedding(n_components=2)
     else:
@@ -467,7 +472,17 @@ def LowDimEmbedding(data, type='PCA'):
 
 
 def DimRedLDA(X=None, Y=None, X_test=None, dim=2, lda=None, return_model=False):
-    """ """
+    """
+    supervised dimensionality reduction using LDA
+
+    :param X:       data, [N*M], required if lda is not given
+    :param Y:       labels, N,   required if lda is not given
+    :param X_test:  testing data [N'*M], default to
+    :param dim:     output dimension
+    :param lda:     model object, if given. the function does not need X, Y to train the model
+    :param return_model: if true returns the trained model, otherwise, returns X_test in low D, [N'*dim]
+    :return:        the model (object) or the testing data in low D  [N'*dim]
+    """
     if X_test is None:
         X_test = X
     if lda is None:

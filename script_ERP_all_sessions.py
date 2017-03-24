@@ -61,13 +61,13 @@ def GetERP(tankname='GM32.*U16.*161125'):
     t_plot = [-0.100, 0.500]
 
     data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot,
-                                             type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,32+1))
+                                             type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1))
     ERP = np.mean(data_neuro['data'], axis=0).transpose()
 
     return ERP
 
 
-""" ==========  ========== """
+""" ========== read data and load ERP ========== """
 ERP_all = []
 tankname_all= []
 for tankname in list_name_tanks:
@@ -78,47 +78,66 @@ for tankname in list_name_tanks:
     except:
         print( misc_tools.red_text('loading tank {} error'.format(tankname)))
 
-ERP_all = np.dstack(ERP_all)
-np.save('./temp_data/ERP_all_data', ERP_all)
-
-ERP_all_info = {'data': ERP_all, 'tankname': tankname_all, }
-with open('./temp_data/ERP_all_info', 'wb') as f:
-    pickle.dump(ERP_all_info, f)
-
-""" ==========  ========== """
-with open('./temp_data/ERP_all_info', 'rb') as f:
-    ERP_all_info = pickle.load(f)
-ERP_all = ERP_all_info['data']
-tankname = ERP_all_info['tankname']
 
 
-# GM32_depth = pd.read_csv('./temp_data/GM32_depth.csv')
-#
-# for chan in range(1,32+1):
-#     pnp.ErpPlot(ERP_all[chan-1,:,:].transpose(), range(ERP_all.shape[1]), depth_linear=GM32_depth['{}'.format(chan)]*0.125 )
-#     plt.suptitle('ERP GM32 channel {}'.format(chan))
-#     plt.savefig('./temp_figs/GM32_ERP_chan_{}.png'.format(chan))
-#     plt.close()
+""" do somthing """
 
-""" use the log file to determine electrode depth """
-tankdate = np.array([datetime.datetime.strptime(re.match('.*-(\d{6})-.*', tank).group(1), '%y%m%d')  for tank in tankname ])
-with open('./temp_data/GM32_log_info.pkl', 'rb') as f:
-    GM32_log = pickle.load(f)
-date_valid = np.sort(np.intersect1d(tankdate, GM32_log['date'] ))
+tf_3D_GM32 = False
+tf_2D_all  = True
 
-def arg_select_sort(label, label_ss):
-    array_indx = np.zeros(len(label_ss)).astype(int)
-    for i, x in enumerate(label_ss):
-        array_indx[i] = np.flatnonzero(label==x)
-    return array_indx
+if tf_3D_GM32:
+    ERP_all = np.dstack(ERP_all)
+    np.save('./temp_data/ERP_all_data', ERP_all)
 
-ERP_valid  = ERP_all[:,:, arg_select_sort(tankdate, date_valid) ]
-depth_valid = GM32_log['total_depth'][arg_select_sort( GM32_log['date'], date_valid), :]
+    ERP_all_info = {'data': ERP_all, 'tankname': tankname_all, }
+    with open('./temp_data/ERP_all_info', 'wb') as f:
+        pickle.dump(ERP_all_info, f)
 
-for chan in range(1,32+1):
-    pnp.ErpPlot(ERP_valid[chan-1,:,:].transpose(), range(ERP_all.shape[1]), depth_linear=depth_valid[:,chan-1] )
-    plt.suptitle('ERP GM32 channel {}'.format(chan))
-    plt.savefig('./temp_figs/GM32_ERP_chan_{}.png'.format(chan))
-    plt.close()
+    """ ==========  ========== """
+    with open('./temp_data/ERP_all_info', 'rb') as f:
+        ERP_all_info = pickle.load(f)
+    ERP_all = ERP_all_info['data']
+    tankname = ERP_all_info['tankname']
 
-plt.show()
+
+    # GM32_depth = pd.read_csv('./temp_data/GM32_depth.csv')
+    #
+    # for chan in range(1,32+1):
+    #     pnp.ErpPlot(ERP_all[chan-1,:,:].transpose(), range(ERP_all.shape[1]), depth_linear=GM32_depth['{}'.format(chan)]*0.125 )
+    #     plt.suptitle('ERP GM32 channel {}'.format(chan))
+    #     plt.savefig('./temp_figs/GM32_ERP_chan_{}.png'.format(chan))
+    #     plt.close()
+
+    """ use the log file to determine electrode depth """
+    tankdate = np.array([datetime.datetime.strptime(re.match('.*-(\d{6})-.*', tank).group(1), '%y%m%d')  for tank in tankname ])
+    with open('./temp_data/GM32_log_info.pkl', 'rb') as f:
+        GM32_log = pickle.load(f)
+    date_valid = np.sort(np.intersect1d(tankdate, GM32_log['date'] ))
+
+    def arg_select_sort(label, label_ss):
+        array_indx = np.zeros(len(label_ss)).astype(int)
+        for i, x in enumerate(label_ss):
+            array_indx[i] = np.flatnonzero(label==x)
+        return array_indx
+
+    ERP_valid  = ERP_all[:,:, arg_select_sort(tankdate, date_valid) ]
+    depth_valid = GM32_log['total_depth'][arg_select_sort( GM32_log['date'], date_valid), :]
+
+    for chan in range(1,32+1):
+        pnp.ErpPlot(ERP_valid[chan-1,:,:].transpose(), range(ERP_all.shape[1]), depth_linear=depth_valid[:,chan-1] )
+        plt.suptitle('ERP GM32 channel {}'.format(chan))
+        plt.savefig('./temp_figs/GM32_ERP_chan_{}.png'.format(chan))
+        plt.close()
+
+    plt.show()
+
+
+if tf_2D_all:
+    chan_all = np.concatenate([range(1, 1 + erp.shape[0]) for erp in ERP_all])
+    tank_all = np.concatenate([[tankname_all[i]] * erp.shape[0] for i, erp in enumerate(ERP_all)])
+    erp_2d_all = np.vstack(ERP_all)
+    date_all = np.array([re.match('.*-(\d{6})-.*', tank).group(1) for tank in tank_all])
+
+    erp_all_info = pd.DataFrame({'ERP': list(erp_2d_all), 'tank': tank_all, 'chan': chan_all, 'date': date_all})
+
+    erp_all_info.to_pickle('./temp_data/erp_all_info')
