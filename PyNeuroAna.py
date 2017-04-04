@@ -3,9 +3,12 @@ import scipy as sp
 import pandas as pd
 from scipy import signal
 from scipy.signal import spectral
+import scipy.ndimage.filters as spfltr
 import sklearn
 import sklearn.decomposition as decomposition
 import sklearn.manifold as manifold
+import sklearn.preprocessing as preprocessing
+import sklearn.linear_model as linear_model
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 
@@ -36,18 +39,13 @@ def SmoothTrace(data, sk_std=None, fs=1.0, ts=None, axis=1):
         smooth_kernel = sp.signal.gaussian(kernel_len, kernel_std)
         smooth_kernel = smooth_kernel / smooth_kernel.sum()  # normalized smooth kernel
 
-        # expand the dimension of the smooth kernel for convolution
-        smooth_kernel_nD_shape = np.ones(len(data.shape), dtype=int)
-        smooth_kernel_nD_shape[axis] = len(smooth_kernel)
-        smooth_kernel_nD = np.resize(smooth_kernel, smooth_kernel_nD_shape)
-
         # convolution using fftconvolve(), whihc is faster than convolve()
-        data_smooth = sp.signal.fftconvolve(data, smooth_kernel_nD, mode='same')
-
+        data_smooth = sp.ndimage.convolve1d(data, smooth_kernel, mode='reflect', axis=axis)
     else:
         data_smooth = data
 
     return data_smooth
+
 
 
 def GroupAve(data_neuro, data=None):
@@ -116,6 +114,254 @@ def TuningCurve(data, label, type='rank', ts=None, t_window=None, limit=None):
     return (x, y)
 
 
+
+def cal_ISI(X, ts=None, bin=None):
+    """
+    Calculate inter-spike invervals
+    :param X:    2D array of spike data (binary values), [ num_trials * num_ts ]
+    :param ts:   timestamps of X (1D array) or sampling interval of ts (a scalar)
+    :param bin:  bin centers for histogram
+    :return:     (ISI, ISI_hist, bin). ISI: 1D array of all ISIs, ISI_hist: hist of ISIs, bin: bins of ISI_hist
+    """
+
+    X = X>0
+    ISI = np.diff(np.flatnonzero(X))
+    if ts is not None:
+        if np.isscalar(ts):
+            t_interval = ts
+        else:
+            t_interval= (ts[-1]-ts[0])/(len(ts)-1)
+    else:
+        t_interval= 1.0
+
+    ISI = ISI* t_interval
+
+    if bin is None:
+        bin = np.arange(0,100)*t_interval
+
+    (ISI_hist, _) = np.histogram(ISI, bins=center2edge(bin))
+
+    return (ISI, ISI_hist, bin)
+
+
+
+def cal_STA(X, Xt=None, ts=None, t_window=None, zero_point_zero = False):
+    """
+        Calculate spike triggered average
+        :param X:    2D array of data (spike or LFP), [ num_trials * num_ts ]
+        :param Xt:   2D array of spike data used as triggers (binary data), [ num_trials * num_ts ]
+        :param ts:   timestamps for X
+        :param t_window:  window for STA
+        :return:     (sta, t_sta, st), sta: 1D array of STA; t_sta: timestamps; st: spike-triggered segments, 2D array [N_spikes, N_ts]
+    """
+    if Xt is None:
+        Xt = X
+
+    if ts is not None:
+        if np.isscalar(ts):
+            t_interval = ts
+        else:
+            t_interval= (ts[-1]-ts[0])/(len(ts)-1)
+    else:
+        t_interval= 1.0
+
+    if t_window is None:
+        indx_sta = np.arange(-100, 100+1)
+    else:
+        indx_sta = np.arange(int(t_window[0]/t_interval), int(t_window[1]/t_interval)+1)
+    t_sta = indx_sta * t_interval
+
+    X_flat = np.ravel(X)            # data in flat form
+    Xt = Xt>0
+    indx_trg = np.flatnonzero(Xt)   # indexes of triggers in flat form
+
+    M = len(indx_trg)
+    T = len(indx_sta)
+    indx_trg_sta =  np.expand_dims(indx_sta, axis=0) + np.expand_dims(indx_trg, axis=1)
+
+    # spike triggered segments, 2D array [N_spikes, N_ts]
+    st = np.take(X_flat, indx_trg_sta, mode='wrap')
+    # spike triggered average, 1D array [N_ts]
+    sta = np.mean(st, axis=0)
+
+    if zero_point_zero:
+        sta[t_sta==0] = 0
+
+    return (sta, t_sta, st)
+
+
+def cal_CSD(data, axis_ch=-1, axis_ts=1, sp_ch=None):
+
+    pass
+
+
+
+""" ===== spike point process analysis related ===== """
+
+
+def gen_gamma_knl(ts=np.arange(-0.1, 1.0, 0.001), k=1.0, theta=1.0, mu=None, sigma=None, normalize='max'):
+    """
+    tool function generate a gamma-distribution-like kernel (1D), used as a impulse response function
+
+    could be parametrized using k and theta like Gamma distribution, or use mean and sigma like gaussian distribution.
+    Note that mu=k*theta, sigma=sqrt(k*theta**2)
+
+    e.g.  bump = gen_gamma_bump(ts, k=2, theta=0.20) is equivalent as bump = gen_gamma_bump(ts, mu=0.4, theta=0.08);
+
+    :param ts:    timestamps, e.g. ts = np.arange(-0.1, 1.0, 0.001);
+    :param k:     if parametrized as gamma: shape parameter, if 1, exp distribution, if large, becomes gaussian-like
+    :param theta: if parametrized as gamma: scale parameter, mean = k*theta, var = k*theta**2
+    :param mu:    alternative parametrization: mean is mu
+    :param std:   alternative parametrization: var is std**2
+    :return:      a gamma-like bump
+    """
+    if mu is not None and sigma is not None:
+        theta = 1.0*sigma**2/mu
+        k     = 1.0*mu**2/sigma**2
+    ts_abs = np.abs(ts)
+    bump = ts_abs**(k-1) * np.exp(-ts_abs/theta)
+    bump = bump * (ts > 0)
+    if normalize == 'max':
+        bump = bump / np.max(bump)
+    elif normalize == 'sum':
+        bump = bump / np.sum(bump)
+    return bump
+
+
+
+def gen_knl_series(ts=np.arange(-0.1, 1.0, 0.001), scale=0.5, N=5, spacing_factor=np.sqrt(2), tf_symmetry=True):
+    """
+    tool function to generate a series of N gamma-like kernels distributed within the range defined by scale,
+    used as the basis functions for the internal/external history term for neural point process
+    test: plt.plot(pna.gen_bump_series().transpose())
+
+    :param ts:    timestamps, e.g. ts = np.arange(-0.1, 1.0, 0.001);
+    :param scale: scale of the bumps, which defines the mean of the broadest gamma bump
+    :param N:     number of bumps
+    :param spacing_factor: any number >=1, default to sqrt(2), if small, evenly spaces, if large, un-evenly spaced
+    :param tf_symmetry: True or False, make ts symmetric about zero
+    :return:      2D array of bump series, [N_bumps, N_ts]
+    """
+
+    if tf_symmetry:    # make sure that ts is symmetric about zero, convenient for convolution
+        t_interval = ts[1]-ts[0]
+        t_max = np.max(np.abs(ts))
+        h_len_knl = int(t_max/t_interval)
+        ts = np.arange(-h_len_knl, h_len_knl+1)*t_interval
+
+    # k of gamma is exponent with base=spacing_factor
+    list_k = spacing_factor ** (np.arange(N)+1)
+    # theta of gamma makes the mean of the largest gamma equal to scale
+    theta = scale/list_k[-1]
+    # generate gamma series
+    knl_series = np.array([gen_gamma_knl(ts, k=k, theta=theta) for k in list_k])
+    return knl_series
+
+
+
+def gen_delta_function_with_label(ts=np.arange(-0.2, 1.0, 0.01), t=np.zeros(1), y=np.ones(1),
+                       tf_y_ctgr=False, tf_return_ctgr=False):
+    """
+    generate delta function at time t and with label y for every trial on time grid ts
+
+    :param ts:   timestamps, grid of time, of length T
+    :param t:    time of event onset of every trial, of length N, if the same across all trials, could be given as a scalar
+    :param y:    labels of events, of length N: if tf_return_ctgr==True, could be any type; otherwise, must be numbers.
+                    if the same across trials, could be given as a scalar
+    :param tf_y_ctgr:      True/False of y being categorical
+    :param tf_return_ctgr: True/False to return y cetegory lables
+    :return:     delta_fun or (delta_fun, y_ctgy)
+
+                    delta_fun if tf_return_ctgr==False, (delta_fun, y_ctgy) otherwise
+
+                    detta_fun is [N*T] if tf_y_ctgr==False, [N*T*M] if tf
+    """
+
+    """  pre-process t and y, make sure that they are 1D array of lenth N  """
+    t = np.array(t, ndmin=1)
+    y = np.array(y, ndmin=1)
+    if len(t) == 1:         # if t is scalar, repeat N times
+        t = np.repeat(t, len(y))
+    if len(y) == 1:         # if y is scalar, repeat N times
+        y = np.repeat(y, len(t))
+    if len(t) != len(y):    # if t and y are of different lengths
+        raise('input t and y should be of the same length')
+
+
+    """ produce Y: if y is continuous, make it [N*1]; if y is categorical (M categories), make it [N*M] binary values """
+    if tf_y_ctgr:
+        label_enc = preprocessing.LabelEncoder()
+        enc = preprocessing.OneHotEncoder(sparse=False)
+        y_code = label_enc.fit_transform(y)
+        Y = np.array(enc.fit_transform(np.expand_dims( y_code , axis=1)))
+        Y_label = label_enc.classes_
+    else:
+        Y = np.expand_dims(y, axis=1)
+        Y_label = []
+    T = len(ts)
+    N, M = Y.shape
+
+
+    """ generate gamma functions """
+    delta_fun = np.zeros([N, T])
+    i_t = [np.abs((ts-t_one)).argmin() for t_one in t]
+    delta_fun[range(N), i_t]=1
+
+    if tf_y_ctgr:
+        delta_fun = np.dstack([delta_fun * Y[:, m:m+1] for m in range(M)])
+    else:
+        delta_fun *= Y
+
+    if tf_return_ctgr:
+        return delta_fun, Y_label
+    else:
+        return delta_fun
+
+
+def fit_neural_point_process(Y, Xs, Xs_knls):
+    """
+    fit neural point process, based on Truccolo W, Eden UT, Fellows MR, Donoghue JP, Brown EN (2005) A point process framework for relating neural spiking activity to spiking history, neural ensemble and extrinsic covariate effects. J Neurophysiology, 93, 1074-1089.
+
+    :param Y:       Y to be predicted, binary, 2D of shape [N, T], N trials, T timestamps
+    :param Xs:      Xs, used to predict Y, list of 2D arrays, where every array is of the same shape as Y
+    :param Xs_knls: kernels for Xs, a list, where Xs_kernel[i] is a 2D array correspond to Xs[i],
+                        Xs_kernel[i] is of shape [num_kernels, num_ts_for_kernel], every kernel works as the inpulse-response function, centered at zero
+    :return:        regression object
+    """
+
+    """ make sure Y is binary; Xs, Xs_knls are lists """
+    Y = np.array(Y>0)
+    if type(Xs) is not (list or tuple):
+        Xs = [Xs]
+    if type(Xs_knls) is not (list or tuple):
+        Xs_knls = [Xs_knls]
+
+    """ X_base for fitting: [N,T,M], N trials, T time stamps, M total features  """
+    N, T = Y.shape
+    Ms= [len(history_term) for history_term in Xs_knls]
+    M = np.sum(np.array(Ms))
+    X_base = np.zeros([N, T, M])
+
+    """ construct X_base, X_base[:,:,i] is the convolution of X and one kernel from the kernels for X """
+    m = 0
+    for i, X in enumerate(Xs):                 # for every X
+        for j, knl in enumerate(Xs_knls[i]):   # for every kernel
+            X_base[:,:,m] = spfltr.convolve1d(X, knl, axis=1)   # convolve along time axis
+            m += 1
+
+    """ GML regression, here logistic regression for binary Y """
+    reg_X = np.reshape(X_base, [N * T, M])   # re-organized for regression, shape 2D: [N*T, M]
+    reg_y = np.reshape(Y, [N * T])           # re-organized for regression, shape 1D: [N*T]
+
+    reg = linear_model.LogisticRegression()  # regression model using sklearn
+    reg.fit(reg_X, reg_y)                    # fit
+
+    print(reg.score(reg_X, reg_y))
+
+    return reg
+
+
+
 """ ===== spectral analysis ===== """
 
 def ComputeWelchSpectrum(data, data1=None, fs=1000.0, t_ini=0.0, t_window=None, t_bin=None, t_step=None, t_axis=1, batchsize=100, f_lim=None):
@@ -132,6 +378,8 @@ def ComputeWelchSpectrum(data, data1=None, fs=1000.0, t_ini=0.0, t_window=None, 
 
     spct = np.mean(spcg, axis=-1)
     return [spct, spcg_f]
+
+
 
 def ComputeSpectrogram(data, data1=None, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, t_axis=1, batchsize=100, f_lim=None):
     """
@@ -216,6 +464,7 @@ def ComputeSpectrogram(data, data1=None, fs=1000.0, t_ini=0.0, t_bin=None, t_ste
     return [spcg, spcg_t, spcg_f]
 
 
+
 def ComputeCoherogram(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, f_lim=None, batchsize=100,
                       tf_phase=False, tf_shuffle=False, tf_vs_shuffle = False,
                       data0_spcg=None, data1_spcg=None, data0_spcg_ave=None, data1_spcg_ave=None):
@@ -292,6 +541,7 @@ def ComputeCoherogram(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=Non
         cohg = cohg * np.exp(np.angle(spcg_xy_ave) *1j )
 
     return [cohg, spcg_t, spcg_f]
+
 
 
 def ComputeSpkTrnFieldCoupling(data_LFP, data_spk, fs=1000, measure='PLV', t_ini=0.0, t_bin=20, t_step=None,
@@ -382,6 +632,7 @@ def ComputeSpkTrnFieldCoupling(data_LFP, data_spk, fs=1000, measure='PLV', t_ini
     return [coupling_value, spcg_t, spcg_f]
 
 
+
 def GetNearestPow2(n):
     """
     Get the nearest power of 2, for FFT
@@ -390,6 +641,7 @@ def GetNearestPow2(n):
     :return:   an int, power of 2 (e.g., 2,4,8,16,32...), nearest to n
     """
     return int(2**np.round(np.log2(n)))
+
 
 
 def ComputeCrossCorlg(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, t_axis=1):
@@ -494,4 +746,27 @@ def DimRedLDA(X=None, Y=None, X_test=None, dim=2, lda=None, return_model=False):
         return lda
     else:
         return X_2D
+
+
+
+""" Tool functons """
+
+def center2edge(centers):
+    """
+    tool function to get edges from centers for histogram. e.g. [0,1,2] returns [-0.5, 0.5, 1.5, 2.5]
+
+    :param centers: centers (evenly spaced), 1D array of length N
+    :return:        edges, 1D array of lenth N+1
+    """
+
+    centers = np.array(centers,dtype='float')
+    edges = np.zeros(len(centers)+1)
+
+    if len(centers) is 1:
+        dx = 1.0
+    else:
+        dx = centers[-1]-centers[-2]
+    edges[0:-1] = centers - dx/2
+    edges[-1] = centers[-1]+dx/2
+    return edges
 
