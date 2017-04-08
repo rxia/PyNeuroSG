@@ -1,0 +1,87 @@
+# ----- standard modules -----
+import os
+import sys
+
+import numpy as np
+import scipy as sp
+import pandas as pd         # pandas tabular DataFrame for task/behavioral data
+import matplotlib as mpl    # plot
+import matplotlib.pyplot as plt
+import re                   # regular expression
+import time                 # time code execution
+
+# ----- modules of the project PyNeuroSG -----
+import signal_align         # in this package: align neural data according to task
+import PyNeuroAna as pna    # in this package: analysis
+import PyNeuroPlot as pnp   # in this package: plot
+import misc_tools           # in this package: misc
+
+# ----- modules for the data location and organization in Sheinberg lab -----
+import data_load_DLSH       # package specific for DLSH lab data
+from GM32_layout import layout_GM32
+
+
+def GetERP(tankname='GM32.*U16.*161125'):
+    [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', tankname, tf_interactive=False)
+
+    """ Get StimOn time stamps in neo time frame """
+    ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
+
+
+    """ some settings for saving figures  """
+    filename_common = misc_tools.str_common(name_tdt_blocks)
+    dir_temp_fig = './temp_figs'
+
+
+    """ make sure data field exists """
+    data_df = data_load_DLSH.standardize_data_df(data_df, filename_common)
+    blk     = data_load_DLSH.standardize_blk(blk)
+
+    t_plot = [-0.100, 0.500]
+
+    data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot,
+                                             type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1))
+    ERP = np.mean(data_neuro['data'], axis=0).transpose()
+
+    return ERP, data_neuro['ts']
+
+ERP, ts = GetERP(tankname='GM32.*U16.*161125')
+
+pnp.ErpPlot(ERP[32:, :], ts)
+
+lfp = ERP[32:, :]
+
+reload(pna); csd = pna.cal_1dCSD(lfp, axis_ch=0); pnp.ErpPlot(pna.SmoothTrace(csd, sk_std=2.0, fs=1.0, axis=0), ts)
+
+
+""" test gaussian process smoothen: does not work well """
+lfp = ERP[32:, range(0,500,10)]
+reload(pna)
+plt.figure()
+plt.subplot(121)
+plt.pcolormesh(lfp)
+plt.colorbar()
+plt.subplot(122)
+lfp_sm = pna.GP_ERP_smooth(lfp*10**5)
+plt.pcolormesh(lfp_sm)
+plt.colorbar()
+csd = pna.cal_1dCSD(lfp, axis_ch=0); pnp.ErpPlot(csd)
+
+
+""" test quadratic smoothing """
+lfp = ERP[32:, np.arange(1,500,10)]
+reload(pna)
+lfp_sm = pna.quad_smooth(lfp, 0,0, 0, 10, 1)
+plt.figure()
+plt.subplot(121)
+plt.pcolormesh(lfp)
+plt.colorbar()
+plt.subplot(122)
+plt.pcolormesh(lfp_sm)
+plt.colorbar()
+pnp.ErpPlot(lfp); plt.suptitle('original lfp')
+pnp.ErpPlot(lfp_sm); plt.suptitle('smoothed lfp')
+csd = pna.cal_1dCSD(lfp, axis_ch=0); pnp.ErpPlot(csd); plt.suptitle('csd from original lfp')
+csd = pna.cal_1dCSD(lfp_sm, axis_ch=0); pnp.ErpPlot(csd); plt.suptitle('csd from smoothed lfp')
+csd = pna.cal_1dCSD(lfp, axis_ch=0); pnp.ErpPlot(pna.SmoothTrace(csd, sk_std=2.0, fs=1.0, axis=0)); plt.suptitle('csd from original lfp, gaussian smoothed')
+

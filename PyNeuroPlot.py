@@ -125,7 +125,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
 
 
 
-def ErpPlot(array_erp, ts, array_layout=None, depth_linear=None):
+def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None):
     """
     ERP (event-evoked potential) plot
 
@@ -140,6 +140,8 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_linear=None):
     """
 
     [N_chan, N_ts] = array_erp.shape
+    if ts is None:
+        ts = np.arange(N_ts)
     if array_layout is None:                # if None, assumes linear layout
         offset_plot_chan = (array_erp.max()-array_erp.min())/5
 

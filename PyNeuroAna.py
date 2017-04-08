@@ -10,8 +10,8 @@ import sklearn.manifold as manifold
 import sklearn.preprocessing as preprocessing
 import sklearn.linear_model as linear_model
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-
-
+import sklearn.gaussian_process as gaussian_process
+import scipy.optimize as optimize
 
 """ ===== basic operation: smooth and average ===== """
 
@@ -190,10 +190,83 @@ def cal_STA(X, Xt=None, ts=None, t_window=None, zero_point_zero = False):
     return (sta, t_sta, st)
 
 
-def cal_CSD(data, axis_ch=-1, axis_ts=1, sp_ch=None):
+def cal_1dCSD(lfp, knl=np.array([-1,2,-1]), axis_ch=0, axis_ts=1, sp_ch=None):
+    """Use 2nd order derivative to approximate 1D current source density"""
 
-    pass
+    # csd = -sp.ndimage.convolve1d(lfp, knl, mode='nearest', axis=axis_ch)
+    csd = -np.diff(np.diff(lfp, axis=axis_ch), axis=axis_ch)
 
+    return csd
+
+
+def GP_ERP_smooth(lfp, ts=None, cs=None):
+    """ use gaussian process to smooth data, does not work well """
+    kernel = 1.0 * gaussian_process.kernels.RBF(1.0)
+    alpha = np.std(lfp)**2/10**6
+    gp = gaussian_process.GaussianProcessRegressor(kernel= kernel, alpha=alpha)
+    N,T = lfp.shape
+    c_grid, t_grid = (np.arange(N), np.arange(T))
+    x = np.expand_dims(c_grid, axis=1)
+    c_grid_sm = c_grid
+    x_sm = x
+    lfp_smooth = np.zeros([len(c_grid_sm), len(t_grid)])
+    for t in t_grid:
+        y = lfp[:, t:t+1]
+        gp.fit(x,y)
+        lfp_smooth[:,t:t+1] = gp.predict(x_sm)
+    return lfp_smooth
+
+
+def quad_smooth(lfp, lambda_0=1, lambda_1=1, lambda_2 = 1, lambda_3=1, lambda_t=1):
+    data_scale = np.percentile(lfp,97) *10**2
+    lfp = lfp/data_scale
+    tf_method_2d = False
+    N, T = lfp.shape
+
+    if tf_method_2d:
+        def quad_cost_2d(x):
+            x=np.reshape(x, lfp.shape)
+            cost = np.sum((x-lfp)**2) \
+                   + lambda_0 * np.sum(x**2) \
+                   + lambda_1 * np.sum(np.diff(x, axis=0)**2) \
+                   + 0.3*lambda_1 * np.sum(np.diff(x, n=2,axis=0) ** 2) \
+                   + lambda_2 * np.sum(np.diff(np.diff(x, axis=0), axis=0) **2) \
+                   + lambda_t * np.sum(np.diff(x, axis=1)**2)
+
+            return cost
+
+        res = optimize.minimize(quad_cost_2d, x0=lfp*0)
+        lfp_hat = np.reshape(res.x, lfp.shape)
+
+    else:
+        def quad_cost_1d(x, y):
+            g1 = np.diff(x)
+            g2 = np.diff(g1)
+            g3 = np.diff(g2)
+            cost = np.sum((x[len(x)/3:len(x)/3*2]-y)**2) \
+                   + lambda_0 * np.sum(x**2) \
+                   + lambda_1 * np.sum(g1**2) \
+                   + lambda_2 * np.sum(g2**2) \
+                   + lambda_3 * np.sum(g3**2)
+            return cost
+        def quad_cost_t(x, y):
+            cost = np.sum((x - y) ** 2) \
+                   + lambda_t * np.sum(np.diff(x) ** 2)
+            return cost
+        lfp_hat = np.zeros(lfp.shape)
+        lfp_hat_full = np.zeros([N*3, T])
+        for t in range(T):
+            y = lfp[:,t]
+            res = optimize.minimize(lambda x: quad_cost_1d(x, y=y), x0=np.concatenate([y]*3)*0)
+            lfp_hat_full[:,t] = res.x
+            lfp_hat[:,t] = res.x[len(y):len(y)*2]
+
+        for n in range(N):
+            y = lfp_hat[n, :]
+            res = optimize.minimize(lambda x: quad_cost_t(x, y=y), x0=y*0)
+            lfp_hat[n, :] = res.x
+
+    return lfp_hat * data_scale
 
 
 """ ===== spike point process analysis related ===== """
