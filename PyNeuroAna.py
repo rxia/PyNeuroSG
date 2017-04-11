@@ -190,11 +190,14 @@ def cal_STA(X, Xt=None, ts=None, t_window=None, zero_point_zero = False):
     return (sta, t_sta, st)
 
 
-def cal_1dCSD(lfp, knl=np.array([-1,2,-1]), axis_ch=0, axis_ts=1, sp_ch=None):
+def cal_1dCSD(lfp, axis_ch=0, tf_edge=False):
     """Use 2nd order derivative to approximate 1D current source density"""
-
-    # csd = -sp.ndimage.convolve1d(lfp, knl, mode='nearest', axis=axis_ch)
+    N = lfp.shape[axis_ch]
     csd = -np.diff(np.diff(lfp, axis=axis_ch), axis=axis_ch)
+    if tf_edge:
+        csd_edge_l = 2*np.take(csd,  0, axis=axis_ch) - np.take(csd,  1, axis=axis_ch)
+        csd_edge_r = 2*np.take(csd, -1, axis=axis_ch) - np.take(csd, -2, axis=axis_ch)
+        csd = np.concatenate([np.expand_dims(csd_edge_l, axis=axis_ch), csd, np.expand_dims(csd_edge_r, axis=axis_ch)], axis=axis_ch)
 
     return csd
 
@@ -216,6 +219,17 @@ def GP_ERP_smooth(lfp, ts=None, cs=None):
         lfp_smooth[:,t:t+1] = gp.predict(x_sm)
     return lfp_smooth
 
+
+def quad_smooth_d3(target, lambda_d3=0):
+    def quad_cost(x, y):   # cost function, x is the variable, y is the target
+        d3 = np.convolve(x, [-1, 3, -3, 1], mode='valid')   # third order derivative
+        # d3 = np.convolve(x, [1, -4, 6, -4, 1], mode='valid')   # fourth order derivative
+        cost = np.sum((x - y) ** 2) \
+               + lambda_d3 * np.sum(d3 ** 2)
+        return cost
+
+    res = optimize.minimize(lambda x: quad_cost(x, y=target), x0=target*0, tol=np.std(target)/10**5)
+    return  res.x
 
 def quad_smooth(lfp, lambda_0=1, lambda_1=1, lambda_2 = 1, lambda_3=1, lambda_t=1):
     data_scale = np.percentile(lfp,97) *10**2
@@ -240,6 +254,11 @@ def quad_smooth(lfp, lambda_0=1, lambda_1=1, lambda_2 = 1, lambda_3=1, lambda_t=
 
     else:
         def quad_cost_1d(x, y):
+            g3 = np.convolve(x, [-1,3,-3,1], mode='valid')
+            cost = np.sum((x-y)**2) \
+                   + lambda_3 * np.sum(g3**2)
+            return cost
+        def quad_cost_1d_old(x, y):
             g1 = np.diff(x)
             g2 = np.diff(g1)
             g3 = np.diff(g2)
@@ -254,12 +273,10 @@ def quad_smooth(lfp, lambda_0=1, lambda_1=1, lambda_2 = 1, lambda_3=1, lambda_t=
                    + lambda_t * np.sum(np.diff(x) ** 2)
             return cost
         lfp_hat = np.zeros(lfp.shape)
-        lfp_hat_full = np.zeros([N*3, T])
         for t in range(T):
             y = lfp[:,t]
-            res = optimize.minimize(lambda x: quad_cost_1d(x, y=y), x0=np.concatenate([y]*3)*0)
-            lfp_hat_full[:,t] = res.x
-            lfp_hat[:,t] = res.x[len(y):len(y)*2]
+            res = optimize.minimize(lambda x: quad_cost_1d(x, y=y), x0=y*0)
+            lfp_hat[:,t] = res.x
 
         for n in range(N):
             y = lfp_hat[n, :]
