@@ -20,6 +20,58 @@ import misc_tools           # in this package: misc
 import data_load_DLSH       # package specific for DLSH lab data
 from GM32_layout import layout_GM32
 
+
+
+""" -----  test using synthesit signal ----- """
+x_grid = np.arange(0,16)
+target = np.sin(2*np.pi/8*x_grid)
+target_noisy = target* (1+np.random.randn(*target.shape)/3)
+target_gauss = sp.ndimage.filters.gaussian_filter1d(target_noisy, 1)
+target_noisy[5] = 0
+reload(pna)
+# target_smooth = pna.quad_smooth_d3(target=target_noisy, lambda_der=0.5)
+target_smooth, csd_smooth = pna.quad_smooth_d3(target=target_noisy, lambda_der=0.5, return_CSD=True)
+
+_, h_axes = plt.subplots(3,2)
+plt.axes(h_axes[0,0])
+plt.title('LFP')
+plt.plot(x_grid, target)
+plt.plot(x_grid, target_noisy)
+plt.axes(h_axes[1,0])
+plt.plot(x_grid, target)
+plt.plot(x_grid, target_gauss)
+plt.axes(h_axes[2,0])
+plt.plot(x_grid, target)
+plt.plot(x_grid, target_smooth)
+
+
+# plt.legend(['origianl', 'noisy','gaussian_smooth' , 'smoothed'])
+
+
+csd = pna.cal_1dCSD(target, tf_edge=True)
+csd_noisy = pna.cal_1dCSD(target_noisy, tf_edge=True)
+csd_gauss = pna.cal_1dCSD(target_gauss, tf_edge=True)
+# csd_gauss_after = sp.ndimage.filters.gaussian_filter1d(csd_noisy, 1)
+# csd_smooth = pna.cal_1dCSD(target_smooth, tf_edge=True)
+
+
+plt.axes(h_axes[0,1])
+plt.title('CSD')
+plt.plot(x_grid, csd, '-', linewidth=2 )
+plt.plot(x_grid, csd_noisy, '-', linewidth=2 )
+plt.legend(['origianl', 'native estimator'])
+plt.axes(h_axes[1,1])
+plt.plot(x_grid, csd, '-', linewidth=2 )
+plt.plot(x_grid, csd_gauss, '-', linewidth=2 )
+# plt.plot(x_grid, csd_gauss_after, '--', linewidth=2 )
+plt.legend(['origianl', 'gaussian smoothed'])
+plt.axes(h_axes[2,1])
+plt.plot(x_grid, csd, '-', linewidth=2 )
+plt.plot(x_grid, csd_smooth, '-', linewidth=2 )
+plt.legend(['origianl', 'smoothed'])
+
+
+
 dir_tdt_tank = '/shared/homes/sguan/neuro_data/tdt_tank'
 dir_dg='/shared/homes/sguan/neuro_data/stim_dg'
 
@@ -90,38 +142,7 @@ csd = pna.cal_1dCSD(lfp, axis_ch=0); pnp.ErpPlot(csd); plt.suptitle('csd from or
 csd = pna.cal_1dCSD(lfp_sm, axis_ch=0); pnp.ErpPlot(csd); plt.suptitle('csd from smoothed lfp')
 csd = pna.cal_1dCSD(lfp, axis_ch=0); pnp.ErpPlot(pna.SmoothTrace(csd, sk_std=1.5, fs=1.0, axis=0)); plt.suptitle('csd from original lfp, gaussian smoothed')
 
-"""  test using synthesit signal """
-x_grid = np.arange(0,32)
-target = np.sin(2*np.pi/16*x_grid)
-target_noisy = target* (1+np.random.randn(*target.shape)/10)
-target_gauss = sp.ndimage.filters.gaussian_filter1d(target_noisy, 1)
-# target_noisy[20] = 0
-reload(pna)
-target_smooth = pna.quad_smooth_d3(target=target_noisy, lambda_d3=1)
-_, h_axes = plt.subplots(1,2)
-plt.axes(h_axes[0])
-plt.plot(x_grid, target)
-plt.plot(x_grid, target_noisy)
-plt.plot(x_grid, target_gauss)
-plt.plot(x_grid, target_smooth)
 
-plt.title('LFP')
-plt.legend(['origianl', 'noisy','gaussian_smooth' , 'smoothed'])
-
-plt.axes(h_axes[1])
-csd = pna.cal_1dCSD(target, tf_edge=True)
-csd_noisy = pna.cal_1dCSD(target_noisy, tf_edge=True)
-csd_gauss = pna.cal_1dCSD(target_gauss, tf_edge=True)
-csd_gauss_after = sp.ndimage.filters.gaussian_filter1d(csd_noisy, 1)
-csd_smooth = pna.cal_1dCSD(target_smooth, tf_edge=True)
-plt.plot(x_grid, csd, '-', linewidth=2 )
-plt.plot(x_grid, csd_noisy, '-', linewidth=2 )
-plt.plot(x_grid, csd_gauss, '-', linewidth=2 )
-plt.plot(x_grid, csd_gauss_after, '--', linewidth=2 )
-plt.plot(x_grid, csd_smooth, '-', linewidth=2 )
-plt.ylim([-np.min(csd)*1.5, -np.max(csd)*1.5])
-plt.title('CSD')
-plt.legend(['origianl', 'noisy', 'gaussian_smooth', 'smoothed'])
 
 
 

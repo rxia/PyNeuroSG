@@ -220,16 +220,42 @@ def GP_ERP_smooth(lfp, ts=None, cs=None):
     return lfp_smooth
 
 
-def quad_smooth_d3(target, lambda_d3=0):
+def quad_smooth_d3(target, lambda_der=0, add_edge=3, return_CSD=False):
+
     def quad_cost(x, y):   # cost function, x is the variable, y is the target
-        d3 = np.convolve(x, [-1, 3, -3, 1], mode='valid')   # third order derivative
-        # d3 = np.convolve(x, [1, -4, 6, -4, 1], mode='valid')   # fourth order derivative
-        cost = np.sum((x - y) ** 2) \
-               + lambda_d3 * np.sum(d3 ** 2)
+        degree_der = 3
+        if degree_der ==3:
+            der = np.convolve(x, [-1, 3, -3, 1], mode='valid')   # third order derivative
+        elif degree_der ==4:
+            der = np.convolve(x, [1, -4, 6, -4, 1], mode='valid')   # fourth order derivative
+        if add_edge:
+            dev = x[add_edge:0-add_edge]-y
+        else:
+            dev = x-y
+        cost = np.sum(dev ** 2) \
+               + lambda_der * np.sum(der ** 2)
         return cost
 
-    res = optimize.minimize(lambda x: quad_cost(x, y=target), x0=target*0, tol=np.std(target)/10**5)
-    return  res.x
+    """ add edge to x0 """
+    if add_edge:
+        x0 = np.zeros(len(target)+2*add_edge)
+    else:
+        x0 = np.zeros(len(target))
+    """ optimization step """
+    res = optimize.minimize(lambda x: quad_cost(x, y=target), x0=x0, tol=np.std(target)/10**5)
+
+    if add_edge:
+        ret = res.x[add_edge:0-add_edge]
+        if return_CSD:
+            csd = np.convolve(res.x, [-1,2,-1], mode='same')
+            csd = csd[add_edge:0-add_edge]
+            ret = [ret, csd]
+    else:
+        ret = res.x
+        if return_CSD:
+            csd = csd = np.convolve(res.x, [-1,2,-1], mode='same')
+            ret = [ret, csd]
+    return ret
 
 def quad_smooth(lfp, lambda_0=1, lambda_1=1, lambda_2 = 1, lambda_3=1, lambda_t=1):
     data_scale = np.percentile(lfp,97) *10**2
