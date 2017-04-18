@@ -30,7 +30,7 @@ target_gauss = sp.ndimage.filters.gaussian_filter1d(target_noisy, 1)
 target_noisy[5] = 0
 reload(pna)
 # target_smooth = pna.quad_smooth_d3(target=target_noisy, lambda_der=0.5)
-target_smooth, csd_smooth = pna.quad_smooth_d3(target=target_noisy, lambda_der=0.5, return_CSD=True)
+target_smooth, csd_smooth = pna.quad_smooth_der(target=target_noisy, lambda_der=0.5, degree_der=3, return_CSD=True)
 
 _, h_axes = plt.subplots(3,2)
 plt.axes(h_axes[0,0])
@@ -100,7 +100,7 @@ def GetERP(tankname='GM32.*U16.*161125'):
 
     return ERP, data_neuro['ts']
 
-ERP, ts = GetERP(tankname='GM32.*U16.*161125')
+ERP, ts = GetERP(tankname='GM32.*U16.*161206')
 
 pnp.ErpPlot(ERP[32:, :], ts)
 
@@ -109,38 +109,29 @@ lfp = ERP[32:, :]
 reload(pna); csd = pna.cal_1dCSD(lfp, axis_ch=0); pnp.ErpPlot(pna.SmoothTrace(csd, sk_std=2.0, fs=1.0, axis=0), ts)
 
 
-""" test gaussian process smoothen: does not work well """
-lfp = ERP[32:, range(0,500,10)]
-reload(pna)
-plt.figure()
-plt.subplot(121)
-plt.pcolormesh(lfp)
-plt.colorbar()
-plt.subplot(122)
-lfp_sm = pna.GP_ERP_smooth(lfp*10**5)
-plt.pcolormesh(lfp_sm)
-plt.colorbar()
-csd = pna.cal_1dCSD(lfp, axis_ch=0); pnp.ErpPlot(csd)
-
 
 """ test quadratic smoothing """
-lfp = ERP[32:48, np.arange(1,500,1)]
+lfp = ERP[32:48, :]
 # lfp *= np.expand_dims(np.arange(len(lfp))!=8, axis=1)
 reload(pna)
 # lfp = lfp/np.std(lfp, axis=1, keepdims=True)
-lfp_sm = pna.quad_smooth(lfp, 0,0, 0, 5, 1)
-plt.figure()
-plt.subplot(121)
-plt.pcolormesh(lfp)
-plt.colorbar()
-plt.subplot(122)
-plt.pcolormesh(lfp_sm)
-plt.colorbar()
-pnp.ErpPlot(lfp); plt.suptitle('original lfp')
-pnp.ErpPlot(lfp_sm); plt.suptitle('smoothed lfp')
-csd = pna.cal_1dCSD(lfp, axis_ch=0); pnp.ErpPlot(csd); plt.suptitle('csd from original lfp')
-csd = pna.cal_1dCSD(lfp_sm, axis_ch=0); pnp.ErpPlot(csd); plt.suptitle('csd from smoothed lfp')
-csd = pna.cal_1dCSD(lfp, axis_ch=0); pnp.ErpPlot(pna.SmoothTrace(csd, sk_std=1.5, fs=1.0, axis=0)); plt.suptitle('csd from original lfp, gaussian smoothed')
+lambda_dev = np.ones(16)
+lambda_dev[2] = 0
+lfp_sm_gau = pna.lfp_cross_chan_smooth(lfp, method='gaussian', sigma_chan=1.5, sigma_t=0.5)
+lfp_sm_der = pna.lfp_cross_chan_smooth(lfp, method='der', lambda_dev=lambda_dev, lambda_der=1, sigma_t=0.5)
+
+csd_nai        = pna.cal_1dCSD(lfp, axis_ch=0, tf_edge=True)
+csd_gau_before = pna.cal_1dCSD(lfp_sm_gau, axis_ch=0, tf_edge=True)
+csd_gau_after  = pna.lfp_cross_chan_smooth(csd_nai, method='gaussian', sigma_chan=0.5, sigma_t=0)
+csd_der        = pna.cal_1dCSD(lfp_sm_der, axis_ch=0, tf_edge=True)
+
+pnp.ErpPlot(lfp, ts); plt.suptitle('original lfp')
+
+pnp.ErpPlot(csd_nai,        ts, title='CSD naive'); plt.suptitle('csd from original lfp')
+pnp.ErpPlot(csd_gau_before, ts, title='CSD'); plt.suptitle('CSD, gaussian smoothed on lfp')
+pnp.ErpPlot(csd_gau_after,  ts, title='CSD'); plt.suptitle('CSD, gaussian smoothed on csd')
+pnp.ErpPlot(csd_der,        ts, title='CSD'); plt.suptitle('CSD, derivative smoothed')
+
 
 
 

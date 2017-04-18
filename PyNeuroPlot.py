@@ -123,9 +123,30 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
 
     return fig
 
+def ErpPlot_singlePanel(erp, ts=None, tf_inverse_color=False):
+    """
+    ERP plot in a single panel, where trace and color plot are superimposed. ideal for ERP recorded with linear probe
+
+    :param erp:   erp traces, [N_chan, N_ts]
+    :param ts:    timestapes
+    :param tf_inverse_color:  if inverse sign for color plot.  Useful for CSD plot since minus "sink" are commonly plot as red
+    :return:      None
+    """
+    N,T = erp.shape
+    if ts is None:
+        ts= np.arange(T)
+    scale_signal = np.nanmax(np.abs(erp))
+    if tf_inverse_color:
+        erp_plot = -erp
+    else:
+        erp_plot = erp
+    plt.pcolormesh(center2edge(ts), center2edge(range(N)), erp_plot, cmap='coolwarm', vmin=-scale_signal, vmax=scale_signal)
+    plt.plot(ts, ( -erp/scale_signal/2+np.expand_dims(np.arange(N), axis=1)).transpose(), 'k', alpha=0.2)  # add "-" because we later invert y axis
+    ax = plt.gca()
+    ax.set_ylim(sorted(ax.get_ylim(), reverse=True))
 
 
-def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None):
+def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP"):
     """
     ERP (event-evoked potential) plot
 
@@ -159,7 +180,7 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None):
         name_colormap = 'rainbow'
         cycle_color = plt.cm.get_cmap(name_colormap)(np.linspace(0, 1, N_chan))
 
-        h_fig = plt.figure(figsize=(12,8))
+        h_fig = plt.figure(figsize=(9,6))
         plt.subplot(1,2,1)
         for i in range(N_chan):
             plt.plot(ts, array_erp_offset[:,i], c=cycle_color[i]*0.9, lw=2)
@@ -172,7 +193,7 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None):
             pass
         plt.xlim(ts[0],ts[-1])
         # plt.ylim( -(N_chan+2)*offset_plot_chan, -(0-3)*offset_plot_chan,  )
-        plt.title('ERPs')
+        plt.title(title)
         plt.xlabel('time from event onset (s)')
         plt.ylabel('Voltage (V)')
 
@@ -183,7 +204,7 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None):
         plt.xlim(ts[0], ts[-1])
         plt.ylim( center2edge(np.arange(N_chan)+1)[0], center2edge(np.arange(N_chan)+1)[-1]  )
         plt.gca().invert_yaxis()
-        plt.title('ERPs')
+        plt.title(title)
         plt.xlabel('time from event onset (s)')
         plt.ylabel('channel index')
     else:                                 # use customized 2D layout
@@ -223,7 +244,7 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None):
         ylim_max = np.max(np.abs(ax_bottomleft.get_ylim()))
         ax_bottomleft.set_ylim([-ylim_max, ylim_max])
 
-        plt.suptitle('ERPs', fontsize=18)
+        plt.suptitle(title, fontsize=18)
 
     return h_fig
 
@@ -550,7 +571,8 @@ def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_r
                        cmap=plt.get_cmap('coolwarm'))
 
         # a colored line segment illustrating the conditions
-        plt.vlines(ts[[0] * M], np.insert(N_cdtn_cum, 0, 0)[0:M], N_cdtn_cum, colors=colors, linewidth=10)
+        if len(np.unique(cdtn))!=1:
+            plt.vlines(ts[[0] * M], np.insert(N_cdtn_cum, 0, 0)[0:M], N_cdtn_cum, colors=colors, linewidth=10)
     else:
         raise Exception('wrong RasterType, must by either "spk" or "LFP" ')
 

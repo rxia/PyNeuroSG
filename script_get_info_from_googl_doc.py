@@ -13,6 +13,9 @@ import PyNeuroPlot as pnp
 path_to_original_csv = '/shared/homes/sguan/neuro_data/' + 'Dante GrayMatter 32 V4 Log - Advance log.csv'
 path_to_result_pickle = './temp_data/GM32_log_info.pkl'
 
+
+""" ========== for GM32 ========== """
+
 item_total = 2
 item_count = item_total
 list_date = []
@@ -84,3 +87,40 @@ plt.figlegend(list_dot_for_legend, spike_description_dict.values(), 'upper right
 
 plt.suptitle('depth over recording days')
 plt.savefig('./temp_figs/GM32_advance_log.png')
+
+
+
+""" ========== for U16 ========== """
+
+item_total = 1
+item_count = item_total
+list_date = []
+list_spikes = []
+list_wm     = []
+
+# use csv reader to gather information
+with open(path_to_original_csv, 'rb') as csvfile:
+    csvreader = csv.reader(csvfile)
+    for row in csvreader:
+        if re.match('\d{1,2}/\d{1,2}/\d{2,4}', row[0]):   # get date information
+            cur_date = datetime.datetime.strptime(row[0], '%m/%d/%Y')
+            tf_U16 = False
+        if row[0] == 'U16':
+            tf_U16 = True
+            if item_count != item_total or item_count != item_total:
+                warnings.warn('fails to get all {} items before {}'.format(item_total, row[0]) )
+            list_date.append(cur_date)
+            item_count = 0
+        if (row[0] == 'type') and tf_U16==True:
+
+            list_spikes.append(row[1:])
+            item_count += 1
+            tf_spikes = True
+
+date_str = np.array([datetime.date.strftime(date_cur, '%y%m%d') for date_cur in list_date])
+spikes = np.array(list_spikes)[:,:16]
+spikes[np.logical_or(spikes=='', spikes==' ')]='0'
+spikes = spikes.astype(int)
+
+date_U16 = date_str
+spikes_U16=spikes
