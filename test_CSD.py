@@ -26,11 +26,11 @@ from GM32_layout import layout_GM32
 x_grid = np.arange(0,16)
 target = np.sin(2*np.pi/8*x_grid)
 target_noisy = target* (1+np.random.randn(*target.shape)/3)
+target_noisy[6] = 0
 target_gauss = sp.ndimage.filters.gaussian_filter1d(target_noisy, 1)
-target_noisy[5] = 0
 reload(pna)
 # target_smooth = pna.quad_smooth_d3(target=target_noisy, lambda_der=0.5)
-target_smooth, csd_smooth = pna.quad_smooth_der(target=target_noisy, lambda_der=0.5, degree_der=3, return_CSD=True)
+target_smooth, csd_smooth = pna.quad_smooth_der(target=target_noisy, lambda_der=1, degree_der=3, return_CSD=True)
 
 _, h_axes = plt.subplots(3,2)
 plt.axes(h_axes[0,0])
@@ -68,7 +68,7 @@ plt.legend(['origianl', 'gaussian smoothed'])
 plt.axes(h_axes[2,1])
 plt.plot(x_grid, csd, '-', linewidth=2 )
 plt.plot(x_grid, csd_smooth, '-', linewidth=2 )
-plt.legend(['origianl', 'smoothed'])
+plt.legend(['origianl', 'derevative smoothed'])
 
 
 

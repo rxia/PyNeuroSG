@@ -496,6 +496,20 @@ def ComputeWelchSpectrum(data, data1=None, fs=1000.0, t_ini=0.0, t_window=None, 
     spct = np.mean(spcg, axis=-1)
     return [spct, spcg_f]
 
+def ComputeWelchCoherence(data, data1=None, fs=1000.0, t_ini=0.0, t_window=None, t_bin=None, t_step=None, t_axis=1, batchsize=100, f_lim=None):
+
+    ts = t_ini + 1.0/fs*np.arange(data.shape[t_axis])
+    if t_window is not None:      # get the data of interest
+        data = np.take(data, np.flatnonzero(np.logical_and(ts >= t_window[0], ts <= t_window[1])), axis=t_axis)
+        if data1 is not None:
+            data1 =np.take(data1, np.flatnonzero(np.logical_and(ts >= t_window[0], ts <= t_window[1])), axis=t_axis)
+        t_ini = ts[ts>=t_window[0]][0]
+
+    [cohg, spcg_t, spcg_f] = ComputeCoherogram(data, data1=data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step,
+                       batchsize=batchsize, f_lim=f_lim)
+
+    cohe = np.mean(cohg, axis=-1)
+    return [cohe, spcg_f]
 
 
 def ComputeSpectrogram(data, data1=None, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, t_axis=1, batchsize=100, f_lim=None):

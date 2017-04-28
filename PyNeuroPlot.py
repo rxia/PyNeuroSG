@@ -123,7 +123,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
 
     return fig
 
-def ErpPlot_singlePanel(erp, ts=None, tf_inverse_color=False):
+def ErpPlot_singlePanel(erp, ts=None, tf_inverse_color=False, cmap='coolwarm', c_lim_style='diverge', trace_scale=1):
     """
     ERP plot in a single panel, where trace and color plot are superimposed. ideal for ERP recorded with linear probe
 
@@ -135,15 +135,29 @@ def ErpPlot_singlePanel(erp, ts=None, tf_inverse_color=False):
     N,T = erp.shape
     if ts is None:
         ts= np.arange(T)
-    scale_signal = np.nanmax(np.abs(erp))
+
+
+    if c_lim_style == 'diverge':
+        scale_signal = np.nanmax(np.abs(erp))
+        center_signal = 0
+        c_min = -scale_signal
+        c_max = +scale_signal
+    else:
+        scale_signal = np.nanmax(erp)-np.nanmin(erp)
+        center_signal = np.nanmean(erp)
+        c_min = np.nanmin(erp)
+        c_max = np.nanmax(erp)
+
+
     if tf_inverse_color:
         erp_plot = -erp
     else:
         erp_plot = erp
-    plt.pcolormesh(center2edge(ts), center2edge(range(N)), erp_plot, cmap='coolwarm', vmin=-scale_signal, vmax=scale_signal)
-    plt.plot(ts, ( -erp/scale_signal/2+np.expand_dims(np.arange(N), axis=1)).transpose(), 'k', alpha=0.2)  # add "-" because we later invert y axis
+    plt.pcolormesh(center2edge(ts), center2edge(range(N)), erp_plot, cmap=cmap, vmin=c_min, vmax=c_max)
+    plt.plot(ts, ( -(erp-center_signal)/scale_signal/2*trace_scale+np.expand_dims(np.arange(N), axis=1)).transpose(), 'k', alpha=0.2)  # add "-" because we later invert y axis
     ax = plt.gca()
-    ax.set_ylim(sorted(ax.get_ylim(), reverse=True))
+    # ax.set_ylim(sorted(ax.get_ylim(), reverse=True))
+    ax.set_ylim([N-0.5, -0.5])
 
 
 def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP"):
@@ -1205,6 +1219,7 @@ def gen_distinct_colors(n, luminance=0.9, alpha=0.8, style='discrete'):
     :param n:          num of colors
     :param luminance:  num between [0,1]
     :param alhpa:      num between [0,1]
+    :param style:      sting, 'discrete', or 'continuous'
     :return:           n*4 rgba color matrix
     """
 
