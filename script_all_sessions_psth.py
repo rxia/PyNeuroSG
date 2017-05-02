@@ -44,8 +44,8 @@ list_name_tanks_0 = [name_tank for name_tank in list_name_tanks if re.match('Dan
 list_name_tanks_1 = [name_tank for name_tank in list_name_tanks if re.match('Dante.*', name_tank) is not None]
 list_name_tanks = sorted(list_name_tanks_0) + sorted(list_name_tanks_1)
 
-# block_name = 'srv_mask'
-block_type = 'matchnot'
+block_type = 'srv_mask'
+# block_type = 'matchnot'
 if block_type == 'matchnot':
     t_plot = [-0.200, 1.100]
 else:
@@ -89,16 +89,68 @@ def GetGroupAve(tankname, signal_type='spk'):
     return [data_groupave, ts, signal_info, cdtn]
 
 
+def GetAllData(tankname, signal_type='spk'):
+    try:
+        [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*{}.*'.format(block_type), tankname, tf_interactive=False,
+                                                               dir_tdt_tank='/shared/homes/sguan/neuro_data/tdt_tank',
+                                                               dir_dg='/shared/homes/sguan/neuro_data/stim_dg')
+    except:
+        [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', tankname, tf_interactive=False)
+
+    """ Get StimOn time stamps in neo time frame """
+    ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
+
+    """ some settings for saving figures  """
+    filename_common = misc_tools.str_common(name_tdt_blocks)
+    dir_temp_fig = './temp_figs'
+
+    """ make sure data field exists """
+    data_df = data_load_DLSH.standardize_data_df(data_df, filename_common)
+    blk = data_load_DLSH.standardize_blk(blk)
+
+    if signal_type=='spk':
+        data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='spiketrains.*',
+                                                       name_filter='.*Code[1-9]$', spike_bin_rate=1000,
+                                                       chan_filter=range(1, 48 + 1))
+    else:
+        data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='ana.*',
+                                                       name_filter='LFPs.*',
+                                                       chan_filter=range(1, 48 + 1))
+    data_neuro = signal_align.neuro_sort(data_df, ['stim_familiarized', 'mask_opacity_int'], [], data_neuro)
+
+    ts = data_neuro['ts']
+    signal_info = data_neuro['signal_info']
+
+    return [data_neuro, data_df, ts]
+
 
 """ store spk or lfp of all sessions """
-# signal_type='spk'
-signal_type='lfp'
+signal_type='spk'
+# signal_type='lfp'
 
 list_data_groupave = []
+list_data_neuro = []
+list_data_df = []
 list_ts = []
 list_cdtn = []
 list_signal_info = []
 list_date = []
+
+if False:  # do not use, because the resulting file is too big (~400G)
+    for tankname in list_name_tanks:
+        try:
+            [data_neuro, data_df, ts] = GetAllData(tankname, signal_type=signal_type)
+            list_data_neuro.append(data_neuro)
+            list_data_df.append(data_df)
+            list_ts.append(ts)
+            list_date.append(re.match('.*-(\d{6})-\d{6}', tankname).group(1))
+            pickle.dump([list_data_neuro, list_data_df, list_ts, list_date],
+                        open('/shared/homes/sguan/Coding_Projects/support_data/DataAll_{}_{}'.format(block_type, signal_type), "wb"))
+        except:
+            print('tank {} can not be processed'.format(tankname))
+    pickle.dump([list_data_neuro, list_data_df, list_ts, list_date],
+                        open('/shared/homes/sguan/Coding_Projects/support_data/DataAll_{}_{}'.format(block_type, signal_type), "wb"))
+
 
 for tankname in list_name_tanks:
     try:
@@ -118,10 +170,10 @@ pickle.dump([list_data_groupave, list_ts, list_signal_info, list_cdtn, list_date
 
 
 """  STS and IT neurons """
-# block_type = 'srv_mask'
-block_type = 'matchnot'
-# signal_type='spk'
-signal_type='lfp'
+block_type = 'srv_mask'
+# block_type = 'matchnot'
+signal_type='spk'
+# signal_type='lfp'
 [list_data_groupave, list_ts, list_signal_info, list_cdtn, list_date] = pickle.load(open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_{}_{}'.format(block_type, signal_type)))
 
 
@@ -143,7 +195,8 @@ if signal_type == 'lfp':
     laminar_range_ave = 1
 else:
     sk_std = 0.007
-    ylabel = 'spk/sec'
+    # ylabel = 'spk/sec'
+    ylabel = 'firing rate'
     laminar_range_ave = 3
 
 # the brain area of the recording day
@@ -206,40 +259,84 @@ signal_info['depth'] = depth_neuron
 
 
 """ compare three areas """
+def cal_spth_std(neuron_keep):
+    data_smooth = pna.SmoothTrace(data_groupave[:,:, neuron_keep], ts=ts, sk_std=sk_std, axis=1)
+    data_norm = data_smooth/np.std(np.mean(np.mean(data_smooth, axis=0), axis=0))
+    psth_mean = np.mean(data_norm, axis=2)
+    psth_std = np.std(data_norm, axis=2)
+    return psth_mean, psth_std, data_norm
+def t_test_score(data_norm):
+    _, p_nf_00 = sp.stats.ttest_ind(data_norm[0, :, :], data_norm[3, :, :], axis=1)
+    _, p_nf_50 = sp.stats.ttest_ind(data_norm[1, :, :], data_norm[4, :, :], axis=1)
+    _, p_nf_70 = sp.stats.ttest_ind(data_norm[2, :, :], data_norm[5, :, :], axis=1)
+    _, p_ns_no = sp.stats.ttest_ind(data_norm[0, :, :], data_norm[2, :, :], axis=1)
+    _, p_ns_fa = sp.stats.ttest_ind(data_norm[3, :, :], data_norm[5, :, :], axis=1)
+    return np.vstack([p_nf_00, p_nf_50, p_nf_70, p_ns_no, p_ns_fa])
+
 colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), pnp.gen_distinct_colors(3, luminance=0.6)])
 linestyles = ['-', '-', '-', '--', '--', '--']
+colors_p     = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), [0.4,0.4,0.4,1], [0,0,0,1]])
+linestyles_p = ['-', '-', '-', '--', '--']
+
+plot_highlight = ''
+if plot_highlight == 'nov':
+    alphas = [1,1,1,0,0,0]
+    alphas_p = [0, 0, 0, 1, 0]
+elif plot_highlight == 'fam':
+    alphas = [0,0,0,1,1,1]
+    alphas_p = [0, 0, 0, 0, 1]
+elif plot_highlight == '00':
+    alphas = [1,0,0,1,0,0]
+    alphas_p = [1, 0, 0, 0, 0]
+elif plot_highlight == '50':
+    alphas = [0,1,0,0,1,0]
+    alphas_p = [0, 1, 0, 0, 0]
+elif plot_highlight == '70':
+    alphas = [0,0,1,0,0,1]
+    alphas_p = [0, 0, 1, 0, 0]
+elif plot_highlight == '':
+    alphas = [1, 1, 1, 1, 1, 1]
+    alphas_p = [1, 1, 1, 1, 1]
+else:
+    alphas = [1, 1, 1, 1, 1, 1]
+    alphas_p = [1, 1, 1, 1, 1]
+
+def plot_psth_p(neuron_keep):
+    N_neuron = np.sum(neuron_keep)
+    [psth_mean, psth_std, data_norm] = cal_spth_std(neuron_keep)
+    p_values = t_test_score(data_norm)
+    for i in range(psth.shape[0]):
+        plt.plot(ts, psth_mean[i, :], color=colors[i], linestyle=linestyles[i], alpha=alphas[i])
+        plt.fill_between(ts, psth_mean[i, :] - psth_std[i, :] / np.sqrt(N_neuron),
+                         psth_mean[i, :] + psth_std[i, :] / np.sqrt(N_neuron), color=colors[i], alpha=0.2*alphas[i])
+    plt.xlabel('t (s)')
+    plt.ylabel(ylabel)
+    for i, p in enumerate(p_values):
+        plt.plot(ts[p < p_thrhd], 0.5-(i + 1) * 0.1 * np.ones(np.sum(p < p_thrhd)), '.', color=colors_p[i], alpha=alphas_p[i])
+
 [h_fig, h_ax]=plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True, figsize=[12,5])
+p_thrhd = 0.10
 
 plt.axes(h_ax[0])
 neuron_keep = ( signal_info['channel_index']<=32)
-psth = pna.SmoothTrace(np.mean(data_groupave[:,:, neuron_keep], axis=2), ts=ts, sk_std=sk_std, axis=1)
-for i in range(psth.shape[0]):
-    plt.plot( ts, psth[i,:], color=colors[i], linestyle=linestyles[i])
+plot_psth_p(neuron_keep)
 plt.title('V4, N={}'.format(np.sum(neuron_keep)))
-plt.xlabel('t (s)')
-plt.ylabel(ylabel)
 
 plt.axes(h_ax[1])
 neuron_keep = ( signal_info['channel_index']>32) * (signal_info['area']=='IT')
-psth = pna.SmoothTrace(np.mean(data_groupave[:,:, neuron_keep], axis=2), ts=ts, sk_std=sk_std, axis=1)
-for i in range(psth.shape[0]):
-    plt.plot( ts, psth[i,:], color=colors[i], linestyle=linestyles[i])
+plot_psth_p(neuron_keep)
 plt.title('IT, N={}'.format(np.sum(neuron_keep)))
-plt.xlabel('t (s)')
-plt.ylabel(ylabel)
 
 plt.axes(h_ax[2])
 neuron_keep = ( signal_info['channel_index']>32) * (signal_info['area']=='STS')
-psth = pna.SmoothTrace(np.mean(data_groupave[:,:, neuron_keep], axis=2), ts=ts, sk_std=sk_std, axis=1)
-for i in range(psth.shape[0]):
-    plt.plot( ts, psth[i,:], color=colors[i], linestyle=linestyles[i])
+plot_psth_p(neuron_keep)
 plt.title('STS, N={}'.format(np.sum(neuron_keep)))
-plt.ylabel(ylabel)
 
+plt.xticks(np.arange(-0.1,0.5+0.01,0.1))
 plt.legend(cdtn)
 plt.suptitle('PSTH by area {} {}'.format(block_type, signal_type))
-plt.savefig('./temp_figs/PSTH_by_area_{}.pdf'.format(block_type, signal_type))
-plt.savefig('./temp_figs/PSTH_by_area_{}.png'.format(block_type, signal_type))
+plt.savefig('./temp_figs/PSTH_by_area_{}_{}_{}.pdf'.format(block_type, signal_type, plot_highlight))
+plt.savefig('./temp_figs/PSTH_by_area_{}_{}_{}.png'.format(block_type, signal_type, plot_highlight))
 
 
 """ compare laminar difference """
@@ -259,9 +356,9 @@ for i, l in enumerate(range(-8,8)):
         plt.ylabel(ylabel)
 plt.legend(cdtn)
 plt.xlabel('t (s)')
-plt.suptitle('IT by depth {}'.format(signal_type))
-plt.savefig('./temp_figs/PSTH IT by depth {}.pdf'.format(signal_type))
-plt.savefig('./temp_figs/PSTH IT by depth {}.png'.format(signal_type))
+plt.suptitle('IT by depth {} {}'.format(block_type, signal_type))
+plt.savefig('./temp_figs/PSTH_IT_by_depth{}_{}.pdf'.format(block_type, signal_type))
+plt.savefig('./temp_figs/PSTH_IT_by_depth{}_{}.png'.format(block_type, signal_type))
 
 [h_fig, h_ax]=plt.subplots(nrows=4, ncols=4, sharex=True, sharey=True, figsize=[10,8])
 h_ax = np.ravel(h_ax)
