@@ -261,7 +261,8 @@ signal_info['depth'] = depth_neuron
 """ compare three areas """
 def cal_spth_std(neuron_keep):
     data_smooth = pna.SmoothTrace(data_groupave[:,:, neuron_keep], ts=ts, sk_std=sk_std, axis=1)
-    data_norm = data_smooth/np.std(np.mean(np.mean(data_smooth, axis=0), axis=0))
+    # data_norm = data_smooth/np.std(np.mean(np.mean(data_smooth, axis=0), axis=0))
+    data_norm = data_smooth / np.std(data_smooth, axis=(0,1), keepdims=True)
     psth_mean = np.mean(data_norm, axis=2)
     psth_std = np.std(data_norm, axis=2)
     return psth_mean, psth_std, data_norm
@@ -305,7 +306,7 @@ def plot_psth_p(neuron_keep):
     N_neuron = np.sum(neuron_keep)
     [psth_mean, psth_std, data_norm] = cal_spth_std(neuron_keep)
     p_values = t_test_score(data_norm)
-    for i in range(psth.shape[0]):
+    for i in range(psth_mean.shape[0]):
         plt.plot(ts, psth_mean[i, :], color=colors[i], linestyle=linestyles[i], alpha=alphas[i])
         plt.fill_between(ts, psth_mean[i, :] - psth_std[i, :] / np.sqrt(N_neuron),
                          psth_mean[i, :] + psth_std[i, :] / np.sqrt(N_neuron), color=colors[i], alpha=0.2*alphas[i])
@@ -315,7 +316,7 @@ def plot_psth_p(neuron_keep):
         plt.plot(ts[p < p_thrhd], 0.5-(i + 1) * 0.1 * np.ones(np.sum(p < p_thrhd)), '.', color=colors_p[i], alpha=alphas_p[i])
 
 [h_fig, h_ax]=plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True, figsize=[12,5])
-p_thrhd = 0.10
+p_thrhd = 0.05
 
 plt.axes(h_ax[0])
 neuron_keep = ( signal_info['channel_index']<=32)
@@ -343,7 +344,7 @@ plt.savefig('./temp_figs/PSTH_by_area_{}_{}_{}.png'.format(block_type, signal_ty
 colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), pnp.gen_distinct_colors(3, luminance=0.7)])
 linestyles = ['-', '-', '-', '--', '--', '--']
 
-plot_highlight = ''
+plot_highlight = 'fam'
 if plot_highlight == 'nov':
     alphas = [1,1,1,0,0,0]
     alphas_p = [0, 0, 0, 1, 0]
@@ -366,6 +367,7 @@ else:
     alphas = [1, 1, 1, 1, 1, 1]
     alphas_p = [1, 1, 1, 1, 1]
 
+# plot 16 panels
 [h_fig, h_ax]=plt.subplots(nrows=4, ncols=4, sharex=True, sharey=True, figsize=[10,8])
 h_ax = np.ravel(h_ax)
 for i, l in enumerate(range(-8,8)):
@@ -382,6 +384,42 @@ plt.xlabel('t (s)')
 plt.suptitle('IT by depth {} {}'.format(block_type, signal_type))
 plt.savefig('./temp_figs/PSTH_IT_by_depth_{}_{}_{}.pdf'.format(block_type, signal_type, plot_highlight))
 plt.savefig('./temp_figs/PSTH_IT_by_depth_{}_{}_{}.png'.format(block_type, signal_type, plot_highlight))
+
+# plot in one panel
+scale_depth=50
+[h_fig, h_ax]=plt.subplots(nrows=1, ncols=6, sharex=True, sharey=True, figsize=[10,8])
+for l in range(-8,9,2):
+    neuron_keep = (signal_info['channel_index'] > 32) * (signal_info['area']=='IT') * (np.abs(signal_info['depth']-l)<=laminar_range_ave)
+    if np.sum(neuron_keep)>0:
+        psth = pna.SmoothTrace(np.mean(data_groupave[:, :, neuron_keep], axis=2), ts=ts, sk_std=sk_std, axis=1)
+        for j in range(6):
+            plt.axes(h_ax[j])
+            if j==0:
+                plt.title('all')
+                alphas = [1, 1, 1, 1, 1, 1]
+            elif j==1:
+                plt.title('nov')
+                alphas = [1, 1, 1, 0, 0, 0]
+            elif j == 2:
+                plt.title('fam')
+                alphas = [0, 0, 0, 1, 1, 1]
+            elif j==3:
+                plt.title('noise 0%')
+                alphas = [1, 0, 0, 1, 0, 0]
+            elif j==4:
+                plt.title('noise 50%')
+                alphas = [0, 1, 0, 0, 1, 0]
+            elif j==5:
+                plt.title('noise 70%')
+                alphas = [0, 0, 1, 0, 0, 1]
+            for i in range(psth.shape[0]):
+                plt.plot(ts, psth[i, :]+scale_depth*l, color=colors[i], linestyle=linestyles[i], alpha=alphas[i])
+            # plt.ylabel(ylabel)
+plt.xticks([-0.1,0,0.1,0.2,0.3,0.4,0.5], ['','0','','0.2','','0.4',''])
+plt.suptitle('IT by depth')
+plt.savefig('./temp_figs/PSTH_IT_by_depth_{}_{}_{}.pdf'.format(block_type, signal_type, plot_highlight))
+plt.savefig('./temp_figs/PSTH_IT_by_depth_{}_{}_{}.png'.format(block_type, signal_type, plot_highlight))
+
 
 [h_fig, h_ax]=plt.subplots(nrows=4, ncols=4, sharex=True, sharey=True, figsize=[10,8])
 h_ax = np.ravel(h_ax)
@@ -401,11 +439,44 @@ plt.savefig('./temp_figs/PSTH_STS_by_depth_{}_{}_{}.pdf'.format(block_type, sign
 plt.savefig('./temp_figs/PSTH_STS_by_depth_{}_{}_{}.png'.format(block_type, signal_type, plot_highlight))
 
 
+# plot in one panel
+scale_depth=50
+[h_fig, h_ax]=plt.subplots(nrows=1, ncols=6, sharex=True, sharey=True, figsize=[10,8])
+for l in range(-8,9,2):
+    neuron_keep = (signal_info['channel_index'] > 32) * (signal_info['area']=='STS') * (np.abs(signal_info['depth']-l)<=laminar_range_ave)
+    if np.sum(neuron_keep)>0:
+        psth = pna.SmoothTrace(np.mean(data_groupave[:, :, neuron_keep], axis=2), ts=ts, sk_std=sk_std, axis=1)
+        for j in range(6):
+            plt.axes(h_ax[j])
+            if j==0:
+                plt.title('all')
+                alphas = [1, 1, 1, 1, 1, 1]
+            elif j==1:
+                plt.title('nov')
+                alphas = [1, 1, 1, 0, 0, 0]
+            elif j == 2:
+                plt.title('fam')
+                alphas = [0, 0, 0, 1, 1, 1]
+            elif j==3:
+                plt.title('noise 0%')
+                alphas = [1, 0, 0, 1, 0, 0]
+            elif j==4:
+                plt.title('noise 50%')
+                alphas = [0, 1, 0, 0, 1, 0]
+            elif j==5:
+                plt.title('noise 70%')
+                alphas = [0, 0, 1, 0, 0, 1]
+            for i in range(psth.shape[0]):
+                plt.plot(ts, psth[i, :]+scale_depth*l, color=colors[i], linestyle=linestyles[i], alpha=alphas[i])
+            # plt.ylabel(ylabel)
+plt.xticks([-0.1,0,0.1,0.2,0.3,0.4,0.5], ['','0','','0.2','','0.4',''])
+plt.suptitle('STS by depth')
+plt.savefig('./temp_figs/PSTH_STS_by_depth_{}_{}_{}.pdf'.format(block_type, signal_type, plot_highlight))
+plt.savefig('./temp_figs/PSTH_STS_by_depth_{}_{}_{}.png'.format(block_type, signal_type, plot_highlight))
 
 
 
-
-
+""" temp """
 
 """ below are legancy script """
 

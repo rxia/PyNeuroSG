@@ -140,3 +140,42 @@ for date_i in np.unique(date):
 pnp.EmbedTracePlot(result_embedding, traces=ERP, labels_interactive=chan_date,
                    highlight=None,
                    color=date_color)
+
+
+
+
+""" cluster for GM32 ERP  """
+
+erp_df_full = pd.read_pickle('./temp_data/erp_all_info')
+
+erp_df = erp_df_full[erp_df_full['chan']<33]
+
+ERP= np.array(erp_df['ERP'].tolist())
+
+reload(pna)
+result_embedding =  pna.LowDimEmbedding(ERP, type='PCA', para=2)
+# result_embedding =  pna.LowDimEmbedding(ERP, type='Isomap', para=20)
+
+from sklearn.cluster import MeanShift, AffinityPropagation, DBSCAN, KMeans
+from sklearn.decomposition import PCA
+X = ERP/np.percentile(ERP, 99)
+X = PCA(n_components=10).fit_transform(X)
+af = KMeans(n_init=5).fit(X)
+y_hat = af.labels_
+print(np.unique(y_hat))
+
+plt.scatter(result_embedding[:,0], result_embedding[:,1], c=y_hat, s=5, cmap='Set1')
+
+
+chan = erp_df['chan'].tolist()
+date = erp_df['date'].tolist()
+chan_date = zip(erp_df['chan'].tolist(), erp_df['date'].tolist() )
+dict_color_chan = pnp.gen_distinct_colors(n=32+1, style='continuous')
+dict_color_date = pnp.gen_distinct_colors(n=len(np.unique(date))+1, style='continuous')
+chan_color = [dict_color_chan[i] for i in chan]
+date_color = [dict_color_date[i/32] for i,_ in enumerate(date)]
+
+
+pnp.EmbedTracePlot(result_embedding, traces=ERP, labels_interactive=chan_date,
+                   highlight=None,
+                   color=date_color)
