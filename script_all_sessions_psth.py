@@ -172,8 +172,8 @@ pickle.dump([list_data_groupave, list_ts, list_signal_info, list_cdtn, list_date
 """  STS and IT neurons """
 block_type = 'srv_mask'
 # block_type = 'matchnot'
-signal_type='spk'
-# signal_type='lfp'
+# signal_type='spk'
+signal_type='lfp'
 [list_data_groupave, list_ts, list_signal_info, list_cdtn, list_date] = pickle.load(open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_{}_{}'.format(block_type, signal_type)))
 
 
@@ -340,8 +340,31 @@ plt.savefig('./temp_figs/PSTH_by_area_{}_{}_{}.png'.format(block_type, signal_ty
 
 
 """ compare laminar difference """
-colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), pnp.gen_distinct_colors(3, luminance=0.6)])
+colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), pnp.gen_distinct_colors(3, luminance=0.7)])
 linestyles = ['-', '-', '-', '--', '--', '--']
+
+plot_highlight = ''
+if plot_highlight == 'nov':
+    alphas = [1,1,1,0,0,0]
+    alphas_p = [0, 0, 0, 1, 0]
+elif plot_highlight == 'fam':
+    alphas = [0,0,0,1,1,1]
+    alphas_p = [0, 0, 0, 0, 1]
+elif plot_highlight == '00':
+    alphas = [1,0,0,1,0,0]
+    alphas_p = [1, 0, 0, 0, 0]
+elif plot_highlight == '50':
+    alphas = [0,1,0,0,1,0]
+    alphas_p = [0, 1, 0, 0, 0]
+elif plot_highlight == '70':
+    alphas = [0,0,1,0,0,1]
+    alphas_p = [0, 0, 1, 0, 0]
+elif plot_highlight == '':
+    alphas = [1, 1, 1, 1, 1, 1]
+    alphas_p = [1, 1, 1, 1, 1]
+else:
+    alphas = [1, 1, 1, 1, 1, 1]
+    alphas_p = [1, 1, 1, 1, 1]
 
 [h_fig, h_ax]=plt.subplots(nrows=4, ncols=4, sharex=True, sharey=True, figsize=[10,8])
 h_ax = np.ravel(h_ax)
@@ -351,14 +374,14 @@ for i, l in enumerate(range(-8,8)):
     if np.sum(neuron_keep)>0:
         psth = pna.SmoothTrace(np.mean(data_groupave[:, :, neuron_keep], axis=2), ts=ts, sk_std=sk_std, axis=1)
         for i in range(psth.shape[0]):
-            plt.plot(ts, psth[i, :], color=colors[i], linestyle=linestyles[i])
+            plt.plot(ts, psth[i, :], color=colors[i], linestyle=linestyles[i], alpha=alphas[i])
         plt.title('depth={}, N={}'.format(l, np.sum(neuron_keep)))
         plt.ylabel(ylabel)
 plt.legend(cdtn)
 plt.xlabel('t (s)')
 plt.suptitle('IT by depth {} {}'.format(block_type, signal_type))
-plt.savefig('./temp_figs/PSTH_IT_by_depth{}_{}.pdf'.format(block_type, signal_type))
-plt.savefig('./temp_figs/PSTH_IT_by_depth{}_{}.png'.format(block_type, signal_type))
+plt.savefig('./temp_figs/PSTH_IT_by_depth_{}_{}_{}.pdf'.format(block_type, signal_type, plot_highlight))
+plt.savefig('./temp_figs/PSTH_IT_by_depth_{}_{}_{}.png'.format(block_type, signal_type, plot_highlight))
 
 [h_fig, h_ax]=plt.subplots(nrows=4, ncols=4, sharex=True, sharey=True, figsize=[10,8])
 h_ax = np.ravel(h_ax)
@@ -368,14 +391,14 @@ for i, l in enumerate(range(-8,8)):
     if np.sum(neuron_keep)>0:
         psth = pna.SmoothTrace(np.mean(data_groupave[:, :, neuron_keep], axis=2), ts=ts, sk_std=sk_std, axis=1)
         for i in range(psth.shape[0]):
-            plt.plot(ts, psth[i, :], color=colors[i], linestyle=linestyles[i])
+            plt.plot(ts, psth[i, :], color=colors[i], linestyle=linestyles[i], alpha=alphas[i])
         plt.title('depth={}, N={}'.format(l, np.sum(neuron_keep)))
         plt.ylabel(ylabel)
 plt.legend(cdtn)
 plt.xlabel('t (s)')
 plt.suptitle('STS by depth {} {}'.format(block_type, signal_type))
-plt.savefig('./temp_figs/PSTH_STS_by_depth{}_{}.pdf'.format(block_type, signal_type))
-plt.savefig('./temp_figs/PSTH_STS_by_depth{}_{}.png'.format(block_type, signal_type))
+plt.savefig('./temp_figs/PSTH_STS_by_depth_{}_{}_{}.pdf'.format(block_type, signal_type, plot_highlight))
+plt.savefig('./temp_figs/PSTH_STS_by_depth_{}_{}_{}.png'.format(block_type, signal_type, plot_highlight))
 
 
 

@@ -282,8 +282,6 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
     if N_signal != N_signal0:
         raise Exception("data_neuro['data'] and data_neuro['signal_info'] show different number of signals")
 
-
-
     if indx is None:    # if indx is not give, use name_filter, chan_filter and sortcode_filter to select
         indx = np.array([True] * N_signal)
 

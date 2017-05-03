@@ -113,29 +113,76 @@ for tankname in list_name_tanks:
         pass
 pickle.dump([list_rank_tuning, list_rank_tuning_early, list_rank_tuning_late, list_ts, list_signal_info, list_cdtn], open('/shared/homes/sguan/Coding_Projects/support_data/RankTuning_srv_mask', "wb"))
 
+
+
+
+
+
+
+
+[list_rank_tuning, list_rank_tuning_early, list_rank_tuning_late, list_ts, list_signal_info, list_cdtn] = pickle.load(open('/shared/homes/sguan/Coding_Projects/support_data/RankTuning_srv_mask'))
+list_date = ['161015','161023','161026','161029','161118','161121','161125','161202','161206','161222','161228','170103','170106','170113','170117','170214','170221'
+
+date_area = dict()
+date_area['161015'] = 'IT'
+date_area['161023'] = 'STS'
+date_area['161026'] = 'STS'
+date_area['161029'] = 'IT'
+date_area['161118'] = 'STS'
+date_area['161121'] = 'STS'
+date_area['161125'] = 'STS'
+date_area['161202'] = 'STS'
+date_area['161206'] = 'IT'
+date_area['161222'] = 'STS'
+date_area['161228'] = 'IT'
+date_area['170103'] = 'IT'
+date_area['170106'] = 'STS'
+date_area['170113'] = 'IT'
+date_area['170117'] = 'IT'
+date_area['170214'] = 'STS'
+date_area['170221'] = 'STS'
+
+
 def GetDataCat( list_rank_tuning, list_ts, list_signal_info, list_cdtn ):
-    return [np.dstack(list_rank_tuning), list_ts[0], np.concatenate(list_signal_info), list_cdtn[0]]
+    list_signal_info_date=[]
+    for signal_info, date in zip(list_signal_info, list_date):
+        signal_info_date = pd.DataFrame(signal_info)
+        signal_info_date['date'] = date
+        list_signal_info_date.append(signal_info_date)
+    return [np.dstack(list_rank_tuning), list_ts[0], pd.concat(list_signal_info_date, ignore_index=True), list_cdtn[0]]
+
 
 [data_RankTuning, ts, signal_info, cdtn] = GetDataCat( list_rank_tuning, list_ts, list_signal_info, list_cdtn )
 # [data_RankTuning, ts, signal_info, cdtn] = GetDataCat( list_rank_tuning_early, list_ts, list_signal_info, list_cdtn )
 # [data_RankTuning, ts, signal_info, cdtn] = GetDataCat( list_rank_tuning_late, list_ts, list_signal_info, list_cdtn )
 
+signal_info['area'] = [date_area[i] for i in signal_info['date'].tolist()]
+
 colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), pnp.gen_distinct_colors(3, luminance=0.6)])
 linestyles = ['-', '-', '-', '--', '--', '--']
-[h_fig, h_ax]=plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=[12,6])
+[h_fig, h_ax]=plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True, figsize=[12,5])
+
 plt.axes(h_ax[0])
+neuron_keep = signal_info['channel_index'] <= 32
 for i in range(data_RankTuning.shape[0]):
-    plt.plot(np.mean(data_RankTuning[i, :, signal_info['channel_index'] <= 32], axis=0), color=colors[i],
+    plt.plot(np.mean(data_RankTuning[i, :, neuron_keep], axis=0), color=colors[i],
              linestyle=linestyles[i])
-plt.title('V4')
+plt.title('V4, N={}'.format(np.sum(neuron_keep)))
 plt.xlabel('rank')
 plt.ylabel('spk/sec')
 
 plt.axes(h_ax[1])
+neuron_keep = (signal_info['channel_index']>32)*(signal_info['area']=='IT')
 for i in range(data_RankTuning.shape[0]):
-    plt.plot( np.mean(data_RankTuning[i,:, signal_info['channel_index']>32], axis=0), color=colors[i], linestyle=linestyles[i])
+    plt.plot( np.mean(data_RankTuning[i,:, neuron_keep ], axis=0), color=colors[i], linestyle=linestyles[i])
+plt.title('IT, N={}'.format(np.sum(neuron_keep)))
+
+plt.axes(h_ax[2])
+neuron_keep = (signal_info['channel_index']>32)*(signal_info['area']=='STS')
+for i in range(data_RankTuning.shape[0]):
+    plt.plot( np.mean(data_RankTuning[i,:, neuron_keep ], axis=0), color=colors[i], linestyle=linestyles[i])
 plt.legend(cdtn)
-plt.title('IT')
+plt.title('STS, N={}'.format(np.sum(neuron_keep)))
 
 plt.suptitle('rank tuning, average over all session & all neurons')
 plt.savefig('/shared/homes/sguan/Coding_Projects/support_data/RangkTuning_srv_mask.pdf')
@@ -143,6 +190,10 @@ plt.savefig('/shared/homes/sguan/Coding_Projects/support_data/RangkTuning_srv_ma
 #
 
 
+
+
+
+""" legacy code """
 data_neuro_cur = signal_align.select_signal(data_neuro_spk, chan_filter=range( 0,32), sortcode_filter=range(1,4))
 data_neuro_cur = signal_align.select_signal(data_neuro_spk, chan_filter=range(33,48), sortcode_filter=range(1,4))
 plt.figure()
