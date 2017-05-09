@@ -263,7 +263,7 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP
     return h_fig
 
 
-def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None):
+def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None, psth_overlay=True):
     """
     plot RF using one single plot
 
@@ -297,20 +297,22 @@ def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None):
     if fr_scale is None:
         fr_scale = np.nanmax(fr_2D)*2
 
-    plt.figure()
-    plt.suptitle(data_neuro['signal_info'][indx_sgnl]['name'])
-    plt.pcolormesh( center2edge(x_grid), center2edge(y_grid), fr_2D.transpose(), cmap='inferno')
+    if psth_overlay:
+        plt.figure()
+        plt.suptitle(data_neuro['signal_info'][indx_sgnl]['name'])
+        plt.pcolormesh( center2edge(x_grid), center2edge(y_grid), fr_2D.transpose(), cmap='inferno')
 
-    for i, xy in enumerate(data_neuro['cdtn']):
-        plt.fill_between(xy[0] - x_spacing/2 + (ts-ts[0]) / t_scale, xy[1] - y_spacing/2,
-                         xy[1] - y_spacing/2 + np.mean( data_neuro['data'][data_neuro['cdtn_indx'][data_neuro['cdtn'][i]], :, indx_sgnl], axis=0) / fr_scale,
-                         color='deepskyblue', alpha=0.5)
-        # plt.fill_between( xy[0]+np.array(data_neuro['ts'])/t_scale, xy[1], xy[1]+np.mean( data_neuro['data'][ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] ,:,indx_sgnl], axis=0 )/fr_scale, color=[0,0,0,0.5] )
-        # plt.plot(xy[0],xy[1],'r+', linewidth=1)
-    plt.xlim(center2edge(x_grid)[[0, -1]])
-    plt.ylim(center2edge(y_grid)[[0, -1]])
-    plt.axis('equal')
-
+        for i, xy in enumerate(data_neuro['cdtn']):
+            plt.fill_between(xy[0] - x_spacing/2 + (ts-ts[0]) / t_scale, xy[1] - y_spacing/2,
+                             xy[1] - y_spacing/2 + np.mean( data_neuro['data'][data_neuro['cdtn_indx'][data_neuro['cdtn'][i]], :, indx_sgnl], axis=0) / fr_scale,
+                             color='deepskyblue', alpha=0.5)
+            # plt.fill_between( xy[0]+np.array(data_neuro['ts'])/t_scale, xy[1], xy[1]+np.mean( data_neuro['data'][ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] ,:,indx_sgnl], axis=0 )/fr_scale, color=[0,0,0,0.5] )
+            # plt.plot(xy[0],xy[1],'r+', linewidth=1)
+        plt.xlim(center2edge(x_grid)[[0, -1]])
+        plt.ylim(center2edge(y_grid)[[0, -1]])
+        plt.axis('equal')
+    else:
+        plt.pcolormesh(center2edge(x_grid), center2edge(y_grid), fr_2D.transpose(), cmap='inferno')
 
 def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_colorbar=False):
     """

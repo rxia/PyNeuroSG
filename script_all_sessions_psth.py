@@ -169,11 +169,11 @@ pickle.dump([list_data_groupave, list_ts, list_signal_info, list_cdtn, list_date
 
 
 
-"""  STS and IT neurons """
+"""  V4, STS and IT neurons """
 block_type = 'srv_mask'
 # block_type = 'matchnot'
-# signal_type='spk'
-signal_type='lfp'
+signal_type='spk'
+# signal_type='lfp'
 [list_data_groupave, list_ts, list_signal_info, list_cdtn, list_date] = pickle.load(open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_{}_{}'.format(block_type, signal_type)))
 
 
@@ -417,8 +417,8 @@ for l in range(-8,9,2):
             # plt.ylabel(ylabel)
 plt.xticks([-0.1,0,0.1,0.2,0.3,0.4,0.5], ['','0','','0.2','','0.4',''])
 plt.suptitle('IT by depth')
-plt.savefig('./temp_figs/PSTH_IT_by_depth_{}_{}_{}.pdf'.format(block_type, signal_type, plot_highlight))
-plt.savefig('./temp_figs/PSTH_IT_by_depth_{}_{}_{}.png'.format(block_type, signal_type, plot_highlight))
+plt.savefig('./temp_figs/PSTH_IT_by_depth_{}_{}.pdf'.format(block_type, signal_type))
+plt.savefig('./temp_figs/PSTH_IT_by_depth_{}_{}.png'.format(block_type, signal_type))
 
 
 [h_fig, h_ax]=plt.subplots(nrows=4, ncols=4, sharex=True, sharey=True, figsize=[10,8])
@@ -471,8 +471,8 @@ for l in range(-8,9,2):
             # plt.ylabel(ylabel)
 plt.xticks([-0.1,0,0.1,0.2,0.3,0.4,0.5], ['','0','','0.2','','0.4',''])
 plt.suptitle('STS by depth')
-plt.savefig('./temp_figs/PSTH_STS_by_depth_{}_{}_{}.pdf'.format(block_type, signal_type, plot_highlight))
-plt.savefig('./temp_figs/PSTH_STS_by_depth_{}_{}_{}.png'.format(block_type, signal_type, plot_highlight))
+plt.savefig('./temp_figs/PSTH_STS_by_depth_{}_{}.pdf'.format(block_type, signal_type))
+plt.savefig('./temp_figs/PSTH_STS_by_depth_{}_{}.png'.format(block_type, signal_type))
 
 
 
@@ -507,3 +507,82 @@ plt.title('IT')
 plt.suptitle('firing rate, average over all session & all neurons')
 plt.savefig('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_srv_mask.pdf')
 
+
+
+
+""" V4 by RF location: fovea vs peripheral """
+
+plot_highlight = ''
+if plot_highlight == 'nov':
+    alphas = [1,1,1,0,0,0]
+    alphas_p = [0, 0, 0, 1, 0]
+elif plot_highlight == 'fam':
+    alphas = [0,0,0,1,1,1]
+    alphas_p = [0, 0, 0, 0, 1]
+elif plot_highlight == '00':
+    alphas = [1,0,0,1,0,0]
+    alphas_p = [1, 0, 0, 0, 0]
+elif plot_highlight == '50':
+    alphas = [0,1,0,0,1,0]
+    alphas_p = [0, 1, 0, 0, 0]
+elif plot_highlight == '70':
+    alphas = [0,0,1,0,0,1]
+    alphas_p = [0, 0, 1, 0, 0]
+elif plot_highlight == '':
+    alphas = [1, 1, 1, 1, 1, 1]
+    alphas_p = [1, 1, 1, 1, 1]
+else:
+    alphas = [1, 1, 1, 1, 1, 1]
+    alphas_p = [1, 1, 1, 1, 1]
+
+def plot_psth_p(neuron_keep):
+    N_neuron = np.sum(neuron_keep)
+    [psth_mean, psth_std, data_norm] = cal_spth_std(neuron_keep)
+    p_values = t_test_score(data_norm)
+    for i in range(psth_mean.shape[0]):
+        plt.plot(ts, psth_mean[i, :], color=colors[i], linestyle=linestyles[i], alpha=alphas[i])
+        plt.fill_between(ts, psth_mean[i, :] - psth_std[i, :] / np.sqrt(N_neuron),
+                         psth_mean[i, :] + psth_std[i, :] / np.sqrt(N_neuron), color=colors[i], alpha=0.2*alphas[i])
+    plt.xlabel('t (s)')
+    plt.ylabel(ylabel)
+    for i, p in enumerate(p_values):
+        plt.plot(ts[p < p_thrhd], 0.5-(i + 1) * 0.1 * np.ones(np.sum(p < p_thrhd)), '.', color=colors_p[i], alpha=alphas_p[i])
+
+list_chan_fov = [1,2,3,4,6,7,8,11,12,17,18]
+list_chan_per = [5,9,10,15,16,20,21,22,25,26,28,32]
+
+[h_fig, h_ax]=plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=[12,5])
+p_thrhd = 0.05
+
+plt.axes(h_ax[0])
+neuron_keep = ( np.in1d(signal_info['channel_index'], list_chan_fov))
+plot_psth_p(neuron_keep)
+plt.title('V4 fovea, N={}'.format(np.sum(neuron_keep)))
+
+plt.axes(h_ax[1])
+neuron_keep = ( np.in1d(signal_info['channel_index'], list_chan_per))
+plot_psth_p(neuron_keep)
+plt.title('V4 periphral, N={}'.format(np.sum(neuron_keep)))
+
+plt.suptitle('V4 by RF')
+plt.savefig('./temp_figs/PSTH_V4_by_RF_{}_{}.pdf'.format(block_type, signal_type))
+plt.savefig('./temp_figs/PSTH_V4_by_RF_{}_{}.png'.format(block_type, signal_type))
+
+
+
+[h_fig, h_ax]=pnp.create_array_layout_subplots(layout_GM32, tf_linear_indx=True)
+h_fig.set_size_inches([10, 9], forward=True)
+plt.tight_layout(pad=0.05)
+for ch in range(1,32+1):
+    plt.axes(h_ax[ch-1])
+    neuron_keep = ( signal_info['channel_index']==ch)
+    try:
+        plot_psth_p(neuron_keep)
+    except:
+        pass
+    plt.title('N={}'.format(np.sum(neuron_keep)))
+
+plt.xlabel('')
+plt.suptitle('V4 by Ch')
+plt.savefig('./temp_figs/PSTH_V4_by_ch_{}_{}.pdf'.format(block_type, signal_type))
+plt.savefig('./temp_figs/PSTH_V4_by_ch_{}_{}.png'.format(block_type, signal_type))
