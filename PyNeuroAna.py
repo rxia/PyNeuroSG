@@ -72,7 +72,7 @@ def GroupAve(data_neuro, data=None):
 
 
 
-def TuningCurve(data, label, type='rank', ts=None, t_window=None, limit=None):
+def TuningCurve(data, label, type='rank', ts=None, t_window=None, limit=None, stat='mean'):
     """
     Calculate the tuning curve of a neuron's response
 
@@ -98,8 +98,12 @@ def TuningCurve(data, label, type='rank', ts=None, t_window=None, limit=None):
         return np.logical_and(x>=x_range[0], x<=x_range[1])
 
     # get the mean response in the t_window
-    response = np.mean( data[:, InRange(ts, t_window) ], axis=1)
-
+    if stat == 'mean':
+        response = np.mean( data[:, InRange(ts, t_window) ], axis=1)
+    elif stat == 'std':
+        response = np.std(data[:, InRange(ts, t_window)], axis=1)
+    else:
+        response = np.mean(data[:, InRange(ts, t_window)], axis=1)
 
     x = np.unique(label)
     y = np.zeros(len(x))
