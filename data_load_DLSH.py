@@ -163,6 +163,7 @@ def standardize_data_df(data_df, filename_common):
         data_df['stim_names'] = data_df.SampleFilename
         data_df['stim_familiarized'] = data_df.SampleFamiliarized
         data_df['mask_opacity'] = data_df['MaskOpacity']
+        data_df['mask_orientation'] = np.array(map(lambda a: int(re.match('^fftnoise_(\d*)_.*', a).group(1)), data_df['MaskFilename']))
     if re.match('.*matchnot.*', filename_common) is not None or re.match('.*_srv_mask.*', filename_common) is not None:
         # make mask opacity a int, better for printing
         data_df['mask_opacity_int'] = np.round(data_df['mask_opacity'] * 100).astype(int)

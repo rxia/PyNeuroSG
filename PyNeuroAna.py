@@ -11,7 +11,9 @@ import sklearn.preprocessing as preprocessing
 import sklearn.linear_model as linear_model
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import sklearn.gaussian_process as gaussian_process
+import sklearn.model_selection as model_selection
 import scipy.optimize as optimize
+
 
 """ ===== basic operation: smooth and average ===== """
 
@@ -282,6 +284,7 @@ def quad_smooth_der(target, lambda_dev=1, lambda_der=0, add_edge=3, degree_der=3
             ret = [ret, csd]
     return ret
 
+
 def lfp_cross_chan_smooth(lfp, method='der', lambda_dev=1, lambda_der=1, sigma_chan=0.5, sigma_t=0):
     """
     Smooth the lfp across channels for csd estimation, to deal with varied gain across channels. either use 1) derivative-based method or 2) gaussian filter
@@ -315,6 +318,54 @@ def lfp_cross_chan_smooth(lfp, method='der', lambda_dev=1, lambda_der=1, sigma_c
         for n in range(N):
             lfp_hat = sp.ndimage.gaussian_filter1d(lfp_hat, sigma_t, axis=1)
     return lfp_hat * scale_lfp
+
+
+
+""" ===== decoding related ===== """
+
+
+def decode_over_time(data, label, limit_tr=None, limit_ch=None, ts=None, ts_win_train=None):
+    """ decoding realted """
+    data = np.array(data)
+    label = np.array(label)
+    [N_tr, N_ts, N_ch] = data.shape
+
+    """ normalized for every channels, so that every channel has mean=0, std=1 """
+    mean_ch = np.mean(data, axis=(0, 1), keepdims=True)
+    std_ch  = np.std (data, axis=(0, 1), keepdims=True) + 10**(-10)
+    data_nmlz = (data - mean_ch) / std_ch
+
+    """ select a subset of trials and channels """
+    if limit_tr is None:
+        limit_tr = range(N_tr)
+    elif np.array(limit_tr).dtype == bool:
+        limit_tr = np.flatnonzero(limit_tr)
+
+    if limit_ch is None:
+        limit_ch = range(N_ch)
+    elif np.array(limit_ch).dtype == bool:
+        limit_ch = np.flatnonzero(limit_ch)
+
+    X = data_nmlz[limit_tr, :, :]
+    X = X[:,:,limit_ch]
+    y = label[limit_tr]
+
+    """ classification model """
+    clf = linear_model.LogisticRegression(solver='lbfgs', warm_start=True, multi_class='multinomial', fit_intercept=False)
+
+    """ classification over every time point """
+    clf_score = np.zeros(N_ts)
+    clf_score_std = np.zeros(N_ts)
+    if ts_win_train is None:
+        for t in range(N_ts):
+            cfl_scores = model_selection.cross_val_score(clf, X[:, t, :], y, cv=5)
+            clf_score[t] = np.mean(cfl_scores)
+            clf_score_std[t] = np.std(cfl_scores)
+    else:
+        pass
+    return clf_score
+
+
 
 
 """ ===== spike point process analysis related ===== """
@@ -905,3 +956,27 @@ def center2edge(centers):
     edges[-1] = centers[-1]+dx/2
     return edges
 
+
+def index_bool2int(index_bool):
+    """
+    tool function to transform bool index to int. e.g. turn [True, False, True] into [0, 2]
+
+    :param index_bool: bool index, like [True, False, True]
+    :return:           int index, like [0, 2]
+    """
+    return np.where(index_bool)
+
+
+def index_int2bool(index_int, N=None):
+    """
+    tool function to transform int index to bool. e.g. turn into [0, 2] into [True, False, True]
+
+    :param index_int: int index, like [0, 2]
+    :param N:         length of boolean array
+    :return:          bool index, like [True, False, True]
+    """
+    if N is None:
+        N=np.max(index_int)+1
+    index_bool = np.zeros(N)
+    index_bool[index_int]=1
+    return index_bool>0.5
