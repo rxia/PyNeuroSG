@@ -7,6 +7,7 @@ import dg2df  # for reading behavioral data
 import pandas as pd
 import re     # use regular expression to find file names
 import numpy as np
+import scipy as sp
 from standardize_TDT_blk import select_obj_by_attr
 import data_load_DLSH
 import matplotlib as mpl
@@ -25,6 +26,11 @@ ch_index = 1
 tf_reverse_dist = True
 tf_spectragram = True
 tf_spectragram_interactive = True
+total_distance = None
+range_ch=None
+range_ch_pos_rel=None
+t_gauss_sigma_spcg = 5
+
 path_save_fig = './temp_figs'
 
 def load_blk(keyword_blk=keyword_blk, keyword_tank=keyword_tank, dir_tdt_tank=dir_tdt_tank,
@@ -54,7 +60,7 @@ def load_blk(keyword_blk=keyword_blk, keyword_tank=keyword_tank, dir_tdt_tank=di
 
 def plot_electrode_depth_profile(keyword_blk=keyword_blk, keyword_tank=keyword_tank, ch_index = 1, range_ch= None,
                                  speed_retract=speed_retract, binsize_dist=binsize_dist, range_ch_pos_rel=None,
-                                 tf_reverse_dist=tf_reverse_dist, total_distance=None,
+                                 tf_reverse_dist=tf_reverse_dist, total_distance=None, t_gauss_sigma_spcg = t_gauss_sigma_spcg,
                                  tf_spectragram=tf_spectragram, tf_spectragram_interactive=tf_spectragram_interactive):
     """ generate plot of depth profile of spiking pattern and lfp spectrogram
 
@@ -99,6 +105,9 @@ def plot_electrode_depth_profile(keyword_blk=keyword_blk, keyword_tank=keyword_t
             lfp_trace = lfp_trace[:len(lfp_ts)]
         spcg, spcg_t, spcg_f = pna.ComputeSpectrogram(data=np.expand_dims(lfp_trace, axis=0),
                                fs=lfp_fs, t_ini=lfp_ts[0], t_bin=1.0, t_step=1.0, t_axis=1, f_lim=[0,100])
+        spcg = spcg[0,:,:]
+        if t_gauss_sigma_spcg is not None:
+            spcg = sp.ndimage.filters.gaussian_filter1d(spcg, sigma=t_gauss_sigma_spcg, axis=1)
         spcg_dist = spcg_t * speed_retract
 
     """ ----- direction of distance axis ----- """
@@ -135,7 +144,7 @@ def plot_electrode_depth_profile(keyword_blk=keyword_blk, keyword_tank=keyword_t
     """ lower panel: spectrogram """
     if tf_spectragram:
         plt.axes(h_ax[1,0])
-        plt.pcolormesh(dist_spcg, spcg_f, np.log(spcg[0,:,:]), cmap='inferno')
+        plt.pcolormesh(dist_spcg, spcg_f, np.log(spcg), cmap='inferno')
         plt.xlabel('distance, um')
         plt.ylabel('frequency, Hz')
         plt.title('LFP spectragram')
@@ -171,7 +180,7 @@ def plot_electrode_depth_profile(keyword_blk=keyword_blk, keyword_tank=keyword_t
     """ return results """
     return_dict = {'spk': (dist_bin, spk_bin), 'spcg': None, 'slider': None}
     if tf_spectragram:
-        return_dict['spcg'] = (dist_spcg, spcg_f, spcg[0, :, :])
+        return_dict['spcg'] = (dist_spcg, spcg_f, spcg)
     if tf_spectragram_interactive and tf_spectragram:    # to return the widegets object is important, otherwise widgets do not work whtin functions
         return_dict['widgets'] = (h_slider_clim_min, h_slider_clim_max, h_button_savefig)
 
@@ -185,7 +194,7 @@ plot_electrode_depth_profile(keyword_tank = '.*160902.*', keyword_blk = '.*retre
 plot_electrode_depth_profile(keyword_tank = '.*160904.*', keyword_blk = '.*retreat.*', ch_index=16, range_ch=np.arange(1, 16+1), range_ch_pos_rel=np.arange(-1500,1,100))
 plot_electrode_depth_profile(keyword_tank = '.*161015.*', keyword_blk = '.*retreat.*', ch_index=48, range_ch=np.arange(33, 48+1), range_ch_pos_rel=np.arange(-1500,1,100))
 plot_electrode_depth_profile(keyword_tank = '.*161023.*', keyword_blk = '.*retreat.*', ch_index=48, range_ch=np.arange(33, 48+1), range_ch_pos_rel=np.arange(-1500,1,100))
-plot_electrode_depth_profile(keyword_tank = '.*161026.*', keyword_blk = '.*retreat.*', ch_index=40, range_ch=np.arange(33, 48+1), range_ch_pos_rel=np.arange(-1500,1,100))
+plot_electrode_depth_profile(keyword_tank = '.*161026.*', keyword_blk = '.*retreat.*', ch_index=48, range_ch=np.arange(33, 48+1), range_ch_pos_rel=np.arange(-1500,1,100))
 plot_electrode_depth_profile(keyword_tank = '.*161118.*', keyword_blk = '.*retreat.*', ch_index=48, range_ch=np.arange(33, 48+1), range_ch_pos_rel=np.arange(-1500,1,100), total_distance=13800)
 plot_electrode_depth_profile(keyword_tank = '.*161121.*', keyword_blk = '.*retreat.*', ch_index=48, range_ch=np.arange(33, 48+1), range_ch_pos_rel=np.arange(-1500,1,100))
 plot_electrode_depth_profile(keyword_tank = '.*161125.*', keyword_blk = '.*retreat.*', ch_index=48, range_ch=np.arange(33, 48+1), range_ch_pos_rel=np.arange(-1500,1,100))

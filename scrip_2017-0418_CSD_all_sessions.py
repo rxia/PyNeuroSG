@@ -29,8 +29,13 @@ import data_load_DLSH       # package specific for DLSH lab data
 from GM32_layout import layout_GM32
 
 
+# load data computed in scrip_ERP_all_sessions
+tf_first_stim = True
+if tf_first_stim:
+    erp_df_full = pd.read_pickle('./temp_data/erp_all_info_first_stim')
+else:
+    erp_df_full = pd.read_pickle('./temp_data/erp_all_info')
 
-erp_df_full = pd.read_pickle('./temp_data/erp_all_info')
 
 erp_df = erp_df_full[erp_df_full['chan']>=33]
 

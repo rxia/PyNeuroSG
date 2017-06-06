@@ -39,8 +39,10 @@ list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keywor
 list_str_date = [re.match('.*-(\d{6})-.*', name_tank).group(1) for name_tank in list_name_tanks]
 list_name_tanks = [y for x,y in sorted(zip(list_str_date, list_name_tanks))]
 
+tf_first_stim = True
 
-def GetERP(tankname='GM32.*U16.*161125'):
+
+def GetERP(tankname='GM32.*U16.*161125', tf_first_stim=tf_first_stim):
     [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', tankname, tf_interactive=False,
                                                               dir_tdt_tank='/shared/homes/sguan/neuro_data/tdt_tank/',
                                                               dir_dg = '/shared/homes/sguan/neuro_data/stim_dg')
@@ -62,7 +64,10 @@ def GetERP(tankname='GM32.*U16.*161125'):
 
     data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot,
                                              type_filter='ana.*', name_filter='LFPs.*', chan_filter=range(1,48+1))
-    ERP = np.mean(data_neuro['data'], axis=0).transpose()
+    if tf_first_stim:
+        ERP = np.mean(data_neuro['data'][data_df['order']==0, :, :], axis=0).transpose()
+    else:
+        ERP = np.mean(data_neuro['data'], axis=0).transpose()
 
     return ERP
 
@@ -140,4 +145,7 @@ if tf_2D_all:
 
     erp_all_info = pd.DataFrame({'ERP': list(erp_2d_all), 'tank': tank_all, 'chan': chan_all, 'date': date_all})
 
-    erp_all_info.to_pickle('./temp_data/erp_all_info')
+    if tf_first_stim:
+        erp_all_info.to_pickle('./temp_data/erp_all_info_first_stim')
+    else:
+        erp_all_info.to_pickle('./temp_data/erp_all_info')
