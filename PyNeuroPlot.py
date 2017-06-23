@@ -221,7 +221,7 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP
         plt.title(title)
         plt.xlabel('time from event onset (s)')
         plt.ylabel('channel index')
-    else:                                 # use customized 2D layout
+    else:                                 # use customized 2D layout, e.g. GM32 array
         text_props = dict(boxstyle='round', facecolor='w', alpha=0.5)
         [h_fig, h_axes] = create_array_layout_subplots(array_layout, tf_linear_indx=False)
         plt.tight_layout()
@@ -235,32 +235,32 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP
         plt.xlim(ts[0], ts[-1])
 
         # axis appearance
-        for ax in h_axes.flatten():
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
-            if len(ax.lines)==0:
-                try:  # for differenet versions of matploblib
-                    try:
-                        h_axes_top.set_facecolor([1,1,1,0])
+        if False:
+            for ax in h_axes.flatten():
+                ax.get_xaxis().set_visible(False)
+                ax.get_yaxis().set_visible(False)
+                if len(ax.lines)==0:
+                    try:  # for differenet versions of matploblib
+                        try:
+                            h_axes_top.set_facecolor([1,1,1,0])
+                        except:
+                            h_axes_top.set_axis_bgcolor([1,1,1,0])
                     except:
-                        h_axes_top.set_axis_bgcolor([1,1,1,0])
-                except:
-                    pass
-        ax_bottomleft = h_axes[-1,0]
-        plt.axes(ax_bottomleft)
-        ax_bottomleft.get_xaxis().set_visible(True)
-        ax_bottomleft.get_yaxis().set_visible(True)
-        ax_bottomleft.set_xlabel('time')
-        ax_bottomleft.set_ylabel('Voltage')
-        plt.locator_params(axis='x', nbins=4)
-        plt.locator_params(axis='y', nbins=4)
-
-        ylim_max = np.max(np.abs(ax_bottomleft.get_ylim()))
-        ax_bottomleft.set_ylim([-ylim_max, ylim_max])
+                        pass
+            ax_bottomleft = h_axes[-1,0]
+            plt.axes(ax_bottomleft)
+            ax_bottomleft.get_xaxis().set_visible(True)
+            ax_bottomleft.get_yaxis().set_visible(True)
+            ax_bottomleft.set_xlabel('time')
+            ax_bottomleft.set_ylabel('Voltage')
+            plt.locator_params(axis='x', nbins=4)
+            plt.locator_params(axis='y', nbins=4)
+            ylim_max = np.max(np.abs(ax_bottomleft.get_ylim()))
+            ax_bottomleft.set_ylim([-ylim_max, ylim_max])
 
         plt.suptitle(title, fontsize=18)
 
-    return h_fig
+    return h_fig, h_axes
 
 
 def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None, psth_overlay=True):
