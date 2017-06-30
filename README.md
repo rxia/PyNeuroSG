@@ -15,3 +15,5 @@ a Python toolbox for neural data analysis in Sheinberg lab at Brown University
   - dgread
   - neo
   - [dependencis of neo](http://neo.readthedocs.io/en/latest/install.html)
+  
+  ### More details will be updated in the future
