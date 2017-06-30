@@ -109,11 +109,12 @@ def GetEventEvokedResonse(blk, name_evt, signal_type='spk', t_range= (-0.1, 0.8)
 
 """ load block """
 blk = load_blk(keyword_blk='.*laser.*', keyword_tank='Dexter-170622.*')
+blk = load_blk(keyword_blk='.*laser.*', keyword_tank='Dexter-170623.*')
 
 """ specify signal and event """
-signal_type = 'spk'  # 'spk' or 'LFP'
+signal_type = 'LFP'  # 'spk' or 'LFP'
 name_evt = 'la4_'
-laser_name_ch = {'la1_': 7, 'la2_': 9, 'la3_': 24, 'la4_': 24,}
+laser_name_ch = {'la1_': 7, 'la2_': 9, 'la3_': 24, 'la4_': 26,}
 
 """ align data to laser train onset, get average response and smooth data """
 [data_neuro, ts, signal_info, ts_evt_ticks] = GetEventEvokedResonse(blk, name_evt=name_evt, signal_type=signal_type, t_range=[-0.1,0.8])
@@ -137,4 +138,49 @@ for ch, ax_loc in layout_GM32.items():
 plt.ylim(ylim_min, ylim_max)
 
 """ save fig """
+plt.savefig('./temp_figs/laser_response_{}_{}_{}.png'.format(keyword_tank, signal_type, name_evt))
+
+
+
+
+""" psth to stim onset """
+
+def GetPSTH(tankname, signal_type='spk'):
+
+    [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('x_.*{}.*'.format('grating'), tankname, tf_interactive=False,
+                                                               dir_tdt_tank=dir_tdt_tank, dir_dg=dir_dg, sortname='')
+
+    """ Get StimOn time stamps in neo time frame """
+    ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon',
+                                            neo_name_obson='obv/', neo_name_obsoff='obv\\')
+
+    """ some settings for saving figures  """
+    filename_common = misc_tools.str_common(name_tdt_blocks)
+    dir_temp_fig = './temp_figs'
+
+    """ make sure data field exists """
+    data_df = data_load_DLSH.standardize_data_df(data_df, filename_common)
+    blk = data_load_DLSH.standardize_blk(blk)
+
+    if signal_type=='spk':
+        data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='spiketrains.*',
+                                                       name_filter='.*Code[0-9]$', spike_bin_rate=1000,
+                                                       chan_filter=range(1, 48 + 1))
+    else:
+        data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='ana.*',
+                                                       name_filter='LFPs.*',
+                                                       chan_filter=range(1, 48 + 1))
+    # data_neuro = signal_align.neuro_sort(data_df, ['stim_familiarized', 'mask_opacity_int'], [], data_neuro)
+    PSTH = np.mean(data_neuro['data'], axis=0).transpose()
+    ts = data_neuro['ts']
+    signal_info = data_neuro['signal_info']
+
+
+    return [data_neuro, ts, signal_info, PSTH]
+
+signal_type = 'LFP'
+[data_neuro, ts, signal_info, ERP] = GetPSTH(tankname='Dexter-170623.*', signal_type=signal_type)
+sk_std = 0.01 if signal_type == 'spk' else 0.002
+ERP = pna.SmoothTrace(ERP, sk_std=sk_std, ts=ts)
+pnp.ErpPlot(ERP, ts=ts, array_layout=layout_GM32)
 plt.savefig('./temp_figs/laser_response_{}_{}_{}.png'.format(keyword_tank, signal_type, name_evt))

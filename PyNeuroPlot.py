@@ -263,7 +263,7 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP
     return h_fig, h_axes
 
 
-def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None, psth_overlay=True):
+def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None, data=None, psth_overlay=True, tf_scr_ctr=False):
     """
     plot RF using one single plot
 
@@ -274,7 +274,10 @@ def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None, p
     :return:
     """
 
-    data = data_neuro['data'][:,:,indx_sgnl]
+    if data is None:
+        data = data_neuro['data'][:,:,indx_sgnl]
+    else:
+        data = data[:, :, indx_sgnl]
     ts = np.array(data_neuro['ts'])
     if t_focus is None:
         t_focus = ts[[0,-1]]
@@ -313,6 +316,10 @@ def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None, p
         plt.axis('equal')
     else:
         plt.pcolormesh(center2edge(x_grid), center2edge(y_grid), fr_2D.transpose(), cmap='inferno')
+    if tf_scr_ctr:
+        plt.plot(x_grid[[0,-1]], [0,0], 'w-', Linewidth=0.5)
+        plt.plot([0,0], y_grid[[0,-1]], 'w-', Linewidth=0.5)
+
 
 def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_colorbar=False):
     """
