@@ -74,7 +74,7 @@ def GroupAve(data_neuro, data=None):
 
 
 
-def TuningCurve(data, label, type='rank', ts=None, t_window=None, limit=None, stat='mean'):
+def TuningCurve(data, label, type='', ts=None, t_window=None, limit=None, stat='mean'):
     """
     Calculate the tuning curve of a neuron's response
 
@@ -114,6 +114,10 @@ def TuningCurve(data, label, type='rank', ts=None, t_window=None, limit=None, st
 
     if type == 'rank':   # sort in descending order
         i_sort = np.argsort(y)[::-1]
+        x = x[i_sort]
+        y = y[i_sort]
+    elif type == '':   # sort in descending order
+        i_sort = np.argsort(x)
         x = x[i_sort]
         y = y[i_sort]
 
