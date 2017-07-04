@@ -10,6 +10,7 @@ import re
 import warnings
 import misc_tools
 import signal_align
+import PyNeuroAna as pna
 
 
 def DfPlot(df, y, x, c='', p='', test_version=False):
@@ -263,14 +264,20 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP
     return h_fig, h_axes
 
 
-def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None, data=None, psth_overlay=True, tf_scr_ctr=False):
+def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
+           psth_overlay=True, t_scale=None, fr_scale=None, sk_std=None ):
     """
     plot RF using one single plot
 
     :param data_neuro:  the data_neuro['cdtn'] contains 'x' and 'y', which represents the location of stimulus
     :param indx_sgnl:   index of signal, i.e. the data_neuro['cdtn'][:,:,indx_sgnl] would be used for plotting
-    :param t_scale:     duration of time (ts) to be mapped to unit 1 of space
-    :param fr_scale:
+    :param data:        if not None, use the data instead of data_neuro['data'][:,:,indx_sgnl], a 2D array of shape [N_trials, N_ts]
+    :param t_focus:     duration of time used to plot heatmap, e.g. [0.050, 0.200]
+    :param tf_scr_ctr:  True/False, plot [0.0] point of screen
+    :param psth_overlay:True/False overlay psth
+    :param t_scale:     for psth overlay, duration of time (ts) to be mapped to unit 1 of space
+    :param fr_scale:    for psth overlay, scale for firing rate
+    :param sk_std:      smooth kernel standard deviation, e.g. 0.005, for 5ms
     :return:
     """
 
@@ -279,6 +286,10 @@ def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None, d
     else:
         data = data[:, :, indx_sgnl]
     ts = np.array(data_neuro['ts'])
+
+    if sk_std is not None:
+        data = pna.SmoothTrace(data=data, sk_std=sk_std, ts=ts)
+
     if t_focus is None:
         t_focus = ts[[0,-1]]
 
@@ -286,7 +297,7 @@ def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None, d
     x_grid = np.unique(np.array(data_neuro['cdtn'])[:,0])
     y_grid = np.unique(np.array(data_neuro['cdtn'])[:,1])
     x_spacing = np.mean(np.diff(x_grid))
-    y_spacing = np.mean(np.diff(x_grid))
+    y_spacing = np.mean(np.diff(y_grid))
     if t_scale is None:
         t_scale = ( data_neuro['ts'][-1] - data_neuro['ts'][0] )/x_spacing*1.1
 
@@ -307,7 +318,7 @@ def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None, d
 
         for i, xy in enumerate(data_neuro['cdtn']):
             plt.fill_between(xy[0] - x_spacing/2 + (ts-ts[0]) / t_scale, xy[1] - y_spacing/2,
-                             xy[1] - y_spacing/2 + np.mean( data_neuro['data'][data_neuro['cdtn_indx'][data_neuro['cdtn'][i]], :, indx_sgnl], axis=0) / fr_scale,
+                             xy[1] - y_spacing/2 + np.mean( data[data_neuro['cdtn_indx'][data_neuro['cdtn'][i]], :], axis=0) / fr_scale,
                              color='deepskyblue', alpha=0.5)
             # plt.fill_between( xy[0]+np.array(data_neuro['ts'])/t_scale, xy[1], xy[1]+np.mean( data_neuro['data'][ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] ,:,indx_sgnl], axis=0 )/fr_scale, color=[0,0,0,0.5] )
             # plt.plot(xy[0],xy[1],'r+', linewidth=1)
