@@ -139,7 +139,7 @@ blk = data_load_DLSH.standardize_blk(blk)
 
 data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.020, 0.200], type_filter='spiketrains.*',
                                            name_filter='.*Code[1-9]$', spike_bin_rate=1000)
-data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.1, 0.5], type_filter='ana.*', name_filter='LFPs.*')
+# data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.1, 0.5], type_filter='ana.*', name_filter='LFPs.*')
 data_neuro = signal_align.neuro_sort(data_df, ['orient'], [], data_neuro)
 
 pnp.PsthPlot(data_neuro['data'][:,:,0], ts=data_neuro['ts'], cdtn=data_df['orient'], sk_std=0.005, color_style='continuous')
@@ -154,7 +154,7 @@ def plot_tuning(t_window_plot=[0.0,0.15], tf_spcg=False, f_lim=[0,500], data_df=
     h_fig.set_size_inches([10, 9], forward=True)
     plt.tight_layout()
     spcg_power = np.mean(spcg[:, np.logical_and(spcg_f >= f_lim[0], spcg_f < f_lim[1]), :, :], axis=1).transpose([0, 2, 1])
-    for i in sorted(range(len(data_neuro['signal_info'])), reverse=True):
+    for i in range(len(data_neuro['signal_info'])):
         ch = data_neuro['signal_info'][i]['channel_index']
         if ch <= 32:
             plt.axes(h_axes[ch - 1])
@@ -162,13 +162,72 @@ def plot_tuning(t_window_plot=[0.0,0.15], tf_spcg=False, f_lim=[0,500], data_df=
                 if tf_spcg:
                     pnp.PsthPlot(spcg_power[:,:,ch-1], ts=spcg_t, cdtn=data_df['orient'], color_style='continuous', subpanel='')
                 else:
-                    pnp.PsthPlot(spcg_power[:, :, ch - 1], ts=spcg_t, cdtn=data_df['orient'], color_style='continuous')
+                    pnp.PsthPlot(data_neuro['data'][:, :, i], ts=data_neuro['ts'], cdtn=data_df['orient'], color_style='continuous', subpanel='')
             elif plot_type == 'tuning_curve':
-                tuning_x, tuning_y = pna.TuningCurve(spcg_power[:, :, ch-1], label=data_df['orient'], ts=spcg_t,
+                if tf_spcg:
+                    tuning_x, tuning_y = pna.TuningCurve(spcg_power[:, :, ch-1], label=data_df['orient'], ts=spcg_t,
                                                      t_window=[0, 0.200])
+                else:
+                    tuning_x, tuning_y = pna.TuningCurve(data_neuro['data'][:, :, i], label=data_df['orient'], ts=data_neuro['ts'],
+                                                         t_window=[0, 0.200])
                 plt.plot(tuning_x, tuning_y, 'o-')
 
 plot_tuning(t_window_plot=[0.0,0.15], tf_spcg=True, f_lim=[30,55], plot_type='tuning_curve')
+plot_tuning(t_window_plot=[0.05,0.30], tf_spcg=False, f_lim=[30,55], plot_type='tuning_curve')
 
 
+
+
+
+""" ===== gratings ===== """
+
+signal_type = 'spk'
+
+keyword_tank = '.*Dexter.*170703.*'
+keyword_block= 'x.*texture.*'
+# keyword_block= 'x.*imageopto.*'
+
+""" load data: (1) neural data: TDT blocks -> neo format; (2)behaverial data: stim dg -> pandas DataFrame """
+[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data(keyword_block, keyword_tank, tf_interactive=True,
+                                                           dir_tdt_tank=dir_tdt_tank, dir_dg=dir_dg)
+
+""" Get StimOn time stamps in neo time frame """
+ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
+
+""" some settings for saving figures  """
+filename_common = misc_tools.str_common(name_tdt_blocks)
+dir_temp_fig = './temp_figs'
+
+""" make sure data field exists """
+data_df = data_load_DLSH.standardize_data_df(data_df, filename_common)
+blk = data_load_DLSH.standardize_blk(blk)
+
+""" waveform plot """
+# pnp.SpkWfPlot(blk.segments[0])
+
+""" data align """
+if signal_type == 'spk':
+    data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.2, 0.600], type_filter='spiketrains.*',
+                                               name_filter='.*Code[1-9]$', spike_bin_rate=1000)
+elif signal_type == 'LFP':
+    data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.1, 0.5], type_filter='ana.*', name_filter='LFPs.*')
+
+data_df['orient_float'] = np.array(data_df['stim_names'].str.extract('fftnoise_(\d\d\d)_.*'), dtype=float)/180*np.pi
+data_df['hue_float']    = data_df['hue']*1.0
+data_df['orient'] = data_df['orient_float']
+
+t_focus = [0.05, 0.300]
+data_neuro = signal_align.neuro_sort(tlbl=data_df, grpby=['hue_float', 'orient_float'], fltr=[], neuro=data_neuro)
+
+pnp.RfPlot(data_neuro, indx_sgnl=2, t_focus=t_focus, psth_overlay=True, tf_scr_ctr=False)
+
+h_fig, h_axes = pnp.create_array_layout_subplots(layout_GM32, tf_linear_indx=True)
+h_fig.set_size_inches([10, 9], forward=True)
+plt.tight_layout()
+for i in sorted(range(len(data_neuro['signal_info'])), reverse=True):
+    ch = data_neuro['signal_info'][i]['channel_index']
+    if ch <= 32:
+        plt.axes(h_axes[ch - 1])
+        pnp.RfPlot(data_neuro, indx_sgnl=i, t_focus=t_focus,
+                   psth_overlay=False, tf_scr_ctr=True)
 
