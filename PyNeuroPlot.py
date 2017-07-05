@@ -1298,20 +1298,22 @@ def isSingle(x):
     else:
         return True
 
-def share_clim(h_ax):
+def share_clim(h_ax, clim=None):
     """
     tool funciton to share clim (make sure c_lim of given axes are the same), call after plotting all images
 
-    :param h_ax: list of axes
+    :param h_ax: list of axes to reset clim
+    :param clim: if None, calculate automatically, otherwise, use the given clim, e.g. [-1, 5]
     :return:     c_lim
     """
     h_ax_all = np.array(h_ax).flatten()
     c_lim = [+np.Inf, -np.Inf]
-    for ax in h_ax_all:  # get clim
-        plt.axes(ax)
-        if plt.gci() is not None:
-            c_lim_new = plt.gci().get_clim()
-            c_lim = [np.min([c_lim[0], c_lim_new[0]]), np.max([c_lim[1], c_lim_new[1]])]
+    if clim is None:    # if not given, calculate the clim to be the smallest possible range to accommodate all axes
+        for ax in h_ax_all:  # get clim
+            plt.axes(ax)
+            if plt.gci() is not None:
+                c_lim_new = plt.gci().get_clim()
+                c_lim = [np.min([c_lim[0], c_lim_new[0]]), np.max([c_lim[1], c_lim_new[1]])]
     for ax in h_ax_all:  # set clim
         plt.axes(ax)
         if plt.gci() is not None:
