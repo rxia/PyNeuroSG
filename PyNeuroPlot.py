@@ -691,7 +691,7 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
                  tf_phase=False, tf_mesh_t=False, tf_mesh_f=False,
                  tf_log=False, time_baseline=None,
                  t_lim = None, f_lim = None, c_lim = None, c_lim_style=None, name_cmap=None,
-                 rate_interp=None, tf_colorbar= False):
+                 rate_interp=None, tf_colorbar= False, quiver_scale=None, max_quiver=None):
     """
     plot power spectrogram or coherence-gram, input spcg could be [ N_t * N*f ] or [ N_trial * N_t * N*f ], real or complex
 
@@ -708,7 +708,7 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
     :param tf_log:        true/false, use log scale
     :param c_lim_style:   'basic' (min, max), 'from_zero' (0, max), or 'diverge' (-max, max); default to None, select automatically based on tf_log and time_baseline
     :param time_baseline: baseline time period to be subtracted, eg. [-0.1, 0.05], default to None
-    :param name_cmap:     name of color map to use, default to 'inferno', if use diverge c_map, automatically change to 'coolwarm'; another suggested one is 'veridis'
+    :param name_cmap:     name of color map to use, default to 'inferno', if use diverge c_map, automatically change to 'coolwarm'; another suggested one is 'viridis'
     :param rate_interp:   rate of interpolation for plotting, if None, do not interpolate, suggested value is 8
     :param tf_colorbar:   true/false, plot colorbar
     :return:              figure handle
@@ -808,14 +808,16 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
     # quiver plot of phase: pointing down if negative phase, singal1 lags signal0 for coherence
     if tf_phase is True and spcg_complex is not None:
         try:                   # plot a subset of quivers, to prevent them from filling the whole plot
-            max_quiver = 32    # max number of quivers every dimension (in both axis)
-            quiver_scale = 32  # about 1/32 of axis length
+            if max_quiver is None:
+                max_quiver = 32    # max number of quivers every dimension (in both axis)
+            if quiver_scale is None:
+                quiver_scale = 32  # about 1/32 of axis length
             [N_fs, N_ts] = spcg.shape
             indx_fs = np.array(keep_less_than(range(N_fs), max_quiver*1.0*(spcg_f.max()-spcg_f.min())/(f_lim[1]-f_lim[0])))
             indx_ts = np.array(keep_less_than(range(N_ts), max_quiver))
             plt.quiver(spcg_t[indx_ts], spcg_f[indx_fs],
                        spcg_complex[indx_fs, :][:, indx_ts].real, spcg_complex[indx_fs, :][:, indx_ts].imag,
-                       color='r', units='height', pivot='mid', headwidth=5,
+                       color='r', units='height', pivot='mid', headwidth=5, width=0.005,
                        scale=np.percentile(spcg, 99.5) * quiver_scale)
         except:
             plt.quiver(spcg_t, spcg_f, spcg_complex.real, spcg_complex.imag,

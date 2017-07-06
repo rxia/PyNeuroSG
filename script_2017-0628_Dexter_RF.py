@@ -22,212 +22,249 @@ import misc_tools           # in this package: misc
 # ----- modules for the data location and organization in Sheinberg lab -----
 import data_load_DLSH       # package specific for DLSH lab data
 from GM32_layout import layout_GM32
-
-# dir_tdt_tank='/shared/homes/sguan/neuro_data/tdt_tank'
-# dir_dg='/shared/homes/sguan/neuro_data/stim_dg'
 dir_tdt_tank = '/shared/lab/projects/encounter/data/TDT'
 dir_dg='/shared/lab/projects/analysis/ruobing/data_dg'
-keyword_tank = '.*Dexter.*170629.*'
-keyword_block= 'x.*spotopto.*'
-name_file =  keyword_block
-tankname =   keyword_tank
-# signal_type = 'spk'
-signal_type = 'LFP'
-tf_plot_movie = False
+
+f_lim = [30,55]
+stimulate_type = 0
+signal_type = 'spk'
+keyword_tank = '.*Dexter.*0703.*'
+task_type = 'colorxgrating'
+if task_type=='spot':
+    keyword_block= 'x.*spotopto.*'
+    group_by = ['stim_pos_x', 'stim_pos_y']
+    t_range = [-0.2, 0.6]
+elif task_type=='colorxgrating':
+    keyword_block = 'x.*texture.*'
+    group_by = ['orient', 'hue']
+    t_range = [-0.2, 0.5]
+elif task_type=='fft':
+    keyword_block = 'x.*imageopto.*'
+    group_by = ['orient']
+    t_range = [-0.2, 0.5]
+elif task_type=='MTS':
+    keyword_block = 'x.*detection.*'
+    group_by = ['SampleOrientation']
+    t_range = [-0.6, 1.5]
+
+if 'task_type2' not in locals() or task_type2 != task_type:
+    task_type2 = task_type
+    load_files = True
+elif task_type2 == task_type:
+    load_files = False
+
 
 """ load data: (1) neural data: TDT blocks -> neo format; (2)behaverial data: stim dg -> pandas DataFrame """
-[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data(name_file, tankname, tf_interactive=True,
-                                                           dir_tdt_tank=dir_tdt_tank, dir_dg=dir_dg)
+if load_files:
+    [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data(keyword_block, keyword_tank, tf_interactive=False,
+                                                               dir_tdt_tank=dir_tdt_tank, dir_dg=dir_dg)
+    if task_type=='colorxgrating':
+        data_df['orient'] = np.array(data_df['stim_names'].str.extract('fftnoise_(\d\d\d)_.*'),
+                                           dtype=float) / 180 * np.pi
+    if task_type=='MTS':
+        data_df['stimulate_type'] = data_df['StimulateType']
 
-""" Get StimOn time stamps in neo time frame """
-ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
+    # Get StimOn time stamps in neo time frame
+    ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
 
-""" some settings for saving figures  """
-filename_common = misc_tools.str_common(name_tdt_blocks)
-dir_temp_fig = './temp_figs'
+    # some settings for saving figures
+    filename_common = misc_tools.str_common(name_tdt_blocks)
+    dir_temp_fig = './temp_figs'
 
-""" make sure data field exists """
-data_df = data_load_DLSH.standardize_data_df(data_df, filename_common)
-blk = data_load_DLSH.standardize_blk(blk)
+    # make sure data field exists
+    data_df = data_load_DLSH.standardize_data_df(data_df, filename_common)
+    blk = data_load_DLSH.standardize_blk(blk)
 
-""" waveform plot """
-# pnp.SpkWfPlot(blk.segments[0])
 
 """ data align """
-if signal_type == 'spk':
-    data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.020, 0.200], type_filter='spiketrains.*',
-                                               name_filter='.*Code[1-9]$', spike_bin_rate=100)
-elif signal_type == 'LFP':
-    data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.1, 0.5], type_filter='ana.*', name_filter='LFPs.*')
 
-# ERP plot
-# ERP = np.mean(data_neuro['data'][data_df['stimulate_type'] == 0,:,:], axis=0).transpose()
-# pnp.ErpPlot(ERP[0:32, :], data_neuro['ts'], array_layout=layout_GM32)
+data_neuro_spk = signal_align.blk_align_to_evt(blk, ts_StimOn, t_range, type_filter='spiketrains.*',
+                                           name_filter='.*Code[1-9]$', spike_bin_rate=1000)
 
-# plot 1 channel's data
-pnp.PsthPlot(data_neuro['data'][:,:,0], ts=data_neuro['ts'], cdtn=data_df['stimulate_type'])
-
-# group by x,y cooridnate
-data_neuro = signal_align.neuro_sort(data_df, ['stim_pos_x', 'stim_pos_y'], data_df['stimulate_type']==0, data_neuro)
+data_neuro_LFP = signal_align.blk_align_to_evt(blk, ts_StimOn, t_range, type_filter='ana.*', name_filter='LFPs.*')
 
 # calculate power spectrum
-if signal_type == 'LFP':
-    [spcg, spcg_t, spcg_f] = pna.ComputeSpectrogram(data_neuro['data'], fs=data_neuro['signal_info']['sampling_rate'][0],
-                           t_ini=data_neuro['ts'][0], t_bin=0.200, t_step=None, t_axis=1, batchsize=500,
+if 'spcg' in signal_type:
+    [spcg, spcg_t, spcg_f] = pna.ComputeSpectrogram(data_neuro_LFP['data'], fs=data_neuro_LFP['signal_info']['sampling_rate'][0],
+                           t_ini=data_neuro_LFP['ts'][0], t_bin=0.200, t_step=None, t_axis=1, batchsize=100,
                            f_lim=[5,200])
-# plot
-def plot_RF(t_window_plot=[0.0,0.15], tf_spcg=False, f_lim=[0,500], data_neuro=data_neuro):
+
+
+
+""""""
+
+#""" temp plots """
+# # plot 1 channel's data
+# pnp.PsthPlot(data_neuro['data'][:,:,0], ts=data_neuro['ts'], cdtn=data_df['stimulate_type'])
+
+# # waveform plot
+# pnp.SpkWfPlot(blk.segments[0])
+
+
+""" group by x,y cooridnate """
+
+if 'stimulate_type' in data_df.keys():
+    trial_filter = np.in1d(data_df['stimulate_type'],stimulate_type)
+elif 'StimulateType' in data_df.keys():
+    trial_filter = np.in1d(data_df['StimulateType'],stimulate_type)
+else:
+    trial_filter = []
+
+data_neuro_spk = signal_align.neuro_sort(data_df, group_by, trial_filter, data_neuro_spk)
+data_neuro_LFP = signal_align.neuro_sort(data_df, group_by, trial_filter, data_neuro_LFP)
+if 'spcg' in signal_type:
+    data_neuro_spcg = {}
+    data_neuro_spcg['data'] = np.mean(spcg[:, np.logical_and(spcg_f >= f_lim[0], spcg_f < f_lim[1]), :, :],
+                                      axis=1).transpose([0, 2, 1])
+    data_neuro_spcg['ts'] = spcg_t
+    data_neuro_spcg['signal_info'] = data_neuro_LFP['signal_info']
+    data_neuro_spcg['fltr'] = data_neuro_LFP['fltr']
+    data_neuro_spcg['grpby'] = data_neuro_LFP['grpby']
+    data_neuro_spcg['cdtn'] = data_neuro_LFP['cdtn']
+    data_neuro_spcg['cdtn_indx'] = data_neuro_LFP['cdtn_indx']
+
+if signal_type == 'spk':
+    data_neuro = data_neuro_spk
+elif signal_type == 'LFP':
+    data_neuro = data_neuro_LFP
+elif  'spcg' in signal_type:
+    data_neuro = data_neuro_spcg
+
+
+""" plot RF """
+
+def plot_RF(t_window_plot=t_range, signal_type=signal_type,data_neuro = data_neuro,label = data_df[group_by[0]]):
     h_fig, h_axes = pnp.create_array_layout_subplots(layout_GM32, tf_linear_indx=True)
     h_fig.set_size_inches([10, 9], forward=True)
     plt.tight_layout()
-    if tf_spcg:
-        data_neuro_spcg = {}
-        data_neuro_spcg['data'] = np.mean(spcg[:, np.logical_and(spcg_f >= f_lim[0], spcg_f < f_lim[1]), :, :],
-                                          axis=1).transpose([0, 2, 1])
-        data_neuro_spcg['ts'] = spcg_t
-        data_neuro_spcg['signal_info'] = data_neuro['signal_info']
-        data_neuro_spcg['fltr'] = data_neuro['fltr']
-        data_neuro_spcg['grpby'] = data_neuro['grpby']
-        data_neuro_spcg['cdtn'] = data_neuro['cdtn']
-        data_neuro_spcg['cdtn_indx'] = data_neuro['cdtn_indx']
+
     for i in sorted(range(len(data_neuro['signal_info'])), reverse=True):
         ch = data_neuro['signal_info'][i]['channel_index']
         if ch <= 32:
             plt.axes(h_axes[ch - 1])
-            if tf_spcg:
-                pnp.RfPlot(data_neuro_spcg, indx_sgnl=i, t_focus=t_window_plot,
-                           psth_overlay=False, tf_scr_ctr=True)
-            else:
+            if len(group_by) == 2:
                 pnp.RfPlot(data_neuro, indx_sgnl=i, t_focus=t_window_plot,
-                   psth_overlay=False, tf_scr_ctr=True)
+                       psth_overlay=False, tf_scr_ctr=True)
+            elif len(group_by)==1:
+                tuning_x, tuning_y =pna.TuningCurve(data_neuro['data'][:, :, i], label,
+                                ts=data_neuro['ts'], t_window=t_window_plot)
+                plt.plot(tuning_x, tuning_y, 'o-')
+
+if task_type != 'MTS':
+    plot_RF(t_window_plot=[0.05,0.25], signal_type=signal_type,data_neuro = data_neuro)
+    plt.suptitle('{}_{}_{}'.format(filename_common, signal_type, f_lim))
+    plt.savefig('{}_{}_{}.png'.format(filename_common, signal_type, f_lim))
 
 
-data_neuro = signal_align.neuro_sort(data_df, ['stim_pos_x', 'stim_pos_y'], data_df['stimulate_type']==0, data_neuro)
-f_lim=[30,55]
-plot_RF(t_window_plot=[0.0,0.200], tf_spcg=True, f_lim=f_lim, data_neuro=data_neuro)
-plt.suptitle('{}_{}.png'.format(filename_common, f_lim))
+""" PSTH for MTS """
 
-plt.savefig('RF_mapping_{}_LFP_gamma.png'.format(filename_common))
+def plot_PSTH(t_window_plot=t_range, signal_type=signal_type,data_neuro = data_neuro, spcg_result = None):
 
-
-
-
-
-
-""" ===== tuning curve ===== """
-
-keyword_block= 'x.*imageopto.*'
-name_file =  keyword_block
-tankname =   keyword_tank
-# signal_type = 'spk'
-signal_type = 'LFP'
-tf_plot_movie = True
-""" load data: (1) neural data: TDT blocks -> neo format; (2)behaverial data: stim dg -> pandas DataFrame """
-[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data(name_file, tankname, tf_interactive=True,
-                                                           dir_tdt_tank=dir_tdt_tank, dir_dg=dir_dg)
-
-""" Get StimOn time stamps in neo time frame """
-ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
-""" some settings for saving figures  """
-filename_common = misc_tools.str_common(name_tdt_blocks)
-dir_temp_fig = './temp_figs'
-""" make sure data field exists """
-data_df = data_load_DLSH.standardize_data_df(data_df, filename_common)
-blk = data_load_DLSH.standardize_blk(blk)
-""" waveform plot """
-# pnp.SpkWfPlot(blk.segments[0])
-
-data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.020, 0.200], type_filter='spiketrains.*',
-                                           name_filter='.*Code[1-9]$', spike_bin_rate=1000)
-# data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.1, 0.5], type_filter='ana.*', name_filter='LFPs.*')
-data_neuro = signal_align.neuro_sort(data_df, ['orient'], [], data_neuro)
-
-pnp.PsthPlot(data_neuro['data'][:,:,0], ts=data_neuro['ts'], cdtn=data_df['orient'], sk_std=0.005, color_style='continuous')
-
-[spcg, spcg_t, spcg_f] = pna.ComputeSpectrogram(data_neuro['data'], fs=data_neuro['signal_info']['sampling_rate'][0],
-                           t_ini=data_neuro['ts'][0], t_bin=0.200, t_step=None, t_axis=1, batchsize=500,
-                           f_lim=[5,200])
-
-
-def plot_tuning(t_window_plot=[0.0,0.15], tf_spcg=False, f_lim=[0,500], data_df=data_df, plot_type='psth'):
     h_fig, h_axes = pnp.create_array_layout_subplots(layout_GM32, tf_linear_indx=True)
     h_fig.set_size_inches([10, 9], forward=True)
     plt.tight_layout()
-    spcg_power = np.mean(spcg[:, np.logical_and(spcg_f >= f_lim[0], spcg_f < f_lim[1]), :, :], axis=1).transpose([0, 2, 1])
-    for i in range(len(data_neuro['signal_info'])):
+
+    for i in sorted(range(len(data_neuro['signal_info'])), reverse=True):
         ch = data_neuro['signal_info'][i]['channel_index']
         if ch <= 32:
             plt.axes(h_axes[ch - 1])
-            if plot_type == 'psth':
-                if tf_spcg:
-                    pnp.PsthPlot(spcg_power[:,:,ch-1], ts=spcg_t, cdtn=data_df['orient'], color_style='continuous', subpanel='')
-                else:
-                    pnp.PsthPlot(data_neuro['data'][:, :, i], ts=data_neuro['ts'], cdtn=data_df['orient'], color_style='continuous', subpanel='')
-            elif plot_type == 'tuning_curve':
-                if tf_spcg:
-                    tuning_x, tuning_y = pna.TuningCurve(spcg_power[:, :, ch-1], label=data_df['orient'], ts=spcg_t,
-                                                     t_window=[0, 0.200])
-                else:
-                    tuning_x, tuning_y = pna.TuningCurve(data_neuro['data'][:, :, i], label=data_df['orient'], ts=data_neuro['ts'],
-                                                         t_window=[0, 0.200])
-                plt.plot(tuning_x, tuning_y, 'o-')
+            if signal_type=='spcg':
+                pnp.SpectrogramPlot(spcg[:, :, i, :], spcg_t=spcg_t, spcg_f=spcg_f, limit_trial=trial_filter,
+                                    tf_phase=True, tf_mesh_t=False, tf_mesh_f=False,
+                                    tf_log=True, time_baseline=None,
+                                    t_lim=None, f_lim=[5, 100], c_lim=None, c_lim_style=None, name_cmap=None,
+                                    rate_interp=None, tf_colorbar=False)
+            elif signal_type=='spcg_diff':
+                pnp.SpectrogramPlot(data_neuro['spcg_diff'][:, i, :], spcg_t=spcg_t, spcg_f=spcg_f,
+                                    tf_phase=True, tf_mesh_t=False, tf_mesh_f=False,
+                                    tf_log=False, time_baseline=None,
+                                    t_lim=None, f_lim=[5, 100], c_lim=[-0.4,1], c_lim_style=None, name_cmap=None,
+                                    rate_interp=None, tf_colorbar=False)
+            elif signal_type=='cohg':
+                pnp.SpectrogramPlot(spcg_result['cohg'][(3,ch-1)], spcg_t=spcg_result['spcg_t'], spcg_f=spcg_result['spcg_f'],
+                                    tf_phase=True, tf_mesh_t=False, tf_mesh_f=False,
+                                    tf_log=False, time_baseline=None,
+                                    t_lim=None, f_lim=[5, 60], c_lim=[0,1], c_lim_style=None, name_cmap='viridis',
+                                    rate_interp=None, tf_colorbar=False,quiver_scale=7, max_quiver=16)
+            else:
+                pnp.PsthPlot(data_neuro['data'][:, :, i], ts=data_neuro['ts'], cdtn=data_df[group_by[0]],
+                             limit=trial_filter, sk_std=0.005, subpanel='')
+    return h_fig, h_axes
 
-plot_tuning(t_window_plot=[0.0,0.15], tf_spcg=True, f_lim=[30,55], plot_type='tuning_curve')
-plot_tuning(t_window_plot=[0.05,0.30], tf_spcg=False, f_lim=[30,55], plot_type='tuning_curve')
+#if task_type == 'MTS':
+#    plot_PSTH(t_window_plot=t_range, signal_type=signal_type, data_neuro=data_neuro)
 
 
+""" Get difference between stimulate & non stimulate """
 
+orient = 158
+if task_type == 'spot':
+    filter0 = np.logical_and( data_df['stimulate_type']==0, data_df['order']==0)
+    filter1 = np.logical_and( data_df['stimulate_type']==2, data_df['order']==0)
+elif task_type == 'MTS':
+    filter0 = np.logical_and( data_df['stimulate_type']==0, np.in1d(data_df['SampleOrientation'],orient) )
+    filter1 = np.logical_and( data_df['stimulate_type']==6, np.in1d(data_df['SampleOrientation'],orient))
 
+spcg_diff = np.log(np.mean(spcg[filter1,:,:,:], axis=0)) - np.log(np.mean(spcg[filter0,:,:,:], axis=0))
+data_neuro['spcg_diff'] = spcg_diff
+h_fig, h_axes = plot_PSTH(t_window_plot=t_range, signal_type=signal_type, data_neuro=data_neuro)
 
-""" ===== gratings ===== """
-
-signal_type = 'spk'
-
-keyword_tank = '.*Dexter.*170703.*'
-keyword_block= 'x.*texture.*'
-# keyword_block= 'x.*imageopto.*'
-
-""" load data: (1) neural data: TDT blocks -> neo format; (2)behaverial data: stim dg -> pandas DataFrame """
-[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data(keyword_block, keyword_tank, tf_interactive=True,
-                                                           dir_tdt_tank=dir_tdt_tank, dir_dg=dir_dg)
-
-""" Get StimOn time stamps in neo time frame """
-ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
-
-""" some settings for saving figures  """
-filename_common = misc_tools.str_common(name_tdt_blocks)
-dir_temp_fig = './temp_figs'
-
-""" make sure data field exists """
-data_df = data_load_DLSH.standardize_data_df(data_df, filename_common)
-blk = data_load_DLSH.standardize_blk(blk)
-
-""" waveform plot """
-# pnp.SpkWfPlot(blk.segments[0])
-
-""" data align """
-if signal_type == 'spk':
-    data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.2, 0.600], type_filter='spiketrains.*',
-                                               name_filter='.*Code[1-9]$', spike_bin_rate=1000)
-elif signal_type == 'LFP':
-    data_neuro = signal_align.blk_align_to_evt(blk, ts_StimOn, [-0.1, 0.5], type_filter='ana.*', name_filter='LFPs.*')
-
-data_df['orient_float'] = np.array(data_df['stim_names'].str.extract('fftnoise_(\d\d\d)_.*'), dtype=float)/180*np.pi
-data_df['hue_float']    = data_df['hue']*1.0
-data_df['orient'] = data_df['orient_float']
-
-t_focus = [0.05, 0.300]
-data_neuro = signal_align.neuro_sort(tlbl=data_df, grpby=['hue_float', 'orient_float'], fltr=[], neuro=data_neuro)
-
-pnp.RfPlot(data_neuro, indx_sgnl=2, t_focus=t_focus, psth_overlay=True, tf_scr_ctr=False)
+orients = [0,23,45,68,90,113,135,158]
+flim = [45, 55]
+tlim = [0.4, 0.7]
+t_index = np.logical_and(spcg_t>=tlim[0],spcg_t<=tlim[1])
+f_index = np.logical_and(spcg_f>=flim[0],spcg_f<=flim[1])
+spcg_values = {}
+for orient in orients:
+    filter0 = np.logical_and(data_df['stimulate_type'] == 0, np.in1d(data_df['SampleOrientation'], orient))
+    filter1 = np.logical_and(data_df['stimulate_type'] == 6, np.in1d(data_df['SampleOrientation'], orient))
+    spcg_diff = np.log(np.mean(spcg[filter1, :, :, :], axis=0)) - np.log(np.mean(spcg[filter0, :, :, :], axis=0))
+    for ch in range(32):
+        temp = np.log(spcg[:,f_index,ch,:])
+        temp = np.mean(np.mean(temp[:,:,t_index],axis=2),axis=1)
+        spcg_values[ch,orient] = np.mean(temp[filter1])-np.mean(temp[filter0])
 
 h_fig, h_axes = pnp.create_array_layout_subplots(layout_GM32, tf_linear_indx=True)
 h_fig.set_size_inches([10, 9], forward=True)
 plt.tight_layout()
-for i in sorted(range(len(data_neuro['signal_info'])), reverse=True):
-    ch = data_neuro['signal_info'][i]['channel_index']
-    if ch <= 32:
-        plt.axes(h_axes[ch - 1])
-        pnp.RfPlot(data_neuro, indx_sgnl=i, t_focus=t_focus,
-                   psth_overlay=False, tf_scr_ctr=True)
 
+for ch in range(32):
+    plt.axes(h_axes[ch])
+    for orient in orients:
+        plt.plot(orient,spcg_values[ch,orient],'o')
+
+
+""" Coherence """
+# calculate coherence (intermediate variable)
+ch_list0 = [3]
+ch_list1 = range(32)
+spcg_multipair = pna.ComputeSpcgMultiPair(data_neuro_LFP['data'], ch_list0, ch_list1, fs=data_neuro_LFP['signal_info']['sampling_rate'][0],
+                                          t_ini=data_neuro_LFP['ts'][0], t_bin=0.200, t_step=None, batchsize=100,f_lim=[5,200], tf_verbose=True)
+flim = [35,55]
+tlim = [0.4,0.7]
+t_index = np.logical_and(spcg_multipair['spcg_t']>=tlim[0],spcg_multipair['spcg_t']<=tlim[1])
+f_index = np.logical_and(spcg_multipair['spcg_f']>=flim[0],spcg_multipair['spcg_f']<=flim[1])
+cohg_values = {}
+orients = [0,23,45,68,90,113,135,158]
+for orient in orients:
+    filter_trial = np.logical_and( data_df['stimulate_type']==0, np.in1d(data_df['SampleOrientation'],orient))
+    spcg_result = pna.ComputeCohgFromIntermediate(spcg_multipair, limit_trial=filter_trial, tf_phase=False)
+    for ch in spcg_result['ch_list1']:
+        cohg_values[ch,orient] = np.mean(np.mean(spcg[np.ix_(f_index,t_index)],axis=1))
+
+
+h_fig, h_axes = pnp.create_array_layout_subplots(layout_GM32, tf_linear_indx=True)
+h_fig.set_size_inches([10, 9], forward=True)
+plt.tight_layout()
+
+for ch in spcg_result['ch_list1']:
+    plt.axes(h_axes[ch])
+    for orient in orients:
+        plt.plot(orient,cohg_values[ch,orient],'o')
+plt.ylim([0,1])
+
+
+orient = [0,23,45,68,90,113,135,158]
+filter_trial = np.logical_and( data_df['stimulate_type']==6, np.in1d(data_df['SampleOrientation'],orient))
+spcg_result = pna.ComputeCohgFromIntermediate(spcg_multipair, limit_trial=filter_trial, tf_phase=True)
+plot_PSTH(t_window_plot=t_range, signal_type=signal_type, data_neuro=data_neuro,spcg_result=spcg_result)

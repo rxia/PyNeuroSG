@@ -657,7 +657,7 @@ def ComputeSpectrogram(data, data1=None, fs=1000.0, t_ini=0.0, t_bin=None, t_ste
 
 def ComputeCoherogram(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, f_lim=None, batchsize=100,
                       tf_phase=False, tf_shuffle=False, tf_vs_shuffle = False,
-                      data0_spcg=None, data1_spcg=None, data0_spcg_ave=None, data1_spcg_ave=None):
+                      data0_spcg=None, data1_spcg=None, data0_spcg_ave=None, data1_spcg_ave=None, data01_spcg=None):
     """
     Compuate LFP-LFP coherence over sliding window, takes two [ trials * timestamps] arrays, or one [ trials * timestamps * 2] arrays
 
@@ -709,9 +709,10 @@ def ComputeCoherogram(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=Non
         spcg_yy_ave = data1_spcg_ave
     # Pxy
     [spcg_xy, spcg_t, spcg_f] = ComputeSpectrogram(data0, data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, batchsize=batchsize, f_lim=f_lim)
+
     spcg_xy_ave = np.mean(spcg_xy, axis=0)
 
-    # cohreence
+    # coherence
     cohg = np.abs(spcg_xy_ave)**2 / (spcg_xx_ave  *  spcg_yy_ave)
 
     if tf_shuffle:
@@ -731,6 +732,74 @@ def ComputeCoherogram(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=Non
         cohg = cohg * np.exp(np.angle(spcg_xy_ave) *1j )
 
     return [cohg, spcg_t, spcg_f]
+
+""" TODO: building an intermediate variable """
+def ComputeSpcgMultiPair(data, ch_list0, ch_list1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, f_lim=None, batchsize=100,
+                      tf_shuffle=False, tf_vs_shuffle = False, tf_verbose = False):
+
+    spcg_xx = {}
+    spcg_yy = {}
+    spcg_xy = {}
+
+    if tf_verbose:
+        print('compute xx')
+    for ch0 in ch_list0:
+        if tf_verbose:
+            print(ch0)
+        data0 = data[:,:,ch0]
+        [spcg_xx_cur, _, _] = ComputeSpectrogram(data0, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step,
+                                                 batchsize=batchsize, f_lim=f_lim)
+        spcg_xx[ch0] = spcg_xx_cur
+    if tf_verbose:
+        print('compute yy')
+    for ch1 in ch_list1:
+        if tf_verbose:
+            print(ch1)
+        data1 = data[:,:,ch1]
+        [spcg_yy_cur, _, _] = ComputeSpectrogram(data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step,
+                                                 batchsize=batchsize, f_lim=f_lim)
+        spcg_yy[ch1] = spcg_yy_cur
+    if tf_verbose:
+        print('compute xy')
+    for ch0 in ch_list0:
+        data0 = data[:, :, ch0]
+        for ch1 in ch_list1:
+            if tf_verbose:
+                print(ch0, ch1)
+            data1 = data[:, :, ch1]
+            [spcg_xy_cur, spcg_t, spcg_f] = ComputeSpectrogram(data0, data1, fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step,
+                                                     batchsize=batchsize, f_lim=f_lim)
+            spcg_xy[(ch0, ch1)] = spcg_xy_cur
+    spcg_multipair = {}
+    spcg_multipair['ch_list0'] = ch_list0
+    spcg_multipair['ch_list1'] = ch_list1
+    spcg_multipair['spcg_xx'] = spcg_xx
+    spcg_multipair['spcg_yy'] = spcg_yy
+    spcg_multipair['spcg_xy'] = spcg_xy
+    spcg_multipair['spcg_t'] = spcg_t
+    spcg_multipair['spcg_f'] = spcg_f
+
+    return spcg_multipair
+
+def ComputeCohgFromIntermediate(spcg_multipair, limit_trial=None, tf_phase=False):
+
+    if limit_trial is None:
+        limit_trial = range(spcg_multipair['spcg_xx'][spcg_multipair['ch_list0'][0]].shape[0])
+
+    spcg_multipair['cohg']={}
+
+    for ch0 in spcg_multipair['ch_list0']:
+        spcg_xx_ave = np.mean(spcg_multipair['spcg_xx'][ch0][limit_trial, :, :], axis=0)
+        for ch1 in spcg_multipair['ch_list1']:
+            spcg_yy_ave = np.mean(spcg_multipair['spcg_yy'][ch1][limit_trial, :, :], axis=0)
+            spcg_xy_ave = np.mean(spcg_multipair['spcg_xy'][(ch0,ch1)][limit_trial,:,:], axis=0)
+            # coherence
+            cohg_cur = np.abs(spcg_xy_ave) ** 2 / (spcg_xx_ave * spcg_yy_ave)
+            if tf_phase:
+                cohg_cur = cohg_cur * np.exp(np.angle(spcg_xy_ave) * 1j)
+            spcg_multipair['cohg'][(ch0,ch1)] = cohg_cur
+
+    return spcg_multipair
 
 
 
