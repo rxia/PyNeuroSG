@@ -50,6 +50,38 @@ def SmoothTrace(data, sk_std=None, fs=1.0, ts=None, axis=1):
 
 
 
+def AveOverTime(data, t_range=None, ts=None, t_axis=1, tf_count=False):
+    """
+    smooth data using a gaussian kernel
+
+    :param data:    a N dimensional array, default to [num_trials * num_timestamps * num_channels]
+    :param t_range: range of time to compute average on, e.g. [0.050, 0.400]
+    :param ts:      timestamps, an array, which can overwrite fs;   len(ts)==data.shape[axis] should hold,
+    :param t_axis:  axis of data along which data will be averaged
+    :param tf_count:True/False output spike count instead of firing rate
+    :return:        smoothed data of the same size
+    """
+
+    if ts is None:
+        ts = np.arange(data.shape[t_axis])
+
+    if t_range is None:
+        t_range = ts[[0, -1]]
+
+    # get sampling rate
+    fs = 1.0/np.mean(np.diff(ts))
+
+    indx_in_range = np.flatnonzero( (ts >= t_range[0]) * (ts < t_range[1]) )
+    data_in_range = np.take(data, indx_in_range, axis=t_axis)
+    data_ave = np.mean(data_in_range, axis=t_axis)
+
+    if tf_count:
+        data_ave = np.round(data_ave/fs*len(indx_in_range))
+
+    return data_ave
+
+
+
 def GroupAve(data_neuro, data=None):
     """
     for data_neuro object, get average response using the groupby information
@@ -733,9 +765,30 @@ def ComputeCoherogram(data0, data1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=Non
 
     return [cohg, spcg_t, spcg_f]
 
-""" TODO: building an intermediate variable """
+
+
+
 def ComputeSpcgMultiPair(data, ch_list0, ch_list1, fs=1000.0, t_ini=0.0, t_bin=None, t_step=None, f_lim=None, batchsize=100,
                       tf_shuffle=False, tf_vs_shuffle = False, tf_verbose = False):
+    """
+    Compute LFP spectrograms and cross-specgrograms over sliding window for all given pairs of channels,
+    returns a dictionary containing all related info,
+    This funciton calls the
+    useful for computing coherence flexibly later using function ComputeCohgFromIntermediate()
+    :param data:         LFP arrays of all channels, of shape [N_trials, N_ts]
+    :param ch_list0:
+    :param ch_list1:
+    :param fs:
+    :param t_ini:
+    :param t_bin:
+    :param t_step:
+    :param f_lim:
+    :param batchsize:
+    :param tf_shuffle:
+    :param tf_vs_shuffle:
+    :param tf_verbose:
+    :return:
+    """
 
     spcg_xx = {}
     spcg_yy = {}

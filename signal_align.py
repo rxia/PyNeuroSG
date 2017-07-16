@@ -167,6 +167,7 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
     # print signal_names
     return {'data': data, 'ts': ts, 'signal_info': signal_info}
 
+
 def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', name_filter='.*', chan_filter=[],spike_bin_rate=1000):
     """
     Function to break neo signal objects (in a block contains multiple segments) according to given timestamps and align them together

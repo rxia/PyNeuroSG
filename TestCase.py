@@ -41,7 +41,7 @@ if True:
               + np.sin(2 * np.pi * f1 * ts + phi1) \
               + np.random.randn(N_trial, N_ts) * Noise1
     signal2 = np.sin(2 * np.pi * f0s * ts + phi0s - phi0s_lag_cycle*2*np.pi) * np.linspace(0,2,N_ts)*(np.linspace(0,2,N_ts)>1) \
-              + + np.sin(2 * np.pi * f0n * ts + phi0n) \
+              + np.sin(2 * np.pi * f0n * ts + phi0n) \
               + np.sin(2 * np.pi * f2 * ts + phi2) * np.linspace(2,0,N_ts) \
               + np.random.randn(N_trial, N_ts) * Noise2
     [spcg1, spcg_t, spcg_f] = pna.ComputeSpectrogram(signal1, fs=fs, t_bin=t_bin, t_ini=t_ini, f_lim=[0, 120])
@@ -83,7 +83,7 @@ if True:
                         rate_interp=8, name_cmap='viridis')
     plt.title('coherence')
 
-    plt.savefig('./demo_figs/Showcase_LFP_spectrogram_coherence')
+    plt.savefig('./temp_figs/Showcase_LFP_spectrogram_coherence')
     plt.show()
 
 

@@ -1196,6 +1196,135 @@ def create_array_layout_subplots(array_layout, tf_linear_indx=True, tf_text_ch=F
     return [h_fig, h_axes]
 
 
+
+
+def DataFastSubplot(data_list, layout=None, data_type=None, gap = 0.05, tf_axis=True, tf_label=True,
+                    tf_nmlz = True, xx=None, yy=None):
+
+    N_data = len(data_list)
+
+    if data_type is None:
+        data_type = 'line'
+
+    if layout is None:             # if not give, set layout to be the number of data
+        layout = N_data
+    if np.array(layout).size==1:   # if is a single number, turn to [num_row, num_col]
+        ncol = int(np.ceil(np.sqrt(layout)))
+        nrow = int(np.ceil(1.0*layout/ncol))
+        layout = (nrow, ncol)
+
+    plt.axes([0.05, 0.02, 0.94, 0.90])
+
+    if data_type == 'mesh':
+        """ get the sizes """
+        ny_mesh, nx_mesh = data_list[0].shape    # size of every panel
+        nx_gap = int(np.ceil(nx_mesh * gap))     # size of gap between panels
+        ny_gap = int(np.ceil(ny_mesh * gap))
+        nx_cell = nx_mesh+nx_gap                 # a cell is panel with gap
+        ny_cell = ny_mesh+ny_gap
+        nx_shift = nx_gap//2                     # shift the starting point of panel to be half the gap
+        ny_shift = ny_gap // 2
+        nx_canvas = (nx_mesh + nx_gap) * ncol    # size of canvas
+        ny_canvas = (ny_mesh + ny_gap) * nrow
+
+        # initialize the data for canvas
+        mesh_canvas = np.zeros([ny_canvas, nx_canvas])*np.nan
+        # contains the data for mask (create frames between panels)
+        mask_canvas = np.zeros([ny_canvas, nx_canvas])
+
+        if xx is None:
+            xx = np.arange(nx_mesh)
+        if yy is None:
+            yy = np.arange(ny_mesh)
+
+
+        """ normalize individual mesh plot to range [0,1] before putting them together """
+        if tf_nmlz:
+            for i in range(N_data):
+                cur_min = np.nanmin(data_list[i])
+                cur_max = np.nanmax(data_list[i])
+                data_list[i] = (data_list[i] - cur_min) / (cur_max - cur_min)
+
+        """ put mesh plot together into the big canvas matrix """
+        def indx_in_canvas(indx, rowcol='row', startend='start'):
+            # function to compute the index on cavas
+            if rowcol == 'row':
+                n_cell = ny_cell
+                n_shift  = ny_shift
+                n_mesh = ny_mesh
+            else:
+                n_cell = nx_cell
+                n_shift = nx_shift
+                n_mesh = nx_mesh
+            return indx * n_cell + n_shift + n_mesh * (startend=='end')
+
+        def map_value_in_cavas(values, row=0, col=0, xy='x'):
+            if xy=='x':
+                range_value = (np.min(xx), np.max(xx))
+                n_mesh = nx_mesh
+                indx = col
+                rowcol = 'col'
+            elif xy=='y':
+                range_value = (np.min(yy), np.max(yy))
+                n_mesh = ny_mesh
+                indx = row
+                rowcol = 'row'
+            return 1.0*(np.array(values) - range_value[0]) / (range_value[1]-range_value[0]) \
+                   * (n_mesh-1) + indx_in_canvas(indx, rowcol)
+
+        for i in range(N_data):
+            row = i // ncol    # row index of panel
+            col = i %  ncol    # col index of panel
+            # fill the mesh data of the panel in to the right location of canvas matrix for mesh plot
+            mesh_canvas[indx_in_canvas(row, 'row','start') : indx_in_canvas(row, 'row','end'),
+                        indx_in_canvas(col, 'col', 'start') : indx_in_canvas(col, 'col','end')] = data_list[i]
+            # fill value 1.0 to the pixels that contains mesh data in the canvas matrix for mask
+            mask_canvas[indx_in_canvas(row, 'row','start') : indx_in_canvas(row, 'row','end'),
+                        indx_in_canvas(col, 'col', 'start') : indx_in_canvas(col, 'col','end')] = 1
+
+        # create colormap for mask (transparent if 0.0, opaque if 1.0)
+        cmap_mask = mpl.colors.LinearSegmentedColormap.from_list('cmap_mask', [(0.9, 0.9, 0.9, 1.0), (0.9, 0.9, 0.9, 0.1)], N=2)
+
+        """ plot big matrix containing all mesh plots """
+        # # mesh data
+        plt.imshow(mesh_canvas, vmin=np.nanmin(mesh_canvas), vmax=np.nanmax(mesh_canvas), cmap='inferno', aspect='auto')
+        # # maks that forms the frames that seperates data panels
+        plt.imshow(mask_canvas, vmin=0, vmax=1, cmap=cmap_mask, aspect='auto')
+
+        """ make plot look better """
+        # set y axis direction in the imshwow format
+        ylim =np.array(plt.gca().get_ylim())
+        plt.gca().set_ylim( ylim.max(), ylim.min() )
+        plt.axis('off')
+
+        """ plot panel axis and ticks """
+        if tf_axis:
+            for i in range(N_data):
+                row = i // ncol    # row index of panel
+                col = i %  ncol    # col index of panel
+                # axis line
+                plt.plot([indx_in_canvas(col, 'col', 'start'), indx_in_canvas(col, 'col', 'end') - 1],
+                         [indx_in_canvas(row, 'row', 'end') - 0.5, indx_in_canvas(row, 'row', 'end') - 0.5],
+                         'k-', alpha=0.5)
+                plt.plot([indx_in_canvas(col, 'col', 'start') -0.5, indx_in_canvas(col, 'col', 'start') -0.5],
+                         [indx_in_canvas(row, 'row', 'start') , indx_in_canvas(row, 'row', 'end') - 1],
+                         'k-', alpha=0.5)
+                # axis tick
+                plt.vlines(map_value_in_cavas(auto_tick(xx), row, col, xy='x'), indx_in_canvas(row, 'row', 'end') - 0.5,
+                           indx_in_canvas(row, 'row', 'end') - 0.5 + ny_gap / 4.0, alpha=0.5)
+                plt.hlines(map_value_in_cavas(auto_tick(yy), row, col, xy='y'), indx_in_canvas(col, 'col', 'start') - 0.5,
+                           indx_in_canvas(col, 'col', 'start') - 0.5 - nx_gap / 4.0, alpha=0.5)
+
+        """ plot labels """
+        if tf_label:
+            for i in range(N_data):
+                row = i // ncol    # row index of panel
+                col = i %  ncol    # col index of panel
+                plt.text(indx_in_canvas(col, 'col', 'start'), indx_in_canvas(row, 'row', 'start')-0.5, '')
+
+
+
+
 def center2edge(centers):
     # tool function to get edges from centers for plt.pcolormesh
     centers = np.array(centers,dtype='float')
@@ -1321,6 +1450,37 @@ def share_clim(h_ax, c_lim=None):
         if plt.gci() is not None:
             plt.clim(c_lim)
     return c_lim
+
+
+
+def auto_tick(data_range, max_tick=10, tf_inside=False):
+    """
+    tool function that automatically calculate optimal ticks based on range and the max number of ticks
+    :param data_range:   range of data, e.g. [-0.1, 0.5]
+    :param max_tick:     max number of ticks, an interger, default to 10
+    :param tf_inside:    True/False if only allow ticks to be inside
+    :return:             list of ticks
+    """
+    data_range = np.array(data_range, dtype=float)
+    if len(data_range)>2:
+        data_range = [data_range.min(), data_range.max()]
+    data_span = data_range[1] - data_range[0]
+    scale = 10.0**np.floor(np.log10(data_span))    # scale of data as the order of 10, e.g. 1, 10, 100, 0.1, 0.01, ...
+    list_tick_size_nmlz = [5.0, 2.0, 1.0, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01]   # possible tick sizes for normalized data in range [1, 10]
+    tick_size_nmlz = 1.0     # initial tick size for normalized data
+    for i in range(len(list_tick_size_nmlz)):                 # every loop reduces tick size thus increases tick number
+        num_tick = data_span/scale/list_tick_size_nmlz[i]     # number of ticks for the current tick size
+        if num_tick > max_tick:                               # if too many ticks, break loop
+            tick_size_nmlz = list_tick_size_nmlz[i-1]
+            break
+    tick_size = tick_size_nmlz * scale             # tick sizse for the original data
+    ticks = np.unique(np.arange(data_range[0]/tick_size, data_range[1]/tick_size).round())*tick_size    # list of ticks
+
+    if tf_inside:     # if only allow ticks within the given range
+        ticks = ticks[ (ticks>=data_range[0]) * (ticks<=data_range[1])]
+
+    return ticks
+
 
 # to test:
 if 0:
