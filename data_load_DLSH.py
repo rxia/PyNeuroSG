@@ -14,68 +14,122 @@ import warnings
 
 def get_file_name(keyword = None,           # eg. 'd_.*_122816'
                   keyword_tank = None,      # eg. '.*GM32_U16.*161228.*'
-                  tf_interactive = False,
+                  tf_interactive = False, tf_verbose=False,
                   dir_tdt_tank  = '/Volumes/Labfiles/projects/encounter/data/TDT/',
-                  dir_dg  = '/Volumes/Labfiles/projects/analysis/shaobo/data_dg'):
+                  dir_dg  = '/Volumes/Labfiles/projects/analysis/shaobo/data_dg',
+                  mode='both'):
     """
     funciton to get the name of data files
     :param keyword:         key word for tdt blocks
     :param keyword_tank:    key word for tdt tanks
     :param tf_interactive:  flag for interactively selecting file
+    :param tf_verbose:      flag for printing stuff
     :param dir_tdt_tank:    root directory for tdt tanks    (neural data)
     :param dir_dg:          root directory for stimdg files (behavioral data)
+    :param mode:            'tdt', 'dg', or 'both'; default to 'both'
     :return:                (name_tdt_blocks, path_tdt_tank)
     """
 
     name_tdt_blocks = []
-    name_tdt_tank = ''
     path_tdt_tank = ''
 
-    """ get the list of tanks that matches the keyword """
-    list_name_tanks = os.listdir(dir_tdt_tank)
-    if keyword_tank is not None:                            # if keyword_tank is given, filter the range
-        list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keyword_tank, name_tank) is not None]
+    """ ===== read tdt block name ===== """
+    if (mode == 'both') or (mode=='tdt'):
 
-    """ search for blocks that matches the keyword """
-    for name_tank in list_name_tanks:                       # for every directory
-        path_tank = os.path.join(dir_tdt_tank, name_tank)   # get path
-        if os.path.isdir(path_tank):                        # if is directory, treat as a tank
-            for name_block in os.listdir(path_tank):        # for every block
-                if re.match(keyword, name_block) and os.path.isdir(os.path.join(path_tank, name_block)) is not None:  # if matches the keyword
-                    name_tdt_blocks.append(name_block)
-        if len(name_tdt_blocks) >0:                         # if matching blocks exist, break
-            name_tdt_tank = name_tank
-            path_tdt_tank = path_tank
-            break
+        name_tdt_blocks = []
+        name_tdt_tank = ''
+        path_tdt_tank = ''
 
-    """ sort the names """
-    name_tdt_blocks.sort()
+        """ get the list of tanks that matches the keyword """
+        list_name_tanks = os.listdir(dir_tdt_tank)
+        if keyword_tank is not None:                            # if keyword_tank is given, filter the range
+            list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keyword_tank, name_tank) is not None]
 
-    """ if interactive mode, use keyboard to confirm the selection """
-    if tf_interactive:           # if interactive, type in y/n to select every file
-        name_tdt_blocks_select = []
-        print('')
-        print('the tank selected is {}'.format(name_tdt_tank))
-        print('the blocks selected are {}'.format(name_tdt_blocks))
-        action_keyboard = raw_input('please type to confirm: accept all (a) / decline all (d) / select one-by-one (s)')
-        if action_keyboard == 'a':
-            pass
-        elif action_keyboard == 'd':
-            name_tdt_blocks = []
-            path_tdt_tank   = ''
-        elif action_keyboard == 's':
-            i=0
-            while i<len(name_tdt_blocks):
-                name_block = name_tdt_blocks[i]
-                yn_keyboard = raw_input('keep file {}: (y/n)'.format(name_block))
-                if yn_keyboard == 'y':
-                    name_tdt_blocks_select.append(name_block)
-                    i = i + 1
-                elif yn_keyboard == 'n':
-                    i = i + 1
-                else:
-                    print('please type "y" or "n"')
-            name_tdt_blocks = name_tdt_blocks_select
+        """ search for blocks that matches the keyword """
+        for name_tank in list_name_tanks:                       # for every directory
+            path_tank = os.path.join(dir_tdt_tank, name_tank)   # get path
+            if os.path.isdir(path_tank):                        # if is directory, treat as a tank
+                for name_block in os.listdir(path_tank):        # for every block
+                    if re.match(keyword, name_block) and os.path.isdir(os.path.join(path_tank, name_block)) is not None:  # if matches the keyword
+                        name_tdt_blocks.append(name_block)
+            if len(name_tdt_blocks) >0:                         # if matching blocks exist, break
+                name_tdt_tank = name_tank
+                path_tdt_tank = path_tank
+                break
+
+        # sort the names
+        name_tdt_blocks.sort()
+
+        """ if interactive mode, use keyboard to confirm the selection """
+        if tf_interactive:           # if interactive, type in y/n to select every file
+            name_tdt_blocks_select = []
+            print('')
+            print('the tank selected is {}'.format(name_tdt_tank))
+            print('the blocks selected are {}'.format(name_tdt_blocks))
+            action_keyboard = raw_input('please type to confirm: accept all (a) / decline all (d) / select one-by-one (s)')
+            if action_keyboard == 'a':
+                pass
+            elif action_keyboard == 'd':
+                name_tdt_blocks = []
+                path_tdt_tank   = ''
+            elif action_keyboard == 's':
+                i=0
+                while i<len(name_tdt_blocks):
+                    name_block = name_tdt_blocks[i]
+                    yn_keyboard = raw_input('keep file {}: (y/n)'.format(name_block))
+                    if yn_keyboard == 'y':
+                        name_tdt_blocks_select.append(name_block)
+                        i = i + 1
+                    elif yn_keyboard == 'n':
+                        i = i + 1
+                    else:
+                        print('please type "y" or "n"')
+                name_tdt_blocks = name_tdt_blocks_select
+
+
+    """ ===== read dg name ===== """
+    if (mode=='both') or (mode=='dg'):
+
+        name_dgs = []
+        for name_dg in os.listdir(dir_dg):
+            if re.match(keyword, name_dg):   # if matches the keyword
+                name_dgs.append(name_dg)
+        # remove .dg extention name
+        name_dgs = [re.match('(.*)\.dg', name_dg).group(1) for name_dg in name_dgs if re.match('.*\.dg', name_dg) is not None]
+        name_dgs.sort()
+
+        """ interactive mode if tdt is not used """
+        if tf_interactive == True and path_tdt_tank == '':
+            name_dgs_select = []
+            print('')
+            print('the dgs selected are {}'.format(name_dgs))
+            action_keyboard = raw_input('please type to confirm: accept all (a) / decline all (d) / select one-by-one (s)')
+            if action_keyboard == 'a':
+                pass
+            elif action_keyboard == 'd':
+                name_dgs = []
+            elif action_keyboard == 's':
+                for i in range(len(name_dgs)):
+                    name_dg = name_dgs[i]
+                    yn_keyboard = raw_input('keep file {}: (y/n)'.format(name_dg))
+                    if yn_keyboard == 'y':
+                        name_dgs_select.append(name_dg)
+                    elif yn_keyboard == 'n':
+                        pass
+                    else:
+                        print('please type "y" or "n"')
+                name_dgs = name_dgs_select
+
+        if mode=='both':    # get intersection of name_tdt_blocks and name_dgs
+            print('the following tdt blockes are selected: {}'.format(name_tdt_blocks))
+            print('the following dg files are selected: {}'.format(name_dgs))
+            name_tdt_blocks = list(np.intersect1d(name_tdt_blocks, name_dgs))
+            print('the their intersections are: {}'.format(name_tdt_blocks))
+        elif mode=='dg':
+            name_tdt_blocks = name_dgs
+            print('the following dg files are selected: {}'.format(name_dgs))
+        elif mode=='tdt':
+            print('the following tdt blosks are selected: {}'.format(name_tdt_blocks))
 
     return (name_tdt_blocks, path_tdt_tank)
 
@@ -87,7 +141,8 @@ def load_data(keyword = None,
               dir_dg  = '/Volumes/Labfiles/projects/analysis/shaobo/data_dg',
               sortname = 'PLX',
               tf_interactive = True ,
-              tf_verbose = True):
+              tf_verbose = True,
+              mode = 'both'):
     """
     :param keyword:         key word for tdt blocks
     :param keyword_tank:    key word for tdt tanks
@@ -96,13 +151,15 @@ def load_data(keyword = None,
     :param sortname:        name of sort code in TDT format
     :param tf_interactive:  flag for interactively selecting file
     :param tf_verbose:      flag for print intermediate results
+    :param mode:            'tdt', 'dg', or 'both'; default to 'both'
     :return:                (blk, data_df, name_datafiles)
     """
 
 
     """ ----- get the name and path of data files ----- """
     [name_tdt_blocks, path_tdt_tank] = \
-        get_file_name(keyword, keyword_tank, tf_interactive=tf_interactive, dir_tdt_tank = dir_tdt_tank, dir_dg=dir_dg)
+        get_file_name(keyword, keyword_tank, dir_tdt_tank = dir_tdt_tank, dir_dg=dir_dg,
+                      tf_verbose=tf_verbose, tf_interactive=tf_interactive, mode=mode)
 
     file_dgs = [name + '.dg' for name in name_tdt_blocks]   # add '.dg' to every name
     name_datafiles = name_tdt_blocks
@@ -110,46 +167,50 @@ def load_data(keyword = None,
         print('')
         print('the data files to be loaded are: {}'.format(name_datafiles))
 
-    """ ----- load neural data ----- """
-    blk = neo.core.Block()                       # block object containing multiple segments, each represents data form one file
-    reader = neo.io.TdtIO(dirname=path_tdt_tank)  # reader for loading data
-    for name_tdt_block in name_tdt_blocks:       # for every data file
-        if tf_verbose:
-            print('loading TDT block: {}'.format(name_tdt_block))
-        seg = reader.read_segment(blockname=name_tdt_block, sortname=sortname)   # read one TDT file as a segment of block
-        blk.segments.append(seg)                 # append to blk object
-    if tf_verbose:
-        print('finish loading tdt blocks')
+    blk = None
+    data_df = None
 
+    """ ----- load neural data ----- """
+    if mode=='both' or mode=='tdt':
+        blk = neo.core.Block()                       # block object containing multiple segments, each represents data form one file
+        reader = neo.io.TdtIO(dirname=path_tdt_tank)  # reader for loading data
+        for name_tdt_block in name_tdt_blocks:       # for every data file
+            if tf_verbose:
+                print('loading TDT block: {}'.format(name_tdt_block))
+            seg = reader.read_segment(blockname=name_tdt_block, sortname=sortname)   # read one TDT file as a segment of block
+            blk.segments.append(seg)                 # append to blk object
+        if tf_verbose:
+            print('finish loading tdt blocks')
 
     """ ----- load behaviral data ----- """
-    data_dfs = []                                # list containing multiple pandas dataframes, each represents data form one file
-    for i in range(len(file_dgs)):                     # for every data file, read as a segment of block
-        file_dg = file_dgs[i]
+    if mode=='both' or mode=='dg':
+        data_dfs = []                                # list containing multiple pandas dataframes, each represents data form one file
+        for i in range(len(file_dgs)):                     # for every data file, read as a segment of block
+            file_dg = file_dgs[i]
+            if tf_verbose:
+                print('loading dg: {}'.format(file_dg))
+            path_dg = os.path.join(dir_dg, file_dg)
+            data_df = dg2df.dg2df(path_dg)                # read using package dg2df, returns a pandas dataframe
+            data_df['filename'] = [file_dg]*len(data_df)  # add a column for filename
+            data_df['fileindex'] = [i] * len(data_df)     # add a column for file id (index from zero to n-1)
+            data_dfs.append(data_df)
+
+        if len(data_dfs)>0:
+            data_df = pd.concat(data_dfs)                # concatenate in to one single data frame
+            data_df = data_df.reset_index(range(len(data_df)))
+        else:
+            data_df = pd.DataFrame([])
+
+        data_df[''] = [''] * len(data_df)            # empty column, make some default condition easy
+
         if tf_verbose:
-            print('loading dg: {}'.format(file_dg))
-        path_dg = os.path.join(dir_dg, file_dg)
-        data_df = dg2df.dg2df(path_dg)                # read using package dg2df, returns a pandas dataframe
-        data_df['filename'] = [file_dg]*len(data_df)  # add a column for filename
-        data_df['fileindex'] = [i] * len(data_df)     # add a column for file id (index from zero to n-1)
-        data_dfs.append(data_df)
-
-    if len(data_dfs)>0:
-        data_df = pd.concat(data_dfs)                # concatenate in to one single data frame
-        data_df = data_df.reset_index(range(len(data_df)))
-    else:
-        data_df = pd.DataFrame([])
-
-    data_df[''] = [''] * len(data_df)            # empty column, make some default condition easy
-
-    if tf_verbose:
-        print('finish loading and concatenating dgs')
+            print('finish loading and concatenating dgs')
 
     return (blk, data_df, name_datafiles)
 
 
 
-def standardize_data_df(data_df, filename_common):
+def standardize_data_df(data_df, filename_common=''):
     """
     add colums that is necessary for later analysis
     :param data_df:            pandas dataframe, where every row represent one trial
@@ -157,7 +218,14 @@ def standardize_data_df(data_df, filename_common):
     :return:                   data_df, with extra columns
     """
 
-    data_df[''] = [''] * len(data_df)  # empty column, make some default condition easy
+    # add empty column, make some default condition easy
+    data_df[''] = [''] * len(data_df)
+    # add index column
+    if 'obsid' in data_df.keys():
+        if 'fileindex' in data_df.keys():
+            data_df['obs_total'] = np.sum(np.array(data_df.groupby('fileindex')['obsid'].agg(np.max)))
+        else:
+            data_df['obs_total'] = np.array(data_df['obsid']).max()
 
     if re.match('.*matchnot.*', filename_common) is not None:
         data_df['stim_names'] = data_df.SampleFilename
