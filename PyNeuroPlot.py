@@ -50,9 +50,9 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
     """ determine plot style if not given """
     if plot_type is None:
         if len(x_unq) <= 16:
-            plot_type == 'box'
+            plot_type = 'box'
         else:
-            plot_type == 'dot'
+            plot_type = 'dot'
 
     if plot_type in ['bar', 'box', 'violin']:
         plot_supertype = 'discrete'
@@ -60,7 +60,7 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
         plot_supertype = 'continuous'
 
 
-    tf_multipanel = Np >1
+    tf_multipanel = (Np >1)
     if tf_multipanel:
         nrow, ncol = AutoRowCol(len(p_unq))
         h_fig, h_ax = plt.subplots(nrows=nrow, ncols=ncol, sharex=True, sharey=True, squeeze=False)

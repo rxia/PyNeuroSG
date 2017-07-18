@@ -21,7 +21,6 @@ import data_load_DLSH
 
 # dir_dg = '/shared/homes/sguan/neuro_data/stim_dg'
 dir_dg = '/shared/lab/projects/analysis/shaobo/data_dg'
-dir_dg = 'L:/projects/analysis/shaobo/data_dg'
 list_name_dg_all = os.listdir(dir_dg)
 
 keyword_dg = 'h.*_071717.*'
@@ -40,5 +39,5 @@ reload(pnp); pnp.GroupPlot(values=data_df['rts'], x=data_df['obsid'], c=data_df[
 reload(pnp); pnp.GroupPlot(values=data_df['rts'], x=data_df['TargetOnset'], c=data_df['side'], p=data_df['filename'], plot_type='bar', tf_legend=True, values_name='rt', c_name='side', p_name='filename')
 reload(pnp); pnp.GroupPlot(values=data_df['rts'], x=data_df['TargetOnset'], c=data_df['side'], p=data_df['filename'], plot_type='box', tf_legend=True, values_name='rt', c_name='side', p_name='filename')
 reload(pnp); pnp.GroupPlot(values=data_df['rts'], x=data_df['TargetOnset'], c=data_df['side'], p=data_df['filename'], plot_type='box', tf_legend=True, values_name='rt', c_name='side', p_name='filename')
-reload(pnp); pnp.GroupPlot(values=data_df['rts'], x=data_df['TargetOnset'], c=data_df['side'], plot_type='box', tf_legend=True, values_name='rt', c_name='side')
+reload(pnp); pnp.GroupPlot(values=data_df['rts'], x=data_df['TargetOnset'], c=data_df['side'], plot_type='violin', tf_legend=True, values_name='rt', c_name='side')
 
