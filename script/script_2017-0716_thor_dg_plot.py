@@ -21,6 +21,7 @@ import data_load_DLSH
 
 # dir_dg = '/shared/homes/sguan/neuro_data/stim_dg'
 dir_dg = '/shared/lab/projects/analysis/shaobo/data_dg'
+dir_dg = 'L:/projects/analysis/shaobo/data_dg'
 list_name_dg_all = os.listdir(dir_dg)
 
 keyword_dg = 'h.*_071717.*'
