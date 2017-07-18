@@ -13,7 +13,99 @@ import signal_align
 import PyNeuroAna as pna
 
 
-def DfPlot(df, y, x, c='', p='', test_version=False):
+
+def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_legend=False,
+              values_name='', _x_name='', c_name='', p_name=''):
+
+    """ set default values for inputs """
+    N = len(values)
+    if x is None:
+        x = np.array(['']*N)
+    else:
+        x = np.array(x)
+    if c is None:
+        c = np.array(['']*N)
+    else:
+        c = np.array(c)
+    if p is None:
+        p = np.array(['']*N)
+    else:
+        p = np.array(p)
+    if limit is None:
+        limit = np.ones(N, dtype=bool)
+    else:
+        values = values[limit]
+        x = x[limit]
+        c = c[limit]
+        p = p[limit]
+
+    """ number of conditions """
+    x_unq = np.unique(x)
+    c_unq = np.unique(c)
+    p_unq = np.unique(p)
+    Nx = len(x_unq)
+    Nc = len(c_unq)
+    Np = len(p_unq)
+
+    """ determine plot style if not given """
+    if plot_type is None:
+        if len(x_unq) <= 16:
+            plot_type == 'box'
+        else:
+            plot_type == 'dot'
+
+    if plot_type in ['bar', 'box', 'violin']:
+        plot_supertype = 'discrete'
+    else:
+        plot_supertype = 'continuous'
+
+
+    tf_multipanel = Np >1
+    if tf_multipanel:
+        nrow, ncol = AutoRowCol(len(p_unq))
+        h_fig, h_ax = plt.subplots(nrows=nrow, ncols=ncol, sharex=True, sharey=True, squeeze=False)
+        h_ax = np.ravel(h_ax)
+        string_suptitle = '{} by {}'.format(values_name, p_name) if p_name!='' else '{}'.format(values_name)
+        plt.suptitle(string_suptitle)
+    else:
+        h_ax = [plt.gca()]
+        plt.title('{}'.format(values_name))
+
+    for p_i, p_c in enumerate(p_unq):
+        plt.axes(h_ax[p_i])
+        if tf_multipanel:
+            plt.title(p_c, style='normal', fontsize=10)
+        for c_i, c_c in enumerate(c_unq):
+            tf_cur = (p==p_c) * (c==c_c)
+            if plot_supertype == 'continuous':
+                if plot_type == 'dot':
+                    plt.plot(x[tf_cur], values[tf_cur], 'o')
+                elif plot_type == 'line':
+                    plt.plot(x[tf_cur], values[tf_cur], '-')
+            elif plot_supertype == 'discrete':
+                values_plot = []
+                for x_c in x_unq:
+                    values_plot.append(values[tf_cur * (x==x_c)])
+                cell_width = 1.0/(Nc+1)
+                x_loc = np.arange(Nx) + cell_width * (-Nc*0.5 + c_i + 0.5 +0.05)
+                bar_width = cell_width*0.90
+                if plot_type == 'bar':
+                    values_plot_mean = [np.nanmean(values_plot_single) for values_plot_single in values_plot]
+                    values_plot_std  = [np.nanstd(values_plot_single)  for values_plot_single in values_plot]
+                    plt.bar(left=x_loc, height=values_plot_mean, yerr=values_plot_std, width=bar_width )
+                elif plot_type == 'box':
+                    plt.boxplot(values_plot, positions=x_loc, widths=bar_width)
+                elif plot_type == 'violin':
+                    #
+                    values_plot = [[np.nan, np.nan] if len(values_plot_single)==0 else values_plot_single for values_plot_single in values_plot]
+                    plt.violinplot(values_plot, positions=x_loc, widths=bar_width)
+                plt.xticks(np.arange(Nx), x_unq)
+    if tf_legend:
+        plt.axes(h_ax[0])
+        plt.legend(c_unq, title=c_name, fontsize=8)
+
+
+def DfPlot(df, values, x='', c='', p='', plot_type='bar'):
     """
     Plot behaviorl data using data_df
 
@@ -25,31 +117,43 @@ def DfPlot(df, y, x, c='', p='', test_version=False):
     :return:
     """
 
-    if test_version:
-        df[''] = [''] * len(df)  # empty column, make some default condition easy
-        df_grpby = df.groupby([x, c, p])
+    df = df.reset_index()
+    df[''] = [''] * len(df)  # empty column, make some default condition easy
+
+    if True:
+        df_grpby = df.groupby([x, c])
         df_grpby_indx = df_grpby.indices
         df_grpby_keys = sorted(df_grpby_indx.keys())
-        df_grpby_means= df_grpby[y].agg(np.mean)
+        df_grpby_means= df_grpby[values].agg(np.mean)
+        values_grpby = [df[values][df_grpby_indx[key]] for key in df_grpby_keys]
 
-        v_x, v_c, v_p = zip(*df_grpby_keys)
-        len_x, len_c, len_p = (len(v_x), len(v_c), len(v_p))
-        h_fig, h_ax = plt.subplots(nrows=1, ncols=len(set(v_p)), sharex=True, sharey=True)
+        if plot_type == 'voilin':
+            plt.violinplot(values_grpby)
+            plt.gca().set_xticks(np.arange(1, len(df_grpby_keys) + 1))
+            plt.gca().set_xticklabels(df_grpby_keys)
+        elif plot_type == 'box':
+            plt.boxplot(values_grpby)
+            plt.gca().set_xticks(np.arange(1, len(df_grpby_keys) + 1))
+            plt.gca().set_xticklabels(df_grpby_keys)
+        else:
+            v_x, v_c, v_p = zip(*df_grpby_keys)
+            len_x, len_c, len_p = (len(v_x), len(v_c), len(v_p))
+            h_fig, h_ax = plt.subplots(nrows=1, ncols=len(set(v_p)), sharex=True, sharey=True)
 
-        try:
-            h_ax[0]
-        except:
-            h_ax = [h_ax]
-        h_ax = np.array(h_ax)
-        for i_p, c_p in enumerate(sorted(list(set(v_p)))):
-            plt.axes(h_ax[i_p])
-            plt.title(c_p)
-            for i_c, c_c in enumerate(list(set(v_c))):
-                for i_x, c_x in enumerate( list(set(v_x))):
-                    plt.bar(i_x+i_c*0.3, df_grpby_means[c_x, c_c, c_p], width=0.3)
+            try:
+                h_ax[0]
+            except:
+                h_ax = [h_ax]
+            h_ax = np.array(h_ax)
+            for i_p, c_p in enumerate(sorted(list(set(v_p)))):
+                plt.axes(h_ax[i_p])
+                plt.title(c_p)
+                for i_c, c_c in enumerate(list(set(v_c))):
+                    for i_x, c_x in enumerate( list(set(v_x))):
+                        plt.bar(i_x+i_c*0.3, df_grpby_means[c_x, c_c, c_p], width=0.3)
 
 
-    else:
+    if False:    # legacy version
         df_plot = pd.DataFrame()
 
         if len(c)==0:
@@ -619,6 +723,7 @@ def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_r
     plt.gca().yaxis.set_ticks(keep_less_than([0]+N_cdtn_cum.tolist(), 8))
 
     return h_raster
+
 
 def DataNeuroSummaryPlot(data_neuro, sk_std=None, signal_type='auto', suptitle='', xlabel='', ylabel='', tf_legend=False):
     """
@@ -1196,6 +1301,25 @@ def create_array_layout_subplots(array_layout, tf_linear_indx=True, tf_text_ch=F
     return [h_fig, h_axes]
 
 
+def AutoRowCol(N, nrow=None, ncol=None, aspect=1.0):
+    """
+    tool function to automatically calculate number of row and col based on total number of panels
+
+    :param N:      total number of panels
+    :param nrow:   number of rows, default to None, if give, fix the number of rows
+    :param ncol:   number of columns, default to None, if give, fix the number of columns
+    :param aspect: desired aspect ratio: ncol/nrow
+    :return:       (nrow, ncol)
+    """
+
+    if nrow is not None:
+        ncol = int(np.ceil(1.0 * N / nrow))
+    elif ncol is not None:
+        nrow = int(np.ceil(1.0 * N / ncol))
+    else:
+        ncol = int(np.ceil(np.sqrt(N *1.0 * aspect)))
+        nrow = int(np.ceil(1.0 * N / ncol))
+    return (nrow, ncol)
 
 
 def DataFastSubplot(data_list, layout=None, data_type=None, gap = 0.05, tf_axis=True, tf_label=True,
