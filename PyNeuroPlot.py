@@ -14,8 +14,34 @@ import PyNeuroAna as pna
 
 
 
-def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_legend=False,
-              values_name='', x_name='', c_name='', p_name=''):
+def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_legend=True, tf_count=True,
+              values_name='', x_name='', c_name='', p_name='', title_text='', **kwargs):
+    """
+    function to plot values according to multiple levels of grouping keys: x, c, and p.
+    The input values, x, c and p can be viewed as columns from the same table
+
+    :param values:      values to plot, array of length N
+    :param x:           grouping key, plot as x axis, array of length N, default to None.
+                            if x is continuous, plot_type can be one of ['dot','line'], plot values against x
+                            elif x is discrete, plot_type can be one of ['bar','box','violin'], plot values groupped by x
+    :param c:           grouping key, plot as separate conditions within panel, array of length N, default to None
+    :param p:           grouping key, plot as separate panels, array of length N, default to None
+    :param limit:       used to select a subset of data, boolean array of length N
+    :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically.
+                            'dot': values against x; 'line': values against x;
+                            'bar', mean values with errbar determined by errbar;
+                            'box': median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;
+                            'violin': median and distribution of values
+    :param tf_legend:   True/False flag, whether plot legend
+    :param tf_count:    Trur/False flag, whether to show count of values for plot type ['bar', 'box', 'violin']
+    :param values_name: text on plot, for values
+    :param x_name:      text on plot, for x
+    :param c_name:      text on plot, for conditions
+    :param p_name:      text on plot, for panels
+    :param title_text:  text for title
+    :param errbar:      type of error bar, only used for bar plot, one of ['std', 'se']
+    :return:            handles of axes
+    """
 
     """ set default values for inputs """
     N = len(values)
@@ -39,7 +65,12 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
         c = c[limit]
         p = p[limit]
 
-    """ number of conditions """
+    errbar = ''
+    for arg_name, arg_value in kwargs.iteritems():
+        if arg_name == 'errbar':
+            errbar = arg_value
+
+    """ number of conditions to seperate data with """
     x_unq = np.unique(x)
     c_unq = np.unique(c)
     p_unq = np.unique(p)
@@ -59,132 +90,148 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
     else:
         plot_supertype = 'continuous'
 
+    if Nc <=1:
+        tf_legend = False
+
+    """ if multipanel, open new fig and use subplot; otherwise, just use current axes """
     tf_multipanel = (Np >1)
     if tf_multipanel:
         nrow, ncol = AutoRowCol(len(p_unq))
         h_fig, h_ax = plt.subplots(nrows=nrow, ncols=ncol, sharex=True, sharey=True, squeeze=False)
         h_ax = np.ravel(h_ax)
-        string_suptitle = '{} by {}'.format(values_name, p_name) if p_name!='' else '{}'.format(values_name)
+        string_suptitle = '{}   {} by {}'.format(title_text, values_name, p_name) if p_name!='' else '{}   {} '.format(title_text, values_name)
         plt.suptitle(string_suptitle)
     else:
         h_ax = [plt.gca()]
-        plt.title('{}'.format(values_name))
+        plt.title('{}    {}'.format(title_text, values_name))
 
     plt.xlabel(x_name)
     plt.axes(h_ax[0])
     plt.ylabel(values_name)
 
+    """ ----- loops for plot ----- """
     default_color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
     legend_obj = []
+    h_text_count = []
+    """ for every panel """
     for p_i, p_c in enumerate(p_unq):
         plt.axes(h_ax[p_i])
         if tf_multipanel:
             plt.title(p_c, style='normal', fontsize=10)
+        """ for every condition """
         for c_i, c_c in enumerate(c_unq):
             tf_cur = (p==p_c) * (c==c_c)
+            """ if x variable is continuous, plot y against x """
             if plot_supertype == 'continuous':
                 if plot_type == 'dot':
                     plt.plot(x[tf_cur], values[tf_cur], 'o')
                 elif plot_type == 'line':
                     plt.plot(x[tf_cur], values[tf_cur], '-')
+                """ otherwise if x variable is discrete, group y by x """
             elif plot_supertype == 'discrete':
-                values_plot = []
+                # values_plot is a length Nx list, where every entry is a array containing values under that x condition
+                values_by_x = []
                 for x_c in x_unq:
-                    values_plot.append(values[tf_cur * (x==x_c)])
+                    values_by_x.append(values[tf_cur * (x==x_c)])
+                # numbers of values in every x condition
+                values_by_x_num = [len(values_by_x_single) for values_by_x_single in values_by_x]
+                # width related thing for bar/box/violin
                 cell_width = 1.0/(Nc+1)
                 x_loc = np.arange(Nx) + cell_width * (-Nc*0.5 + c_i + 0.5 +0.05)
                 bar_width = cell_width*0.90
-                if plot_type == 'bar':
-                    values_plot_mean = [np.nanmean(values_plot_single) for values_plot_single in values_plot]
-                    values_plot_std  = [np.nanstd(values_plot_single)  for values_plot_single in values_plot]
-                    plt.bar(left=x_loc, height=values_plot_mean, yerr=values_plot_std, width=bar_width )
-                elif plot_type == 'box':
+                values_by_x_median = [np.nanmedian(values_by_x_single) for values_by_x_single in values_by_x]
+                if plot_type == 'bar':     # if bar plot
+                    values_by_x_mean = [np.nanmean(values_by_x_single) for values_by_x_single in values_by_x]
+                    if errbar == 'std':
+                        values_by_x_std = [np.nanstd(values_by_x_single) for values_by_x_single in values_by_x]
+                        values_by_x_err = values_by_x_std
+                    elif errbar == 'se':
+                        values_by_x_std = [np.nanstd(values_by_x_single) for values_by_x_single in values_by_x]
+                        values_by_x_se  = np.array(values_by_x_std)/np.array(values_by_x_num)
+                        values_by_x_err = values_by_x_se
+                    else:
+                        values_by_x_err = 0
+                    plt.bar(left=x_loc, height=values_by_x_mean, yerr=values_by_x_err, width=bar_width )
+                elif plot_type == 'box':    # if box plot
                     current_color = default_color_cycle[c_i % len(default_color_cycle)]
-                    medianprops = dict(linestyle='-', linewidth=2,
-                                       color=current_color)
+                    medianprops = dict(linestyle='-', linewidth=3, color=current_color)
                     meanpointprops = dict(marker='x', markeredgecolor=current_color)
-                    h_box = plt.boxplot(values_plot, positions=x_loc, widths=bar_width, showmeans=True,
+                    h_box = plt.boxplot(values_by_x, positions=x_loc, widths=bar_width, showmeans=True,
                                 medianprops=medianprops, meanprops=meanpointprops)
                     if tf_legend and (p_i==0):
                         legend_obj.append(h_box['medians'][0])
-                elif plot_type == 'violin':
-                    values_plot = [[np.nan, np.nan] if len(values_plot_single)==0 else values_plot_single for values_plot_single in values_plot]
-                    h_vioinplot = plt.violinplot(values_plot, positions=x_loc, widths=bar_width, showmedians=True, showextrema=False)
+                elif plot_type == 'violin':  # if violin plot
+                    values_by_x = [[np.nan, np.nan] if len(values_by_x_single)==0 else values_by_x_single for values_by_x_single in values_by_x]
+                    h_vioinplot = plt.violinplot(values_by_x, positions=x_loc, widths=bar_width, showmedians=True, showextrema=False)
                     if tf_legend and (p_i==0):
                         legend_obj.append(h_vioinplot['bodies'][0])
+                """ show count of values for every bar/box/violin """
+                if tf_count:
+                    for txt_loc_x, txt_loc_y, text_str in zip(x_loc, values_by_x_median, values_by_x_num):
+                        h_text_count_cur = plt.text(txt_loc_x, txt_loc_y, text_str, ha='center', va='bottom', fontsize='x-small', rotation='vertical')
+                        h_text_count.append(h_text_count_cur)
+                """ axes look """
+                plt.xlim([-0.5,Nx-0.5])
                 plt.xticks(np.arange(Nx), x_unq)
+    """ plot legend """
     if tf_legend:
         plt.axes(h_ax[0])
         if len(legend_obj)==0:
-            plt.legend(c_unq, title=c_name, fontsize=8)
+            plt.legend(c_unq, title=c_name, fontsize='small')
         else:
-            plt.legend(legend_obj, c_unq, title=c_name, fontsize=8)
+            plt.legend(legend_obj, c_unq, title=c_name, fontsize='small')
+    """ set text for values count to the bottom of plot  """
+    if tf_count and (plot_supertype=='discrete'):
+        y_lim_min = h_ax[0].get_ylim()[0]
+        h_ax[0].text(-0.5, y_lim_min, 'count', va='bottom', fontsize='x-small', rotation='vertical')
+        for h_text_count_cur in h_text_count:
+            h_text_count_cur.set_y(y_lim_min)
+
+    return h_ax
 
 
-def DfPlot(df, values, x='', c='', p='', plot_type='bar'):
+def DfPlot(df, values, x='', c='', p='', limit=None, plot_type=None, **kwargs):
     """
-    Plot behaviorl data using data_df
+    function to plot values according to multiple levels of grouping keys: x, c, and p for Pandas DataFrame df.
+    This is a wrapper of  function GroupPlot
 
-    :param df: data_df, a pandas dataframe that stores behaviral data
-    :param y:  data to plot, as the name of column
-    :param x:  data grouped by x, shown on x_axis
-    :param c:  data grouped by c, shonw as seperate bars
-    :param p:  daaa grouped bgy p, shwon as seperate pannels
-    :return:
+    :param values:      name of the column containing values to plot
+    :param x:           name grouping key, plot as x axis, array of length N, default to None.
+                            if x is continuous, plot_type can be one of ['dot','line'], plot values against x
+                            elif x is discrete, plot_type can be one of ['bar','box','violin'], plot values groupped by x
+    :param c:           name of grouping key, plot as separate conditions within panel, array of length N, default to None
+    :param p:           name of grouping key, plot as separate panels, array of length N, default to None
+    :param limit:       used to select a subset of data, boolean array of length N
+    :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically.
+                            'dot': values against x; 'line': values against x;
+                            'bar', mean values with errbar determined by errbar;
+                            'box': median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;
+                            'violin': median and distribution of values
+    :param tf_legend:   True/False flag, whether plot legend
+    :param tf_count:    Trur/False flag, whether to show count of values for plot type ['bar', 'box', 'violin']
+    :param title_text:  text for title
+    :param errbar:      type of error bar, only used for bar plot, one of ['std', 'se']
+    :return:            handles of axes
     """
 
     df = df.reset_index()
     df[''] = [''] * len(df)  # empty column, make some default condition easy
 
-    if True:
-        df_grpby = df.groupby([x, c])
-        df_grpby_indx = df_grpby.indices
-        df_grpby_keys = sorted(df_grpby_indx.keys())
-        df_grpby_means= df_grpby[values].agg(np.mean)
-        values_grpby = [df[values][df_grpby_indx[key]] for key in df_grpby_keys]
+    values_name = values
+    x_name = x
+    c_name = c
+    p_name = p
 
-        if plot_type == 'voilin':
-            plt.violinplot(values_grpby)
-            plt.gca().set_xticks(np.arange(1, len(df_grpby_keys) + 1))
-            plt.gca().set_xticklabels(df_grpby_keys)
-        elif plot_type == 'box':
-            plt.boxplot(values_grpby)
-            plt.gca().set_xticks(np.arange(1, len(df_grpby_keys) + 1))
-            plt.gca().set_xticklabels(df_grpby_keys)
-        else:
-            v_x, v_c, v_p = zip(*df_grpby_keys)
-            len_x, len_c, len_p = (len(v_x), len(v_c), len(v_p))
-            h_fig, h_ax = plt.subplots(nrows=1, ncols=len(set(v_p)), sharex=True, sharey=True)
+    values_data = df[values]
+    x_data = df[x]
+    c_data = df[c]
+    p_data = df[p]
 
-            try:
-                h_ax[0]
-            except:
-                h_ax = [h_ax]
-            h_ax = np.array(h_ax)
-            for i_p, c_p in enumerate(sorted(list(set(v_p)))):
-                plt.axes(h_ax[i_p])
-                plt.title(c_p)
-                for i_c, c_c in enumerate(list(set(v_c))):
-                    for i_x, c_x in enumerate( list(set(v_x))):
-                        plt.bar(i_x+i_c*0.3, df_grpby_means[c_x, c_c, c_p], width=0.3)
+    # call funciton GroupPlot, inherit arguments
+    h_ax = GroupPlot(values=values_data, x=x_data, c=c_data, p=p_data, limit=limit, plot_type=plot_type,
+              values_name=values_name, x_name=x_name, c_name=c_name, p_name=p_name, **kwargs)
 
-
-    if False:    # legacy version
-        df_plot = pd.DataFrame()
-
-        if len(c)==0:
-            df_plot = df.groupby(x) [y].agg(np.mean)
-            df_plot.plot(kind='bar',title= y )
-        else:
-            list_color = gen_distinct_colors(len(df[c].unique()), luminance=0.8)
-            catg = sorted(df[c].unique())
-            for i in range(len(catg)):
-                df_plot[catg[i]] = df [df[c]==catg[i]].groupby(x) [y].agg(np.mean)
-            df_plot.plot(kind='bar',title= y, color=list_color)
-        plt.legend(loc='lower right', fancybox=True, framealpha=0.8)
-        plt.gca().get_legend().set_title(c)
-
-    return plt.gcf()
+    return h_ax
 
 
 def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
