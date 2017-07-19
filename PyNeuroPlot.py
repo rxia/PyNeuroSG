@@ -15,7 +15,7 @@ import PyNeuroAna as pna
 
 
 def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_legend=False,
-              values_name='', _x_name='', c_name='', p_name=''):
+              values_name='', x_name='', c_name='', p_name=''):
 
     """ set default values for inputs """
     N = len(values)
@@ -50,17 +50,16 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
     """ determine plot style if not given """
     if plot_type is None:
         if len(x_unq) <= 16:
-            plot_type == 'box'
+            plot_type = 'box'
         else:
-            plot_type == 'dot'
+            plot_type = 'dot'
 
     if plot_type in ['bar', 'box', 'violin']:
         plot_supertype = 'discrete'
     else:
         plot_supertype = 'continuous'
 
-
-    tf_multipanel = Np >1
+    tf_multipanel = (Np >1)
     if tf_multipanel:
         nrow, ncol = AutoRowCol(len(p_unq))
         h_fig, h_ax = plt.subplots(nrows=nrow, ncols=ncol, sharex=True, sharey=True, squeeze=False)
@@ -71,6 +70,12 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
         h_ax = [plt.gca()]
         plt.title('{}'.format(values_name))
 
+    plt.xlabel(x_name)
+    plt.axes(h_ax[0])
+    plt.ylabel(values_name)
+
+    default_color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    legend_obj = []
     for p_i, p_c in enumerate(p_unq):
         plt.axes(h_ax[p_i])
         if tf_multipanel:
@@ -94,15 +99,26 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
                     values_plot_std  = [np.nanstd(values_plot_single)  for values_plot_single in values_plot]
                     plt.bar(left=x_loc, height=values_plot_mean, yerr=values_plot_std, width=bar_width )
                 elif plot_type == 'box':
-                    plt.boxplot(values_plot, positions=x_loc, widths=bar_width)
+                    current_color = default_color_cycle[c_i % len(default_color_cycle)]
+                    medianprops = dict(linestyle='-', linewidth=2,
+                                       color=current_color)
+                    meanpointprops = dict(marker='x', markeredgecolor=current_color)
+                    h_box = plt.boxplot(values_plot, positions=x_loc, widths=bar_width, showmeans=True,
+                                medianprops=medianprops, meanprops=meanpointprops)
+                    if tf_legend and (p_i==0):
+                        legend_obj.append(h_box['medians'][0])
                 elif plot_type == 'violin':
-                    #
                     values_plot = [[np.nan, np.nan] if len(values_plot_single)==0 else values_plot_single for values_plot_single in values_plot]
-                    plt.violinplot(values_plot, positions=x_loc, widths=bar_width)
+                    h_vioinplot = plt.violinplot(values_plot, positions=x_loc, widths=bar_width, showmedians=True, showextrema=False)
+                    if tf_legend and (p_i==0):
+                        legend_obj.append(h_vioinplot['bodies'][0])
                 plt.xticks(np.arange(Nx), x_unq)
     if tf_legend:
         plt.axes(h_ax[0])
-        plt.legend(c_unq, title=c_name, fontsize=8)
+        if len(legend_obj)==0:
+            plt.legend(c_unq, title=c_name, fontsize=8)
+        else:
+            plt.legend(legend_obj, c_unq, title=c_name, fontsize=8)
 
 
 def DfPlot(df, values, x='', c='', p='', plot_type='bar'):
