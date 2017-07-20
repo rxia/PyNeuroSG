@@ -19,6 +19,7 @@ import PyNeuroPlot as pnp
 reload(pnp)
 N=600
 values = np.random.randn(N)
+values_binary = np.random.randint(0,2,N)
 x_continuous = np.random.rand(N)
 x_discrete = np.random.randint(0,4, size=N)
 x = x_discrete
@@ -27,8 +28,8 @@ p = ['panel 1','panel 2']*(N/2)
 
 """ distinct plot type comparison, do not use panel """
 _, h_ax = plt.subplots(2,2, figsize=[10,8])
-plt.suptitle('show case of distinct plot type/style for GroupPlot')
 h_ax = np.ravel(h_ax)
+plt.suptitle('show case of distinct plot type/style for GroupPlot')
 # conitnuous x
 plt.axes(h_ax[0])
 pnp.GroupPlot(values=values, x=x_continuous, c=c)
@@ -43,9 +44,25 @@ pnp.GroupPlot(values=values, x=x_discrete, c=c, plot_type='bar', errbar='se',
 plt.axes(h_ax[3])
 pnp.GroupPlot(values=values, x=x_discrete, plot_type='violin', tf_legend=False, tf_count=False)
 
+
 """ use seprate data by panel """
 pnp.GroupPlot(values=values, x=x_discrete, c=c, p=p, plot_type='box', values_name='label_of_value', x_name='label_x', c_name='label_c')
 
+
+""" automatically determine plot type based on data """
+_, h_ax = plt.subplots(2,2, figsize=[10,8])
+h_ax = np.ravel(h_ax)
+plt.suptitle('show case for automatically determine plot type')
+plt.axes(h_ax[0])
+pnp.GroupPlot(values=values, x=x_continuous, c=c, title_text='values continuous, x continuous')
+plt.axes(h_ax[1])
+pnp.GroupPlot(values=values_binary, x=x_continuous, c=c, title_text='values binary, x continuous')
+plt.axes(h_ax[2])
+pnp.GroupPlot(values=values, x=x_discrete, c=c, title_text='values coninuous, x discrete')
+plt.axes(h_ax[3])
+pnp.GroupPlot(values=values_binary, x=x_discrete, c=c, title_text='values binary, x discrete')
+
+plt.savefig('./show_case/GroupPlot_auto_plot_type_by_data.png')
 
 """ ===== test code for DfPlot ===== """
 
@@ -68,5 +85,8 @@ pnp.DfPlot(data_df, values='values', x='x_discrete', c='c', plot_type='bar', err
 plt.axes(h_ax[3])
 pnp.DfPlot(data_df, values='values', x='x_discrete', plot_type='violin', tf_legend=False, tf_count=False)
 
+plt.savefig('./show_case/DfPlot_plot_type_comparison.png')
+
 """ use seprate data by panel """
 pnp.DfPlot(df=data_df, values='values', x='x', c='c', p='p')
+plt.savefig('./show_case/DfPlot_multple_panels.png')

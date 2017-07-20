@@ -22,16 +22,18 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
 
     :param values:      values to plot, array of length N
     :param x:           grouping key, plot as x axis, array of length N, default to None.
-                            if x is continuous, plot_type can be one of ['dot','line'], plot values against x
-                            elif x is discrete, plot_type can be one of ['bar','box','violin'], plot values groupped by x
+
+                        * if x is continuous, plot_type can be one of ['dot','line'], plot values against x
+                        * elif x is discrete, plot_type can be one of ['bar','box','violin'], plot values groupped by x
     :param c:           grouping key, plot as separate conditions within panel, array of length N, default to None
     :param p:           grouping key, plot as separate panels, array of length N, default to None
     :param limit:       used to select a subset of data, boolean array of length N
-    :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically.
-                            'dot': values against x; 'line': values against x;
-                            'bar', mean values with errbar determined by errbar;
-                            'box': median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;
-                            'violin': median and distribution of values
+    :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically:
+
+                        * 'dot': values against x; 'line': values against x;
+                        * 'bar', mean values with errbar determined by errbar;
+                        * 'box': median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;
+                        * 'violin': median and distribution of values
     :param tf_legend:   True/False flag, whether plot legend
     :param tf_count:    Trur/False flag, whether to show count of values for plot type ['bar', 'box', 'violin']
     :param values_name: text on plot, for values
@@ -39,7 +41,14 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
     :param c_name:      text on plot, for conditions
     :param p_name:      text on plot, for panels
     :param title_text:  text for title
-    :param errbar:      type of error bar, only used for bar plot, one of ['std', 'se']
+    :param errbar:      type of error bar, only used for bar plot, one of ['auto', 'std', 'se', 'binom', ''], default to auto:
+
+                        * 'auto':  if values are binary, use binom, otherwise, use se
+                        * 'std':   standard deviation
+                        * 'se':    standard error
+                        * 'binom': binomial distribution confidence interval based on binom_alpha
+                        * '':      do not use error bar
+    :param binom_alpha: alpha value for binomial distribution error bar (hpyothesis test for binary values), default = 0.05
     :return:            handles of axes
     """
 
@@ -65,24 +74,37 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
         c = c[limit]
         p = p[limit]
 
-    errbar = ''
+    errbar = 'auto'
+    binom_alpha = 0.05
     for arg_name, arg_value in kwargs.iteritems():
         if arg_name == 'errbar':
             errbar = arg_value
+        elif arg_name == 'binom_alpha':
+            binom_alpha = arg_value
 
     """ number of conditions to seperate data with """
+    values_unq = np.unique(values)
     x_unq = np.unique(x)
     c_unq = np.unique(c)
     p_unq = np.unique(p)
+    Nvalues = len(values_unq)
     Nx = len(x_unq)
     Nc = len(c_unq)
     Np = len(p_unq)
 
-    """ determine plot style if not given """
+    if errbar == 'auto':
+        errbar = 'binom' if Nvalues <=2 else 'se'
+
+    """ determine plot style if not specified """
     if plot_type is None:
-        if len(x_unq) <= 16:
-            plot_type = 'box'
-        else:
+        if Nx <= 0.1*N:          # if x is discrete
+            if Nvalues <=2:       # if binary data, bar plot, error bar using binomial distribution for errarbar
+                plot_type = 'bar'
+                errbar = 'binom'
+            else:
+                plot_type = 'box' # if continuous data, box plot, error bar using standard error
+                errbar = 'se'
+        else:                 # if x is continuous
             plot_type = 'dot'
 
     if plot_type in ['bar', 'box', 'violin']:
@@ -147,11 +169,13 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
                         values_by_x_err = values_by_x_std
                     elif errbar == 'se':
                         values_by_x_std = [np.nanstd(values_by_x_single) for values_by_x_single in values_by_x]
-                        values_by_x_se  = np.array(values_by_x_std)/np.array(values_by_x_num)
+                        values_by_x_se  = np.array(values_by_x_std)/np.sqrt(np.array(values_by_x_num))
                         values_by_x_err = values_by_x_se
+                    elif errbar == 'binom':
+                        values_by_x_err = np.array([np.abs(pna.ErrIntvBinom(x=values_by_x_single, alpha=binom_alpha)) for values_by_x_single in values_by_x]).transpose()
                     else:
                         values_by_x_err = 0
-                    plt.bar(left=x_loc, height=values_by_x_mean, yerr=values_by_x_err, width=bar_width )
+                    plt.bar(left=x_loc, height=values_by_x_mean, yerr=values_by_x_err, width=bar_width, error_kw=dict(capsize=2) )
                 elif plot_type == 'box':    # if box plot
                     current_color = default_color_cycle[c_i % len(default_color_cycle)]
                     medianprops = dict(linestyle='-', linewidth=3, color=current_color)
@@ -196,21 +220,35 @@ def DfPlot(df, values, x='', c='', p='', limit=None, plot_type=None, **kwargs):
     This is a wrapper of  function GroupPlot
 
     :param values:      name of the column containing values to plot
-    :param x:           name grouping key, plot as x axis, array of length N, default to None.
-                            if x is continuous, plot_type can be one of ['dot','line'], plot values against x
-                            elif x is discrete, plot_type can be one of ['bar','box','violin'], plot values groupped by x
+    :param x:           name grouping key, plot as x axis, array of length N, default to None:
+
+                        * if x is continuous, plot_type can be one of ['dot','line'], plot values against x
+                        * elif x is discrete, plot_type can be one of ['bar','box','violin'], plot values groupped by x
     :param c:           name of grouping key, plot as separate conditions within panel, array of length N, default to None
     :param p:           name of grouping key, plot as separate panels, array of length N, default to None
     :param limit:       used to select a subset of data, boolean array of length N
-    :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically.
-                            'dot': values against x; 'line': values against x;
-                            'bar', mean values with errbar determined by errbar;
-                            'box': median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;
-                            'violin': median and distribution of values
+    :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically:
+
+                        * 'dot': values against x; 'line': values against x;
+                        * 'bar', mean values with errbar determined by errbar;
+                        * 'box': median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;
+                        * 'violin': median and distribution of values
     :param tf_legend:   True/False flag, whether plot legend
     :param tf_count:    Trur/False flag, whether to show count of values for plot type ['bar', 'box', 'violin']
     :param title_text:  text for title
-    :param errbar:      type of error bar, only used for bar plot, one of ['std', 'se']
+    :param errbar:      type of error bar, only used for bar plot, one of ['std', 'se', 'binom']:
+
+                        * std:   standard deviation
+                        * se:    standard error
+                        * binom: binomial distribution confidence interval based on binom_alpha
+    :param binom_alpha: alpha value for binomial distribution error bar (hpyothesis test for binary values), default = 0.05
+    :param errbar:      type of error bar, only used for bar plot, one of ['auto', 'std', 'se', 'binom', ''], default to auto:
+
+                    * 'auto':  if values are binary, use binom, otherwise, use se
+                    * 'std':   standard deviation
+                    * 'se':    standard error
+                    * 'binom': binomial distribution confidence interval based on binom_alpha
+                    * '':      do not use error bar
     :return:            handles of axes
     """
 
