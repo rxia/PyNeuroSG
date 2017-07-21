@@ -70,7 +70,7 @@ import data_load_DLSH
 dir_dg = 'L:/projects/analysis/ryan/data_dg'
 list_name_dg_all = os.listdir(dir_dg)
 
-keyword_dg = 'a.*_072017.*'
+keyword_dg = 'a.*_072117.*'
 
 _, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=False, dir_dg=dir_dg, mode='dg')
 data_df = data_load_DLSH.standardize_data_df(data_df)
@@ -95,12 +95,12 @@ reload(pnp); pnp.GroupPlot(values=data_df['rts'], x=data_df['TargetOnset'], c=da
 
 
 
-reload(pnp); pnp.GroupPlot(values=data_df['truert'], x=data_df['TargetOnset'], c=data_df['side'], plot_type='box', tf_legend=True, values_name='rt', c_name='side')
-plt.axis([-1,4,200,1000])
 
 reload(pnp); pnp.GroupPlot(values=data_df['truert'], plot_type='box', tf_legend=True, values_name='rt', c_name='side')
 plt.axis([-1,1,200,1000])
 
+reload(pnp); pnp.GroupPlot(values=data_df['truert'], x=data_df['TargetOnset'], c=data_df['side'], plot_type='box', tf_legend=True, values_name='rt', c_name='side')
+plt.axis([-1,4,200,1000])
 
 reload(pnp); pnp.GroupPlot(values=data_df['truert'], x=data_df['TargetOnset'], c=data_df['side'],p=data_df['filename'], limit=(data_df['status']==1), plot_type='bar', tf_legend=True, values_name='rt', c_name='side')
 
