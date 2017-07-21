@@ -20,12 +20,14 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
     function to plot values according to multiple levels of grouping keys: x, c, and p.
     The input values, x, c and p can be viewed as columns from the same table
 
+    Example usage could be found in show_case/GroupPlot_DfPlot.py
+
     :param values:      values to plot, array of length N
     :param x:           grouping key, plot as x axis, array of length N, default to None.
 
                         * if x is continuous, plot_type can be one of ['dot','line'], plot values against x
                         * elif x is discrete, plot_type can be one of ['bar','box','violin'], plot values groupped by x
-    :param c:           grouping key, plot as separate conditions within panel, array of length N, default to None
+    :param c:           grouping key, plot as separate colors within panel, array of length N, default to None
     :param p:           grouping key, plot as separate panels, array of length N, default to None
     :param limit:       used to select a subset of data, boolean array of length N
     :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically:
@@ -38,7 +40,7 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
     :param tf_count:    Trur/False flag, whether to show count of values for plot type ['bar', 'box', 'violin']
     :param values_name: text on plot, for values
     :param x_name:      text on plot, for x
-    :param c_name:      text on plot, for conditions
+    :param c_name:      text on plot, for colors
     :param p_name:      text on plot, for panels
     :param title_text:  text for title
     :param errbar:      type of error bar, only used for bar plot, one of ['auto', 'std', 'se', 'binom', ''], default to auto:
@@ -219,12 +221,14 @@ def DfPlot(df, values, x='', c='', p='', limit=None, plot_type=None, **kwargs):
     function to plot values according to multiple levels of grouping keys: x, c, and p for Pandas DataFrame df.
     This is a wrapper of  function GroupPlot
 
+    Example usage could be found in show_case/GroupPlot_DfPlot.py
+
     :param values:      name of the column containing values to plot
     :param x:           name grouping key, plot as x axis, array of length N, default to None:
 
                         * if x is continuous, plot_type can be one of ['dot','line'], plot values against x
                         * elif x is discrete, plot_type can be one of ['bar','box','violin'], plot values groupped by x
-    :param c:           name of grouping key, plot as separate conditions within panel, array of length N, default to None
+    :param c:           name of grouping key, plot as separate colors within panel, array of length N, default to None
     :param p:           name of grouping key, plot as separate panels, array of length N, default to None
     :param limit:       used to select a subset of data, boolean array of length N
     :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically:
