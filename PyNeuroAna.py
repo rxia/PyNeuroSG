@@ -1001,6 +1001,44 @@ def create_strided_array(x, nperseg, noverlap):
     return result
 
 
+
+
+"""  ===== simple statistics ===== """
+
+def ErrIntvBinom(k=None, n=None, alpha=0.05, x=None, tf_err=True):
+    """
+    compute the confidence interval / error interval to estimate the probability p of binomial distribution, using grid search
+
+    :param k:      int, number of samples==1
+    :param n:      int, total number of samples
+    :param alpha:  default to 0.05
+    :param x:      data array, used if k and n are not given:  k=sum(x==1), n=len(x)
+    :param tf_err: True/False to return a) err interval (confidence_interval - p) or b) confidence interval
+    :return:       (error_low, error_hight) or (p_low, p_high)
+    """
+
+    if (n is None) and (k is None):    # if n, k are not given, use x to get n and k
+        x = (np.array(x)>0.5).astype(float).ravel()
+        n = len(x)
+        k = np.sum(x)
+    if n==0:   # if empty
+        return np.array([np.nan, np.nan])
+    p = 1.0*k/n     # best estimate of p
+    """ use grid search to compute confidence interval """
+    p_grid = np.linspace(0,1,1001,endpoint=True)
+    cdf_grid = sp.stats.binom.cdf(k=k, n=n, p=p_grid)
+    intv_l = np.append(p_grid[cdf_grid >= 1-alpha*0.5], 0.0) .max()
+    intv_h = np.append(p_grid[cdf_grid <= alpha * 0.5], 1.0) .min()
+    intv = np.array([intv_l, intv_h])
+    if tf_err:
+        return intv - p
+    else:
+        return intv
+
+
+
+
+
 """ ===== machine learning related ===== """
 
 def LowDimEmbedding(data, type='PCA', para=None):
