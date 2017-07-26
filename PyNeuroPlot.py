@@ -180,10 +180,11 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
                     plt.bar(left=x_loc, height=values_by_x_mean, yerr=values_by_x_err, width=bar_width, error_kw=dict(capsize=2) )
                 elif plot_type == 'box':    # if box plot
                     current_color = default_color_cycle[c_i % len(default_color_cycle)]
-                    medianprops = dict(linestyle='-', linewidth=3, color=current_color)
-                    meanpointprops = dict(marker='x', markeredgecolor=current_color)
+                    medianprops = dict(linestyle='-', linewidth=4, color=current_color)
+                    meanpointprops = dict(marker='x', markeredgecolor=current_color, markersize=10, markeredgewidth=2)
+                    flierprops = dict(marker='.', markersize=5, markeredgecolor=current_color)
                     h_box = plt.boxplot(values_by_x, positions=x_loc, widths=bar_width, showmeans=True,
-                                medianprops=medianprops, meanprops=meanpointprops)
+                                medianprops=medianprops, meanprops=meanpointprops, flierprops=flierprops)
                     if tf_legend and (p_i==0):
                         legend_obj.append(h_box['medians'][0])
                 elif plot_type == 'violin':  # if violin plot
