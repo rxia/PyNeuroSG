@@ -185,7 +185,7 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
                 elif plot_type == 'box':    # if box plot
                     current_color = default_color_cycle[c_i % len(default_color_cycle)]
                     medianprops = dict(linestyle='-', linewidth=4, color=current_color)
-                    meanpointprops = dict(marker='x', markeredgecolor=current_color, markersize=15)
+                    meanpointprops = dict(marker='x', markeredgecolor=current_color, markersize=10, markeredgewidth=2)
                     flierprops = dict(marker='.', markersize=5)
                     h_box = plt.boxplot(values_by_x, positions=x_loc, widths=bar_width, showmeans=True,
                                 medianprops=medianprops, meanprops=meanpointprops, flierprops=flierprops)
