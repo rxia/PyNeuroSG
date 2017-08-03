@@ -55,6 +55,8 @@ plt.savefig('./temp_figs/RT_{}.png'.format(filename_common))
 """ train left/right switch """
 keyword_dg = 'h.*_071917.*'
 
+print "haha"
+
 _, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
 data_df = data_load_DLSH.standardize_data_df(data_df)
 filename_common = misc_tools.str_common(name_datafiles)
