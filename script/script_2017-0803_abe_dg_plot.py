@@ -10,7 +10,7 @@ import warnings
 import misc_tools
 
 
-# costom packages
+# custom packages
 sys.path.append('/shared/homes/sguan/Coding_Projects/PyNeuroSG')
 import dg2df  # for reading behavioral data
 import PyNeuroAna as pna
@@ -36,7 +36,7 @@ def order_consecutive(x):
 dir_dg = '/shared/lab/projects/analysis/ryan/data_dg'
 list_name_dg_all = os.listdir(dir_dg)
 
-keyword_dg = 'h.*_080317.*'
+keyword_dg = 'a.*_080317.*'
 
 _, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
 data_df = data_load_DLSH.standardize_data_df(data_df)
@@ -126,7 +126,7 @@ pnp.DfPlot(data_df, values='RT', x='TargetOnset', c='status', p='side', title_te
 
 
 """ 0803 """
-keyword_dg = 'h.*_080317.*'
+keyword_dg = 'a.*_080317.*'
 
 _, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=False, dir_dg=dir_dg, mode='dg')
 data_df = data_load_DLSH.standardize_data_df(data_df)
@@ -149,7 +149,7 @@ pnp.DfPlot(data_df, values='status', x='TargetOnset', c='side', title_text=title
 pnp.DfPlot(data_df, values='RT', x='TargetOnset', c='resp', p='status', title_text=title_text)
 
 
-pnp.DfPlot(data_df, values='status', x='order_consecutive', c='side', limit=(data_df['order_consecutive']<6)*(data_df['file']>=30), title_text=title_text)
+pnp.DfPlot(data_df, values='status', x='order_consecutive', c='side', limit=(data_df['order_consecutive']<6)*(data_df['file']>=9), title_text=title_text)
 plt.savefig('./temp_figs/status_consecutive_{}.png'.format(filename_common))
-pnp.DfPlot(data_df, values='RT', x='order_consecutive', c='side', limit=(data_df['order_consecutive']<6)*(data_df['file']>=30), title_text=title_text)
+pnp.DfPlot(data_df, values='RT', x='order_consecutive', c='side', limit=(data_df['order_consecutive']<6)*(data_df['file']>=9), title_text=title_text)
 plt.savefig('./temp_figs/RT_consecutive_{}.png'.format(filename_common))
