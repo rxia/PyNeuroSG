@@ -32,7 +32,8 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
     :param limit:       used to select a subset of data, boolean array of length N
     :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically:
 
-                        * 'dot': values against x; 'line': values against x;
+                        * 'dot': values against x;
+                        * 'line': values against x;
                         * 'bar', mean values with errbar determined by errbar;
                         * 'box': median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;
                         * 'violin': median and distribution of values
@@ -111,8 +112,11 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
 
     if plot_type in ['bar', 'box', 'violin']:
         plot_supertype = 'discrete'
-    else:
+    elif plot_type in ['dot', 'line']:
         plot_supertype = 'continuous'
+    else:
+        plot_supertype = ''
+        warnings.warn('plot_type not supported, must be one of {}'.format(['dot','line', 'bar', 'box', 'violin']))
 
     if Nc <=1:
         tf_legend = False
@@ -180,10 +184,11 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
                     plt.bar(left=x_loc, height=values_by_x_mean, yerr=values_by_x_err, width=bar_width, error_kw=dict(capsize=2) )
                 elif plot_type == 'box':    # if box plot
                     current_color = default_color_cycle[c_i % len(default_color_cycle)]
-                    medianprops = dict(linestyle='-', linewidth=3, color=current_color)
-                    meanpointprops = dict(marker='x', markeredgecolor=current_color)
+                    medianprops = dict(linestyle='-', linewidth=4, color=current_color)
+                    meanpointprops = dict(marker='x', markeredgecolor=current_color, markersize=10, markeredgewidth=2)
+                    flierprops = dict(marker='.', markersize=5)
                     h_box = plt.boxplot(values_by_x, positions=x_loc, widths=bar_width, showmeans=True,
-                                medianprops=medianprops, meanprops=meanpointprops)
+                                medianprops=medianprops, meanprops=meanpointprops, flierprops=flierprops)
                     if tf_legend and (p_i==0):
                         legend_obj.append(h_box['medians'][0])
                 elif plot_type == 'violin':  # if violin plot
@@ -233,7 +238,8 @@ def DfPlot(df, values, x='', c='', p='', limit=None, plot_type=None, **kwargs):
     :param limit:       used to select a subset of data, boolean array of length N
     :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically:
 
-                        * 'dot': values against x; 'line': values against x;
+                        * 'dot': values against x;
+                        * 'line': values against x;
                         * 'bar', mean values with errbar determined by errbar;
                         * 'box': median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;
                         * 'violin': median and distribution of values
