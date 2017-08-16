@@ -232,6 +232,31 @@ def cal_STA(X, Xt=None, ts=None, t_window=None, zero_point_zero = False):
     return (sta, t_sta, st)
 
 
+""" ========== CSD estimation related ========== """
+
+def cal_robust_csd(lfp, lambda_dev=1, lambda_der=1, sigma_t=0, tf_edge=True, spacing=1.0):
+    """
+    Robust estimation of CSD that deals with varied gain across channels. a wrapper funciton of cal_1dCSD() and lfp_robutst_smooth().
+
+    FirstSmooth-out the varied gain of LFP signals across channels and deal with missing channels;
+    Then, use 2nd order spatial derivative (the three point formula) to approximate 1D current source density (csd)
+
+    :param lfp:        lfp signal, 2D array, with shape == [num_chan, num_timestamps]
+    :param lambda_dev: coefficient of the deviation term   for the cost function, scalar or vector of length = number_channels
+                            range between 0 and 1. if channel [i] is noisy, set lambda_dev[i] small or just zero
+    :param lambda_der: coefficient of the derivative for the cost term, scalar.  Larger values leads to more smoothed result.
+    :param sigma_t:    std for gaussian smoothing along time axis, set to 0 if do not smooth along time, the unit is number of timestampes
+    :param tf_edge:    true/false to interpolate the two channels on the edge, affect the shape of the result
+    :param spacing:    inter-channel distance, a scalar, affect the scale of the CSD
+    :return:        csd, [N_channels-2, N_timestamps] or [N_channels, N_timestamps], dependign on tf_edge
+    """
+
+    # smooth lfp using function lfp_robust_smooth()
+    lfp_smooth = lfp_robust_smooth(lfp, lambda_dev=lambda_dev, lambda_der=lambda_der, sigma_t=sigma_t)
+    # compute CSD using function cal_1dCSD()
+    csd = cal_1dCSD(lfp_smooth, axis_ch=0, tf_edge=tf_edge, spacing=spacing)
+    return csd
+
 def cal_1dCSD(lfp, axis_ch=0, tf_edge=False, spacing=1):
     """
     Use 2nd order spatial derivative (the three point formula) to approximate 1D current source density (csd)
@@ -240,6 +265,7 @@ def cal_1dCSD(lfp, axis_ch=0, tf_edge=False, spacing=1):
     :param lfp:     lfp signal , by default [N_channels, N_timestamps]
     :param axis_ch: axis of the channels, equals zero by default
     :param tf_edge: true/false to interpolate the two channels on the edge, affect the shape of the result
+    :param spacing: inter-channel distance, a scalar, affect the scale of the CSD
     :return:        csd, [N_channels-2, N_timestamps] or [N_channels, N_timestamps]
     """
     N = lfp.shape[axis_ch]    # num of channels
@@ -251,110 +277,99 @@ def cal_1dCSD(lfp, axis_ch=0, tf_edge=False, spacing=1):
     return csd
 
 
-def GP_ERP_smooth(lfp, ts=None, cs=None):
-    """ use gaussian process to smooth data, does not work well """
-    kernel = 1.0 * gaussian_process.kernels.RBF(1.0)
-    alpha = np.std(lfp)**2/10**6
-    gp = gaussian_process.GaussianProcessRegressor(kernel= kernel, alpha=alpha)
-    N,T = lfp.shape
-    c_grid, t_grid = (np.arange(N), np.arange(T))
-    x = np.expand_dims(c_grid, axis=1)
-    c_grid_sm = c_grid
-    x_sm = x
-    lfp_smooth = np.zeros([len(c_grid_sm), len(t_grid)])
-    for t in t_grid:
-        y = lfp[:, t:t+1]
-        gp.fit(x,y)
-        lfp_smooth[:,t:t+1] = gp.predict(x_sm)
-    return lfp_smooth
-
-
-def quad_smooth_der(target, lambda_dev=1, lambda_der=0, add_edge=3, degree_der=3, return_CSD=False):
+def lfp_robust_smooth(lfp, lambda_dev=1, lambda_der=1, sigma_t=0, tf_x0_inherent=True, tf_grad=True):
     """
-    Quadratic smoothing using continuous (2nd-order) derivative assumption, used to calculate csd from lfp with noise
+    Smooth the lfp across channels for robust CSD estimation, to deal with slightly varied gain across channels.
+    The smoothing algorithm is to minimize a cost function that considers
+      (1) the deviation from the empirical data, and (2) the smoothness of the 2nd order derivative (CSD)
 
-    :param target:     target signal to smooth, 1D array (recorded lfp with noise, e.g. slightly different gain between channels)
-    :param lambda_dev: coefficient of the deviation  for the cost term, scalar or vector of the same shape as the target.  if target[i] is noisy, set lambda_dev[i] to be close to zero
-    :param lambda_der: coefficient of the derivative for the cost term.  Larger values leads to more smoothed data
-    :param add_edge:   number of channels to add outside both edges, to prevent boundary effect during computation (will be removed in result)
-    :param return_CSD: true/false to return csd, affect the returned result
-    :return:           target_smoothed, or (target smoothed, csd)
-    """
-    lambda_dev = np.array(lambda_dev)
-    def quad_cost(x, y):
-        """ cost function where x is the variable and y is the target; penalize when 1) x devetates from y and 2) x is not smooth """
-
-        """ dev (deviation) term: the smoothed data has to be similar with the original target data """
-        if add_edge:
-            dev = x[add_edge:0-add_edge]-y
-        else:
-            dev = x-y
-        """ der (derivative) term: the smoothed data has to be smooth """
-        if degree_der ==3:     # if assuming 3rd derivative is small, i.e., smooth 2nd derivative (csd from lfp)
-            der = np.convolve(x, [-1, 3, -3, 1], mode='valid')   # third order derivative
-        elif degree_der ==4:   # if assuming 4th derivative is small, i.e., smooth 3rd derivative
-            der = np.convolve(x, [1, -4, 6, -4, 1], mode='valid')   # fourth order derivative
-        """ tocal cost is the summation of dev and der """
-        cost =  np.sum(lambda_dev* dev ** 2) + lambda_der * np.sum(der ** 2)
-        return cost
-
-    """ add edge to x0, initial values for optimization """
-    if add_edge:
-        x0 = np.zeros(len(target)+2*add_edge)
-    else:
-        x0 = np.zeros(len(target))
-
-    """ optimization step """
-    res = optimize.minimize(lambda x: quad_cost(x, y=target), x0=x0, tol=np.std(target)/10**5)
-
-    if add_edge:
-        ret = res.x[add_edge:0-add_edge]
-        if return_CSD:
-            csd = np.convolve(res.x, [-1,2,-1], mode='same')
-            csd = csd[add_edge:0-add_edge]
-            ret = [ret, csd]
-    else:
-        ret = res.x
-        if return_CSD:
-            csd = csd = np.convolve(res.x, [-1,2,-1], mode='same')
-            ret = [ret, csd]
-    return ret
-
-
-def lfp_cross_chan_smooth(lfp, method='der', lambda_dev=1, lambda_der=1, sigma_chan=0.5, sigma_t=0):
-    """
-    Smooth the lfp across channels for csd estimation, to deal with varied gain across channels. either use 1) derivative-based method or 2) gaussian filter
-
-    1) derivative-based: Quadratic smoothing using continuous (2nd-order) derivative assumption across channels, see function quad_smooth_der for details
-
-    2) gaussian filter: use gaussian filter to smooth lfp across channels
-
-    :param lfp:        lfp signal, [num_chan, num_timestamps]
-    :param method:     smoothing method: 'der' for derivative-based method; 'gaussian' for gaussian filter
-    :param lambda_dev: coefficient of the deviation  for the cost term, scalar or vector of the same shape as the target.  if target[i] is noisy, set lambda_dev[i] small or just zero, used for 'der' method
-    :param lambda_der: coefficient of the derivative for the cost term.  Larger values leads to more smoothed result, used for 'der' method
-    :param sigma_chan: std for gaussian smoothing across channels, used for 'gaussian' method
-    :param sigma_t:    std for gaussian smoothing along time axis, set to 0 if do not smooth along time
+    :param lfp:        lfp signal, 2D array, with shape == [num_chan, num_timestamps]
+    :param lambda_dev: coefficient of the deviation term   for the cost function, scalar or vector of length = number_channels
+                            range between 0 and 1. if channel [i] is noisy, set lambda_dev[i] small or just zero
+    :param lambda_der: coefficient of the derivative for the cost term, scalar.  Larger values leads to more smoothed result.
+    :param sigma_t:    std for gaussian smoothing along time axis, set to 0 if do not smooth along time, the unit is number of timestampes
+    :param tf_x0_inherent:    true/false using the result of previous time point as the initial point for optimization, defult to True, which speeds up computation
+    :param tf_grad:    true/false to use analytical form of gradient, which significantly speeds up the computation
     :return:           lfp of the same shape, smoothed
     """
 
-    N, T = lfp.shape
-    lfp_hat = lfp*0
-    scale_lfp = np.percentile(np.abs(lfp), 98)    # used to normalize the data, convenient for optimization
-    if method == 'der':
-        for t in range(T):
-            y = lfp[:,t]/scale_lfp
-            lfp_hat[:,t] = quad_smooth_der(y, lambda_dev=lambda_dev, lambda_der=lambda_der)
-    elif method =='gaussian':
-        lfp_hat = sp.ndimage.gaussian_filter1d(lfp/scale_lfp, sigma_chan, axis=0)
+    """ get the shape of data.  N: number of channels; T: number of timestamps """
+    if len(lfp.shape) == 1:      # if 1D, assumes it contains only 1 timestamps
+        lfp=np.expand_dims(lfp, axis=1)
+        N, T = lfp.size
+    elif len(lfp.shape) == 2:
+        N, T = lfp.shape
     else:
-        raise Exception('method has to be either "der" or "gaussian"')
+        raise Exception('input lfp has to be 1D or 2D array')
 
+    """ normalize data for the convenience of optimation """
+    scale_lfp = np.nanstd(lfp)  # used to normalize the data, convenient for optimization
+    lfp_nmlz = lfp/scale_lfp    # normalized lfp
+
+    """ cost function """
+    lambda_dev = np.array(lambda_dev)
+    lambda_der = np.array(lambda_der)
+    def quad_cost(x, y):
+        """
+        cost function where x is the variable and y is the target to be smoothed;
+        penalize when 1) x devetates from y and 2) x is not smooth
+        """
+
+        """ dev (deviation) term: the smoothed data has to be similar with the original target data """
+        dev = x-y
+        """ der (derivative) term: the smoothed data has to be smooth across neighboring channels """
+        # the 3rd spatial derivative has to be small if 2nd derivative (csd from lfp) is smooth
+        der = np.convolve(x, [-1, 3, -3, 1], mode='valid')   # third order derivative
+        """ tocal cost is the summation of quadratic term of dev and der """
+        cost = np.sum(lambda_dev* dev ** 2) + lambda_der * np.sum(der ** 2)
+        return cost
+
+    """ analytical gradient of cost function """
+    """ use if tf_grad=True; otherwise compute gradient numerically, which can be slow """
+    if tf_grad:
+        # construct ker_der_matrix, for calculating the gradient of the der term (enforcing smoothness)
+        ker_der = np.array([-1,3,-3,1])
+        ker_der_matrix = np.zeros([N,N])
+        for i in range(N-3):
+            ker_der_matrix[i, i:i+4] += ker_der*(-1)
+        for i in range(1, N-2):
+            ker_der_matrix[i, i-1:i+3] += ker_der * (+3)
+        for i in range(2, N-1):
+            ker_der_matrix[i, i-2:i+2] += ker_der * (-3)
+        for i in range(3, N):
+            ker_der_matrix[i, i-3:i+1] += ker_der * (+1)
+        # finish constructing the ker_der_matrix
+
+        def quad_cost_grad(x, y):
+            """  analytical form of the gradient of the cost function """
+            grad_dev = 2 * lambda_dev * (x - y)
+            grad_der = 2 * lambda_der * np.matmul(ker_der_matrix, x)
+            return grad_dev + grad_der
+
+    """ options for the quadratic optimization process for smoothing LFP """
+    x0 = np.zeros(N)        # initial value
+    tol = 10**(-4)          # termination criterion: smaller value leads to more accurate results but slower
+    lfp_hat = lfp * 0       # place holder of the smoothed data
+
+    """ optimization process """
+    for t in range(T):      # for every time point
+        y = lfp_nmlz[:,t]                                                    # lfp over all channels at current time
+        fun_cost = lambda x: quad_cost(x, y=y)                               # cost function for the current LFPs
+        fun_grad = (lambda x: quad_cost_grad(x, y=y)) if tf_grad else None   # gradient function
+        # optimization process
+        res = optimize.minimize(fun_cost, x0=x0, jac=fun_grad, tol=tol)
+        lfp_hat[:,t] = res.x
+        if tf_x0_inherent:
+            x0 = res.x
+
+    """ smooth over time using gaussian kernel """
     if sigma_t>0:
-        for n in range(N):
-            lfp_hat = sp.ndimage.gaussian_filter1d(lfp_hat, sigma_t, axis=1)
-    return lfp_hat * scale_lfp
+        lfp_hat = sp.ndimage.gaussian_filter1d(lfp_hat, sigma_t, axis=1)
 
+    """ put data back to its origianl range """
+    lfp_smooth = lfp_hat * scale_lfp
+
+    return lfp_smooth
 
 
 """ ===== decoding related ===== """
@@ -1099,7 +1114,7 @@ def DimRedLDA(X=None, Y=None, X_test=None, dim=2, lda=None, return_model=False):
 
 
 
-""" Tool functons """
+""" ========== Tool functons ========== """
 
 def center2edge(centers):
     """
@@ -1144,3 +1159,117 @@ def index_int2bool(index_int, N=None):
     index_bool = np.zeros(N)
     index_bool[index_int]=1
     return index_bool>0.5
+
+
+""" ========== obsolete functions ========== """
+
+def GP_ERP_smooth(lfp, ts=None, cs=None):
+    """ obsolete function,  use gaussian process to smooth data, does not work well """
+    kernel = 1.0 * gaussian_process.kernels.RBF(1.0)
+    alpha = np.std(lfp)**2/10**6
+    gp = gaussian_process.GaussianProcessRegressor(kernel= kernel, alpha=alpha)
+    N,T = lfp.shape
+    c_grid, t_grid = (np.arange(N), np.arange(T))
+    x = np.expand_dims(c_grid, axis=1)
+    c_grid_sm = c_grid
+    x_sm = x
+    lfp_smooth = np.zeros([len(c_grid_sm), len(t_grid)])
+    for t in t_grid:
+        y = lfp[:, t:t+1]
+        gp.fit(x,y)
+        lfp_smooth[:,t:t+1] = gp.predict(x_sm)
+    return lfp_smooth
+
+
+def quad_smooth_der(target, lambda_dev=1, lambda_der=0, add_edge=0, degree_der=3, return_CSD=False, x0=None):
+    """
+    --- OBSOLETE: use lfp_robust_smooth instead ---
+    Quadratic smoothing using continuous (2nd-order) derivative assumption, used to calculate csd from lfp with noise
+
+    :param target:     target signal to smooth, 1D array (recorded lfp with noise, e.g. slightly different gain between channels)
+    :param lambda_dev: coefficient of the deviation  for the cost term, scalar or vector of the same shape as the target.  if target[i] is noisy, set lambda_dev[i] to be close to zero
+    :param lambda_der: coefficient of the derivative for the cost term.  Larger values leads to more smoothed data
+    :param add_edge:   number of channels to add outside both edges, to prevent boundary effect during computation (will be removed in result)
+    :param return_CSD: true/false to return csd, affect the returned result
+    :param x0:         initial value for optimization, default to None
+    :return:           target_smoothed, or (target smoothed, csd)
+    """
+    lambda_dev = np.array(lambda_dev)
+    def quad_cost(x, y):
+        """ cost function where x is the variable and y is the target; penalize when 1) x devetates from y and 2) x is not smooth """
+
+        """ dev (deviation) term: the smoothed data has to be similar with the original target data """
+        if add_edge:
+            dev = x[add_edge:0-add_edge]-y
+        else:
+            dev = x-y
+        """ der (derivative) term: the smoothed data has to be smooth """
+        if degree_der ==3:     # if assuming 3rd derivative is small, i.e., smooth 2nd derivative (csd from lfp)
+            der = np.convolve(x, [-1, 3, -3, 1], mode='valid')   # third order derivative
+        elif degree_der ==4:   # if assuming 4th derivative is small, i.e., smooth 3rd derivative
+            der = np.convolve(x, [1, -4, 6, -4, 1], mode='valid')   # fourth order derivative
+        """ tocal cost is the summation of dev and der """
+        cost =  np.sum(lambda_dev* dev ** 2) + lambda_der * np.sum(der ** 2)
+        return cost
+
+    """ add edge to x0, initial values for optimization """
+    if x0 is None:
+        if add_edge:
+            x0 = np.zeros(len(target)+2*add_edge)
+        else:
+            x0 = np.zeros(len(target))
+
+    """ optimization step """
+    res = optimize.minimize(lambda x: quad_cost(x, y=target), x0=x0, tol=np.std(target)/10**5)
+
+    if add_edge:
+        ret = res.x[add_edge:0-add_edge]
+        if return_CSD:
+            csd = np.convolve(res.x, [-1,2,-1], mode='same')
+            csd = csd[add_edge:0-add_edge]
+            ret = [ret, csd]
+    else:
+        ret = res.x
+        if return_CSD:
+            csd = csd = np.convolve(res.x, [-1,2,-1], mode='same')
+            ret = [ret, csd]
+    return ret
+
+
+def lfp_cross_chan_smooth(lfp, method='der', lambda_dev=1, lambda_der=1, sigma_chan=0.5, sigma_t=0, tf_x0=True):
+    """
+    --- OBSOLETE: use lfp_robust_smooth instead ---
+    Smooth the lfp across channels for csd estimation, to deal with varied gain across channels. either use 1) derivative-based method or 2) gaussian filter
+
+    1) derivative-based: Quadratic smoothing using continuous (2nd-order) derivative assumption across channels, see function quad_smooth_der for details
+
+    2) gaussian filter: use gaussian filter to smooth lfp across channels
+
+    :param lfp:        lfp signal, [num_chan, num_timestamps]
+    :param method:     smoothing method: 'der' for derivative-based method; 'gaussian' for gaussian filter
+    :param lambda_dev: coefficient of the deviation  for the cost term, scalar or vector of the same shape as the target.  if target[i] is noisy, set lambda_dev[i] small or just zero, used for 'der' method
+    :param lambda_der: coefficient of the derivative for the cost term.  Larger values leads to more smoothed result, used for 'der' method
+    :param sigma_chan: std for gaussian smoothing across channels, used for 'gaussian' method
+    :param sigma_t:    std for gaussian smoothing along time axis, set to 0 if do not smooth along time
+    :param tf_x0:      true/false using the result of previous time point as the initial point for optimization, defult to True, which speeds up computation
+    :return:           lfp of the same shape, smoothed
+    """
+
+    N, T = lfp.shape
+    lfp_hat = lfp*0
+    scale_lfp = np.percentile(np.abs(lfp), 98)    # used to normalize the data, convenient for optimization
+    if method == 'der':
+        x0= None
+        for t in range(T):
+            y = lfp[:,t]/scale_lfp
+            x_smooth = quad_smooth_der(y, lambda_dev=lambda_dev, lambda_der=lambda_der, x0=x0, add_edge=0)
+            lfp_hat[:, t] = x_smooth
+            x0 = x_smooth
+    elif method =='gaussian':
+        lfp_hat = sp.ndimage.gaussian_filter1d(lfp/scale_lfp, sigma_chan, axis=0)
+    else:
+        raise Exception('method has to be either "der" or "gaussian"')
+
+    if sigma_t>0:
+        lfp_hat = sp.ndimage.gaussian_filter1d(lfp_hat, sigma_t, axis=1)
+    return lfp_hat * scale_lfp

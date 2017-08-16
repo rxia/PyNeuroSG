@@ -410,8 +410,8 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP
         name_colormap = 'rainbow'
         cycle_color = plt.cm.get_cmap(name_colormap)(np.linspace(0, 1, N_chan))
 
-        h_fig = plt.figure(figsize=(9,6))
-        plt.subplot(1,2,1)
+        h_fig, h_axes = plt.subplots(1,2, figsize=(9,6))
+        plt.axes(h_axes[0])
         for i in range(N_chan):
             plt.plot(ts, array_erp_offset[:,i], c=cycle_color[i]*0.9, lw=2)
         try:  # for differenet versions of matploblib
@@ -427,7 +427,7 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP
         plt.xlabel('time from event onset (s)')
         plt.ylabel('Voltage (V)')
 
-        plt.subplot(1, 2, 2)
+        plt.axes(h_axes[1])
         plt.pcolormesh(center2edge(ts), center2edge(np.arange(N_chan)+1) , np.array(array_erp), cmap=plt.get_cmap('coolwarm'))
         color_max = np.max(np.abs(np.array(array_erp)))
         plt.clim(-color_max, color_max)

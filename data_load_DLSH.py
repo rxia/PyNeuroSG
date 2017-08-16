@@ -197,7 +197,7 @@ def load_data(keyword = None,
 
         if len(data_dfs)>0:
             data_df = pd.concat(data_dfs)                # concatenate in to one single data frame
-            data_df = data_df.reset_index(range(len(data_df)))
+            data_df.reset_index(inplace=True, drop=True)
         else:
             data_df = pd.DataFrame([])
 
