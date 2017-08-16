@@ -58,7 +58,7 @@ lfp_na = lfp
 
 lfp_sm = pna.lfp_cross_chan_smooth(lfp, method='der', lambda_dev=lambda_dev, lambda_der=5, sigma_t=1)
 
-reload(pna); temp=time.time(); lfp_sm = pna.lfp_csd_smooth(lfp, lambda_dev=lambda_dev, lambda_der=5, sigma_t=3); print(time.time()-temp);
+reload(pna); temp=time.time(); lfp_sm = pna.lfp_robust_smooth(lfp, lambda_dev=lambda_dev, lambda_der=5, sigma_t=3); print(time.time()-temp);
 lfp_nr = lfp_sm / np.std(lfp_sm, axis=1, keepdims=True)
 
 csd_na = pna.cal_1dCSD(lfp_na, axis_ch=0, tf_edge=True)
