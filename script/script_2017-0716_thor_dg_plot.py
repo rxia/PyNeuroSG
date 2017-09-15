@@ -19,6 +19,7 @@ import data_load_DLSH
 
 
 def order_consecutive(x):
+    x = np.array(x)
     result = [0]
     for i in range(1, len(x)):
         cur = x[i]
@@ -30,12 +31,14 @@ def order_consecutive(x):
     return np.array(result)
 
 
-""" get dg files and sort by time """
-
 # dir_dg = '/shared/homes/sguan/neuro_data/stim_dg'
 dir_dg = '/shared/lab/projects/analysis/shaobo/data_dg'
 list_name_dg_all = os.listdir(dir_dg)
 
+
+
+
+""" get dg files and sort by time """
 keyword_dg = 'h.*_071717.*'
 
 _, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
@@ -155,3 +158,160 @@ pnp.DfPlot(data_df, values='status', x='order_consecutive', c='side', limit=(dat
 plt.savefig('./temp_figs/status_consecutive_{}.png'.format(filename_common))
 pnp.DfPlot(data_df, values='RT', x='order_consecutive', c='side', limit=(data_df['order_consecutive']<6)*(data_df['file']>=30), title_text=title_text)
 plt.savefig('./temp_figs/RT_consecutive_{}.png'.format(filename_common))
+
+
+
+""" 0727 """
+keyword_dg = 'h.*_072717.*'
+
+_, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
+
+# select a subset of files
+data_df = data_df[ data_df['file']>=48 ]
+data_df.reset_index(inplace=True, drop=True)
+
+data_df = data_load_DLSH.standardize_data_df(data_df)
+filename_common = misc_tools.str_common(name_datafiles)
+
+data_df['RT'] = data_df['rts'] - data_df['TargetOnset']
+data_df['order_consecutive'] = order_consecutive(data_df['side'])
+
+resp_rate = 1.0*len(data_df)/data_df['obs_total'][0]
+title_text = '{}, resp_rate={:.2f}'.format(filename_common, resp_rate)
+
+pnp.DfPlot(data_df, values='status', x='file', c='side', title_text=title_text)
+plt.savefig('./temp_figs/stasus_{}.png'.format(filename_common))
+pnp.DfPlot(data_df, values='RT', x='file', c='side', p='status', title_text=title_text)
+plt.savefig('./temp_figs/RT_{}.png'.format(filename_common))
+
+pnp.DfPlot(data_df, values='status', x='TargetOnset', c='side', title_text=title_text)
+pnp.DfPlot(data_df, values='RT', x='TargetOnset', c='side', p='status', title_text=title_text)
+
+
+pnp.DfPlot(data_df, values='status', x='order_consecutive', c='side', limit=(data_df['order_consecutive']<5), title_text=title_text)
+plt.savefig('./temp_figs/status_consecutive_{}.png'.format(filename_common))
+pnp.DfPlot(data_df, values='RT', x='order_consecutive', c='side', limit=(data_df['order_consecutive']<5), title_text=title_text)
+plt.savefig('./temp_figs/RT_consecutive_{}.png'.format(filename_common))
+
+
+
+
+""" 0728 """
+keyword_dg = 'h.*_072817.*'
+
+_, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
+
+# select a subset of files
+data_df.reset_index(inplace=True, drop=True)
+
+data_df = data_load_DLSH.standardize_data_df(data_df)
+filename_common = misc_tools.str_common(name_datafiles)
+
+data_df['RT'] = data_df['rts'] - data_df['TargetOnset']
+data_df['order_consecutive'] = order_consecutive(data_df['side'])
+
+resp_rate = 1.0*len(data_df)/data_df['obs_total'][0]
+title_text = '{}, resp_rate={:.2f}'.format(filename_common, resp_rate)
+
+pnp.DfPlot(data_df, values='status', x='file', c='side', title_text=title_text)
+plt.savefig('./temp_figs/stasus_{}.png'.format(filename_common))
+pnp.DfPlot(data_df, values='RT', x='file', c='side', p='status', title_text=title_text)
+plt.savefig('./temp_figs/RT_{}.png'.format(filename_common))
+
+pnp.DfPlot(data_df, values='status', x='TargetOnset', c='side', title_text=title_text)
+pnp.DfPlot(data_df, values='RT', x='TargetOnset', c='side', p='status', title_text=title_text)
+
+
+pnp.DfPlot(data_df, values='status', x='order_consecutive', c='side', limit=(data_df['order_consecutive']<5), title_text=title_text)
+plt.savefig('./temp_figs/status_consecutive_{}.png'.format(filename_common))
+pnp.DfPlot(data_df, values='RT', x='order_consecutive', c='side', limit=(data_df['order_consecutive']<5), title_text=title_text)
+plt.savefig('./temp_figs/RT_consecutive_{}.png'.format(filename_common))
+
+
+""" 0809 """
+keyword_dg = 'h.*_080917.*'
+
+_, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
+
+# select a subset of files
+data_df.reset_index(inplace=True, drop=True)
+
+data_df = data_load_DLSH.standardize_data_df(data_df)
+filename_common = misc_tools.str_common(name_datafiles)
+
+data_df['RT'] = data_df['rts'] - data_df['TargetOnset']
+data_df['order_consecutive'] = order_consecutive(data_df['side'])
+
+resp_rate = 1.0*len(data_df)/data_df['obs_total'][0]
+title_text = '{}, resp_rate={:.2f}'.format(filename_common, resp_rate)
+
+pnp.DfPlot(data_df, values='status', x='file', c='side', title_text=title_text)
+plt.savefig('./temp_figs/stasus_{}.png'.format(filename_common))
+pnp.DfPlot(data_df, values='RT', x='file', c='side', p='status', title_text=title_text)
+plt.savefig('./temp_figs/RT_{}.png'.format(filename_common))
+
+pnp.DfPlot(data_df, values='status', x='TargetOnset', c='side', title_text=title_text)
+pnp.DfPlot(data_df, values='RT', x='TargetOnset', c='side', p='status', title_text=title_text)
+
+
+pnp.DfPlot(data_df, values='status', x='order_consecutive', c='side', limit=(data_df['order_consecutive']<5), title_text=title_text)
+plt.savefig('./temp_figs/status_consecutive_{}.png'.format(filename_common))
+pnp.DfPlot(data_df, values='RT', x='order_consecutive', c='side', p='status', limit=(data_df['order_consecutive']<5), title_text=title_text)
+plt.savefig('./temp_figs/RT_consecutive_{}.png'.format(filename_common))
+
+
+
+""" 0810, matchnot """
+keyword_dg = 'h.*_081017.*'
+
+_, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
+
+# select a subset of files
+data_df.reset_index(inplace=True, drop=True)
+
+data_df = data_load_DLSH.standardize_data_df(data_df)
+filename_common = misc_tools.str_common(name_datafiles)
+
+data_df['RT'] = data_df['rts'] - data_df['delay']
+data_df['order_consecutive'] = order_consecutive(data_df['side'])
+
+resp_rate = 1.0*len(data_df)/data_df['obs_total'][0]
+title_text = '{}, resp_rate={:.2f}'.format(filename_common, resp_rate)
+
+h_fig, h_ax = plt.subplots(3,1, figsize=[6,8])
+plt.axes(h_ax[0]);  pnp.DfPlot(data_df, values='status', x='file', c='side', title_text=title_text)
+plt.axes(h_ax[1]);  pnp.DfPlot(data_df, values='status', x='file', c='ImageOpacity', title_text=title_text)
+plt.axes(h_ax[2]);  pnp.DfPlot(data_df, values='status', x='file', c='HelperOpacity', title_text=title_text)
+plt.savefig('./temp_figs/stasus_{}.png'.format(filename_common))
+
+h_fig, h_ax = plt.subplots(3,1, figsize=[6,8])
+plt.axes(h_ax[0]);  pnp.DfPlot(data_df, values='RT', x='file', c='side', title_text=title_text)
+plt.axes(h_ax[1]);  pnp.DfPlot(data_df, values='RT', x='file', c='ImageOpacity', title_text=title_text)
+plt.axes(h_ax[2]);  pnp.DfPlot(data_df, values='RT', x='file', c='HelperOpacity', title_text=title_text)
+plt.savefig('./temp_figs/RT_{}.png'.format(filename_common))
+
+
+""" 0914 """
+
+keyword_dg = 'h_matchnot.*_091417.*'
+
+_, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
+
+# select a subset of files
+data_df.reset_index(inplace=True, drop=True)
+
+data_df = data_load_DLSH.standardize_data_df(data_df)
+filename_common = misc_tools.str_common(name_datafiles)
+
+data_df['RT'] = data_df['rts'] - data_df['delay']
+data_df['order_consecutive'] = order_consecutive(data_df['side'])
+
+resp_rate = 1.0*len(data_df)/data_df['obs_total'][0]
+title_text = '{}, resp_rate={:.2f}'.format(filename_common, resp_rate)
+
+h_fig, h_ax = plt.subplots(2,1, figsize=[6,8])
+plt.axes(h_ax[0]);  pnp.DfPlot(data_df, values='status', x='file', c='side', title_text=title_text)
+plt.axes(h_ax[1]);  pnp.DfPlot(data_df, values='RT', x='file', c='side', title_text=title_text)
+h_fig, h_ax = plt.subplots(2,1, figsize=[6,8])
+plt.axes(h_ax[0]); pnp.DfPlot(data_df, values='status', x='order_consecutive', c='side', title_text=title_text, limit=(data_df['order_consecutive']<=24))
+plt.axes(h_ax[1]); pnp.DfPlot(data_df, values='RT', x='order_consecutive', c='side', title_text=title_text, limit=(data_df['order_consecutive']<=24))

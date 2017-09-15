@@ -908,9 +908,10 @@ def ErrIntvBinom(k=None, n=None, alpha=0.05, x=None, tf_err=True):
     p = 1.0*k/n     # best estimate of p
     """ use grid search to compute confidence interval """
     p_grid = np.linspace(0,1,1001,endpoint=True)
-    cdf_grid = sp.stats.binom.cdf(k=k, n=n, p=p_grid)
-    intv_l = np.append(p_grid[cdf_grid >= 1-alpha*0.5], 0.0) .max()
-    intv_h = np.append(p_grid[cdf_grid <= alpha * 0.5], 1.0) .min()
+    cdf_grid_l = sp.stats.binom.cdf(k=k, n=n, p=p_grid)
+    cdf_grid_r = 1-sp.stats.binom.cdf(k=k-1, n=n, p=p_grid)
+    intv_l = np.append(p_grid[cdf_grid_r <= alpha*0.5], 0.0) .max()
+    intv_h = np.append(p_grid[cdf_grid_l <= alpha*0.5], 1.0) .min()
     intv = np.array([intv_l, intv_h])
     if tf_err:
         return intv - p
