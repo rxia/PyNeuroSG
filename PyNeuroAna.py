@@ -893,30 +893,32 @@ def ErrIntvBinom(k=None, n=None, alpha=0.05, x=None, tf_err=True):
 
     :param k:      int, number of samples==1
     :param n:      int, total number of samples
-    :param alpha:  default to 0.05
+    :param alpha:  default to 0.05, confidence level
     :param x:      data array, used if k and n are not given:  k=sum(x==1), n=len(x)
     :param tf_err: True/False to return a) err interval (confidence_interval - p) or b) confidence interval
     :return:       (error_low, error_hight) or (p_low, p_high)
     """
 
-    if (n is None) and (k is None):    # if n, k are not given, use x to get n and k
+    """ if n, k are not given, use x to get n and k """
+    if (n is None) and (k is None):
         x = (np.array(x)>0.5).astype(float).ravel()
         n = len(x)
         k = np.sum(x)
     if n==0:   # if empty
         return np.array([np.nan, np.nan])
-    p = 1.0*k/n     # best estimate of p
+    """ best estimate of p """
+    p = 1.0*k/n
     """ use grid search to compute confidence interval """
-    p_grid = np.linspace(0,1,1001,endpoint=True)
-    cdf_grid_l = sp.stats.binom.cdf(k=k, n=n, p=p_grid)
-    cdf_grid_r = 1-sp.stats.binom.cdf(k=k-1, n=n, p=p_grid)
-    intv_l = np.append(p_grid[cdf_grid_r <= alpha*0.5], 0.0) .max()
-    intv_h = np.append(p_grid[cdf_grid_l <= alpha*0.5], 1.0) .min()
-    intv = np.array([intv_l, intv_h])
-    if tf_err:
-        return intv - p
+    p_grid = np.linspace(0,1,1001,endpoint=True)                # grid of p
+    P_l = sp.stats.binom.cdf(k=k, n=n, p=p_grid)                # P(k or less success out of n trials)
+    P_r = 1-sp.stats.binom.cdf(k=k-1, n=n, p=p_grid)            # P(k or more success out of n trials)
+    intv_l = np.append(p_grid[P_r <= alpha*0.5], 0.0) .max()    # lower bound of p est: k or k+ success very rare
+    intv_h = np.append(p_grid[P_l <= alpha*0.5], 1.0) .min()    # upper bound of p est: k or k- success very rare
+    intv = np.array([intv_l, intv_h])                           # confidence interval of p estimate
+    if tf_err:                                              # if returns error inverval
+        return intv - p                                         # error interval of p estimate
     else:
-        return intv
+        return intv                                             # confidence interval of p estimate
 
 
 
