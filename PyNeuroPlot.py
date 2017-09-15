@@ -103,10 +103,8 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
         if Nx <= 0.1*N:          # if x is discrete
             if Nvalues <=2:       # if binary data, bar plot, error bar using binomial distribution for errarbar
                 plot_type = 'bar'
-                errbar = 'binom'
             else:
                 plot_type = 'box' # if continuous data, box plot, error bar using standard error
-                errbar = 'se'
         else:                 # if x is continuous
             plot_type = 'dot'
 
