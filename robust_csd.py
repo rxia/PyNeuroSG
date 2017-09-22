@@ -36,14 +36,17 @@ def cal_1dCSD(lfp, axis_ch=0, tf_edge=False, spacing=1):
     :param axis_ch: axis of the channels, equals zero by default
     :param tf_edge: true/false to interpolate the two channels on the edge, affect the shape of the result
     :param spacing: inter-channel distance, a scalar, affect the scale of the CSD
-    :return:        csd, [N_channels-2, N_timestamps] or [N_channels, N_timestamps]
+    :return:        csd, [N_channels, N_timestamps]
     """
     N = lfp.shape[axis_ch]    # num of channels
     csd = -np.diff(np.diff(lfp, axis=axis_ch), axis=axis_ch)/spacing**2   # calculate csd using the three point formula
     if tf_edge:    # interpolate channels on the edge
         csd_edge_l = 2*np.take(csd,  0, axis=axis_ch) - np.take(csd,  1, axis=axis_ch)
         csd_edge_r = 2*np.take(csd, -1, axis=axis_ch) - np.take(csd, -2, axis=axis_ch)
-        csd = np.concatenate([np.expand_dims(csd_edge_l, axis=axis_ch), csd, np.expand_dims(csd_edge_r, axis=axis_ch)], axis=axis_ch)
+    else:
+        csd_dege_l = np.take(csd,  0, axis=axis_ch)*np.nan
+        csd_edge_r = np.take(csd,  0, axis=axis_ch)*np.nan
+    csd = np.concatenate([np.expand_dims(csd_edge_l, axis=axis_ch), csd, np.expand_dims(csd_edge_r, axis=axis_ch)], axis=axis_ch)
     return csd
 
 
@@ -64,10 +67,11 @@ def lfp_robust_smooth(lfp, lambda_dev=1, lambda_der=1, sigma_t=0, tf_x0_inherent
     """
 
     """ get the shape of data.  N: number of channels; T: number of timestamps """
-    if len(lfp.shape) == 1:      # if 1D, assumes it contains only 1 timestamps
+    input_dimention = len(lfp.shape)
+    if input_dimention == 1:      # if 1D, assumes it contains only 1 timestamps
         lfp=np.expand_dims(lfp, axis=1)
-        N, T = lfp.size
-    elif len(lfp.shape) == 2:
+        N, T = lfp.shape
+    elif input_dimention == 2:
         N, T = lfp.shape
     else:
         raise Exception('input lfp has to be 1D or 2D array')
@@ -138,5 +142,8 @@ def lfp_robust_smooth(lfp, lambda_dev=1, lambda_der=1, sigma_t=0, tf_x0_inherent
 
     """ put data back to its origianl range """
     lfp_smooth = lfp_hat * scale_lfp
+
+    if input_dimention ==1:
+        lfp_smooth = lfp_smooth.ravel()
 
     return lfp_smooth
