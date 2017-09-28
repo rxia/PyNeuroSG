@@ -10,22 +10,274 @@ import re
 import warnings
 import misc_tools
 import signal_align
+import PyNeuroAna as pna
 
-def PyNeuroPlot(df, y, x, c=[], p=[]):
-    df_plot = pd.DataFrame()
 
-    if len(c)==0:
-        df_plot = df.groupby(x) [y].agg(np.mean)
-        df_plot.plot(kind='bar',title= y )
+
+def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_legend=True, tf_count=True,
+              values_name='', x_name='', c_name='', p_name='', title_text='', **kwargs):
+    """
+    function to plot values according to multiple levels of grouping keys: x, c, and p.
+    The input values, x, c and p can be viewed as columns from the same table
+
+    Example usage could be found in show_case/GroupPlot_DfPlot.py
+
+    :param values:      values to plot, array of length N
+    :param x:           grouping key, plot as x axis, array of length N, default to None.
+
+                        * if x is continuous, plot_type can be one of ['dot','line'], plot values against x
+                        * elif x is discrete, plot_type can be one of ['bar','box','violin'], plot values groupped by x
+    :param c:           grouping key, plot as separate colors within panel, array of length N, default to None
+    :param p:           grouping key, plot as separate panels, array of length N, default to None
+    :param limit:       used to select a subset of data, boolean array of length N
+    :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically:
+
+                        * 'dot': values against x;
+                        * 'line': values against x;
+                        * 'bar', mean values with errbar determined by errbar;
+                        * 'box': median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;
+                        * 'violin': median and distribution of values
+    :param tf_legend:   True/False flag, whether plot legend
+    :param tf_count:    Trur/False flag, whether to show count of values for plot type ['bar', 'box', 'violin']
+    :param values_name: text on plot, for values
+    :param x_name:      text on plot, for x
+    :param c_name:      text on plot, for colors
+    :param p_name:      text on plot, for panels
+    :param title_text:  text for title
+    :param errbar:      type of error bar, only used for bar plot, one of ['auto', 'std', 'se', 'binom', ''], default to auto:
+
+                        * 'auto':  if values are binary, use binom, otherwise, use se
+                        * 'std':   standard deviation
+                        * 'se':    standard error
+                        * 'binom': binomial distribution confidence interval based on binom_alpha
+                        * '':      do not use error bar
+    :param binom_alpha: alpha value for binomial distribution error bar (hpyothesis test for binary values), default = 0.05
+    :return:            handles of axes
+    """
+
+    """ set default values for inputs """
+    N = len(values)
+    if x is None:
+        x = np.array(['']*N)
     else:
-        catg = sorted(df[c].unique())
-        for i in range(len(catg)):
-            df_plot[catg[i]] = df [df[c]==catg[i]].groupby(x) [y].agg(np.mean)
-        df_plot.plot(kind='bar',title= y )
-    plt.legend(bbox_to_anchor=(1.1, 1.1), fancybox=True, framealpha=0.5)
-    plt.gca().get_legend().set_title(c)
+        x = np.array(x)
+    if c is None:
+        c = np.array(['']*N)
+    else:
+        c = np.array(c)
+    if p is None:
+        p = np.array(['']*N)
+    else:
+        p = np.array(p)
+    if limit is None:
+        limit = np.ones(N, dtype=bool)
+    else:
+        values = values[limit]
+        x = x[limit]
+        c = c[limit]
+        p = p[limit]
 
-    return 1
+    errbar = 'auto'
+    binom_alpha = 0.05
+    for arg_name, arg_value in kwargs.iteritems():
+        if arg_name == 'errbar':
+            errbar = arg_value
+        elif arg_name == 'binom_alpha':
+            binom_alpha = arg_value
+
+    """ number of conditions to seperate data with """
+    values_unq = np.unique(values)
+    x_unq = np.unique(x)
+    c_unq = np.unique(c)
+    p_unq = np.unique(p)
+    Nvalues = len(values_unq)
+    Nx = len(x_unq)
+    Nc = len(c_unq)
+    Np = len(p_unq)
+
+    if errbar == 'auto':
+        errbar = 'binom' if Nvalues <=2 else 'se'
+
+    """ determine plot style if not specified """
+    if plot_type is None:
+        if Nx <= 0.1*N:          # if x is discrete
+            if Nvalues <=2:       # if binary data, bar plot, error bar using binomial distribution for errarbar
+                plot_type = 'bar'
+            else:
+                plot_type = 'box' # if continuous data, box plot, error bar using standard error
+        else:                 # if x is continuous
+            plot_type = 'dot'
+
+    if plot_type in ['bar', 'box', 'violin']:
+        plot_supertype = 'discrete'
+    elif plot_type in ['dot', 'line']:
+        plot_supertype = 'continuous'
+    else:
+        plot_supertype = ''
+        warnings.warn('plot_type not supported, must be one of {}'.format(['dot','line', 'bar', 'box', 'violin']))
+
+    if Nc <=1:
+        tf_legend = False
+
+    """ if multipanel, open new fig and use subplot; otherwise, just use current axes """
+    tf_multipanel = (Np >1)
+    if tf_multipanel:
+        nrow, ncol = AutoRowCol(len(p_unq))
+        h_fig, h_ax = plt.subplots(nrows=nrow, ncols=ncol, sharex=True, sharey=True, squeeze=False)
+        h_ax = np.ravel(h_ax)
+        string_suptitle = '{}   {} by {}'.format(title_text, values_name, p_name) if p_name!='' else '{}   {} '.format(title_text, values_name)
+        plt.suptitle(string_suptitle)
+    else:
+        h_ax = [plt.gca()]
+        plt.title('{}    {}'.format(title_text, values_name))
+
+    plt.xlabel(x_name)
+    plt.axes(h_ax[0])
+    plt.ylabel(values_name)
+
+    """ ----- loops for plot ----- """
+    default_color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    legend_obj = []
+    h_text_count = []
+    """ for every panel """
+    for p_i, p_c in enumerate(p_unq):
+        plt.axes(h_ax[p_i])
+        if tf_multipanel:
+            plt.title(p_c, style='normal', fontsize=10)
+        """ for every condition """
+        for c_i, c_c in enumerate(c_unq):
+            tf_cur = (p==p_c) * (c==c_c)
+            """ if x variable is continuous, plot y against x """
+            if plot_supertype == 'continuous':
+                if plot_type == 'dot':
+                    plt.plot(x[tf_cur], values[tf_cur], 'o')
+                elif plot_type == 'line':
+                    plt.plot(x[tf_cur], values[tf_cur], '-')
+                """ otherwise if x variable is discrete, group y by x """
+            elif plot_supertype == 'discrete':
+                # values_plot is a length Nx list, where every entry is a array containing values under that x condition
+                values_by_x = []
+                for x_c in x_unq:
+                    values_by_x.append(values[tf_cur * (x==x_c)])
+                # numbers of values in every x condition
+                values_by_x_num = [len(values_by_x_single) for values_by_x_single in values_by_x]
+                # width related thing for bar/box/violin
+                cell_width = 1.0/(Nc+1)
+                x_loc = np.arange(Nx) + cell_width * (-Nc*0.5 + c_i + 0.5 +0.05)
+                bar_width = cell_width*0.90
+                values_by_x_median = [np.nanmedian(values_by_x_single) for values_by_x_single in values_by_x]
+                if plot_type == 'bar':     # if bar plot
+                    values_by_x_mean = [np.nanmean(values_by_x_single) for values_by_x_single in values_by_x]
+                    if errbar == 'std':
+                        values_by_x_std = [np.nanstd(values_by_x_single) for values_by_x_single in values_by_x]
+                        values_by_x_err = values_by_x_std
+                    elif errbar == 'se':
+                        values_by_x_std = [np.nanstd(values_by_x_single) for values_by_x_single in values_by_x]
+                        values_by_x_se  = np.array(values_by_x_std)/np.sqrt(np.array(values_by_x_num))
+                        values_by_x_err = values_by_x_se
+                    elif errbar == 'binom':
+                        values_by_x_err = np.array([np.abs(pna.ErrIntvBinom(x=values_by_x_single, alpha=binom_alpha)) for values_by_x_single in values_by_x]).transpose()
+                    else:
+                        values_by_x_err = 0
+                    plt.bar(left=x_loc, height=values_by_x_mean, yerr=values_by_x_err, width=bar_width, error_kw=dict(capsize=2) )
+                elif plot_type == 'box':    # if box plot
+                    current_color = default_color_cycle[c_i % len(default_color_cycle)]
+                    medianprops = dict(linestyle='-', linewidth=4, color=current_color)
+                    meanpointprops = dict(marker='x', markeredgecolor=current_color, markersize=10, markeredgewidth=2)
+                    flierprops = dict(marker='.', markersize=5)
+                    h_box = plt.boxplot(values_by_x, positions=x_loc, widths=bar_width, showmeans=True,
+                                medianprops=medianprops, meanprops=meanpointprops, flierprops=flierprops)
+                    if tf_legend and (p_i==0):
+                        legend_obj.append(h_box['medians'][0])
+                elif plot_type == 'violin':  # if violin plot
+                    values_by_x = [[np.nan, np.nan] if len(values_by_x_single)==0 else values_by_x_single for values_by_x_single in values_by_x]
+                    h_vioinplot = plt.violinplot(values_by_x, positions=x_loc, widths=bar_width, showmedians=True, showextrema=False)
+                    if tf_legend and (p_i==0):
+                        legend_obj.append(h_vioinplot['bodies'][0])
+                """ show count of values for every bar/box/violin """
+                if tf_count:
+                    for txt_loc_x, txt_loc_y, text_str in zip(x_loc, values_by_x_median, values_by_x_num):
+                        h_text_count_cur = plt.text(txt_loc_x, txt_loc_y, text_str, ha='center', va='bottom', fontsize='x-small', rotation='vertical')
+                        h_text_count.append(h_text_count_cur)
+                """ axes look """
+                plt.xlim([-0.5,Nx-0.5])
+                plt.xticks(np.arange(Nx), x_unq)
+    """ plot legend """
+    if tf_legend:
+        plt.axes(h_ax[0])
+        if len(legend_obj)==0:
+            plt.legend(c_unq, title=c_name, fontsize='small')
+        else:
+            plt.legend(legend_obj, c_unq, title=c_name, fontsize='small')
+    """ set text for values count to the bottom of plot  """
+    if tf_count and (plot_supertype=='discrete'):
+        y_lim_min = h_ax[0].get_ylim()[0]
+        h_ax[0].text(-0.5, y_lim_min, 'count', va='bottom', fontsize='x-small', rotation='vertical')
+        for h_text_count_cur in h_text_count:
+            h_text_count_cur.set_y(y_lim_min)
+
+    return h_ax
+
+
+def DfPlot(df, values, x='', c='', p='', limit=None, plot_type=None, **kwargs):
+    """
+    function to plot values according to multiple levels of grouping keys: x, c, and p for Pandas DataFrame df.
+    This is a wrapper of  function GroupPlot
+
+    Example usage could be found in show_case/GroupPlot_DfPlot.py
+
+    :param values:      name of the column containing values to plot
+    :param x:           name grouping key, plot as x axis, array of length N, default to None:
+
+                        * if x is continuous, plot_type can be one of ['dot','line'], plot values against x
+                        * elif x is discrete, plot_type can be one of ['bar','box','violin'], plot values groupped by x
+    :param c:           name of grouping key, plot as separate colors within panel, array of length N, default to None
+    :param p:           name of grouping key, plot as separate panels, array of length N, default to None
+    :param limit:       used to select a subset of data, boolean array of length N
+    :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically:
+
+                        * 'dot': values against x;
+                        * 'line': values against x;
+                        * 'bar', mean values with errbar determined by errbar;
+                        * 'box': median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;
+                        * 'violin': median and distribution of values
+    :param tf_legend:   True/False flag, whether plot legend
+    :param tf_count:    Trur/False flag, whether to show count of values for plot type ['bar', 'box', 'violin']
+    :param title_text:  text for title
+    :param errbar:      type of error bar, only used for bar plot, one of ['std', 'se', 'binom']:
+
+                        * std:   standard deviation
+                        * se:    standard error
+                        * binom: binomial distribution confidence interval based on binom_alpha
+    :param binom_alpha: alpha value for binomial distribution error bar (hpyothesis test for binary values), default = 0.05
+    :param errbar:      type of error bar, only used for bar plot, one of ['auto', 'std', 'se', 'binom', ''], default to auto:
+
+                    * 'auto':  if values are binary, use binom, otherwise, use se
+                    * 'std':   standard deviation
+                    * 'se':    standard error
+                    * 'binom': binomial distribution confidence interval based on binom_alpha
+                    * '':      do not use error bar
+    :return:            handles of axes
+    """
+
+    df = df.reset_index()
+    df[''] = [''] * len(df)  # empty column, make some default condition easy
+
+    values_name = values
+    x_name = x
+    c_name = c
+    p_name = p
+
+    values_data = df[values]
+    x_data = df[x]
+    c_data = df[c]
+    p_data = df[p]
+
+    # call funciton GroupPlot, inherit arguments
+    h_ax = GroupPlot(values=values_data, x=x_data, c=c_data, p=p_data, limit=limit, plot_type=plot_type,
+              values_name=values_name, x_name=x_name, c_name=c_name, p_name=p_name, **kwargs)
+
+    return h_ax
 
 
 def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
@@ -85,7 +337,44 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
 
     return fig
 
-def ErpPlot(array_erp, ts, array_layout=None, depth_linear=None):
+def ErpPlot_singlePanel(erp, ts=None, tf_inverse_color=False, cmap='coolwarm', c_lim_style='diverge', trace_scale=1):
+    """
+    ERP plot in a single panel, where trace and color plot are superimposed. ideal for ERP recorded with linear probe
+
+    :param erp:   erp traces, [N_chan, N_ts]
+    :param ts:    timestapes
+    :param tf_inverse_color:  if inverse sign for color plot.  Useful for CSD plot since minus "sink" are commonly plot as red
+    :return:      None
+    """
+    N,T = erp.shape
+    if ts is None:
+        ts= np.arange(T)
+
+
+    if c_lim_style == 'diverge':
+        scale_signal = np.nanmax(np.abs(erp))
+        center_signal = 0
+        c_min = -scale_signal
+        c_max = +scale_signal
+    else:
+        scale_signal = np.nanmax(erp)-np.nanmin(erp)
+        center_signal = np.nanmean(erp)
+        c_min = np.nanmin(erp)
+        c_max = np.nanmax(erp)
+
+
+    if tf_inverse_color:
+        erp_plot = -erp
+    else:
+        erp_plot = erp
+    plt.pcolormesh(center2edge(ts), center2edge(range(N)), erp_plot, cmap=cmap, vmin=c_min, vmax=c_max)
+    plt.plot(ts, ( -(erp-center_signal)/scale_signal/2*trace_scale+np.expand_dims(np.arange(N), axis=1)).transpose(), 'k', alpha=0.2)  # add "-" because we later invert y axis
+    ax = plt.gca()
+    # ax.set_ylim(sorted(ax.get_ylim(), reverse=True))
+    ax.set_ylim([N-0.5, -0.5])
+
+
+def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP"):
     """
     ERP (event-evoked potential) plot
 
@@ -95,12 +384,13 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_linear=None):
 
                           * if None, assume linear layout,
                           * otherwise, use the the give array_layout in the format: {chan: (row, col)}
-    :param depth_start:   starting depth of channel 1
-    :param depth_incr:    depth increment
+    :param depth_linear:   a list of depth
     :return:              figure handle
     """
 
     [N_chan, N_ts] = array_erp.shape
+    if ts is None:
+        ts = np.arange(N_ts)
     if array_layout is None:                # if None, assumes linear layout
         offset_plot_chan = (array_erp.max()-array_erp.min())/5
 
@@ -118,8 +408,8 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_linear=None):
         name_colormap = 'rainbow'
         cycle_color = plt.cm.get_cmap(name_colormap)(np.linspace(0, 1, N_chan))
 
-        h_fig = plt.figure(figsize=(12,8))
-        plt.subplot(1,2,1)
+        h_fig, h_axes = plt.subplots(1,2, figsize=(9,6))
+        plt.axes(h_axes[0])
         for i in range(N_chan):
             plt.plot(ts, array_erp_offset[:,i], c=cycle_color[i]*0.9, lw=2)
         try:  # for differenet versions of matploblib
@@ -131,23 +421,23 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_linear=None):
             pass
         plt.xlim(ts[0],ts[-1])
         # plt.ylim( -(N_chan+2)*offset_plot_chan, -(0-3)*offset_plot_chan,  )
-        plt.title('ERPs')
+        plt.title(title)
         plt.xlabel('time from event onset (s)')
         plt.ylabel('Voltage (V)')
 
-        plt.subplot(1, 2, 2)
+        plt.axes(h_axes[1])
         plt.pcolormesh(center2edge(ts), center2edge(np.arange(N_chan)+1) , np.array(array_erp), cmap=plt.get_cmap('coolwarm'))
         color_max = np.max(np.abs(np.array(array_erp)))
         plt.clim(-color_max, color_max)
         plt.xlim(ts[0], ts[-1])
         plt.ylim( center2edge(np.arange(N_chan)+1)[0], center2edge(np.arange(N_chan)+1)[-1]  )
         plt.gca().invert_yaxis()
-        plt.title('ERPs')
+        plt.title(title)
         plt.xlabel('time from event onset (s)')
         plt.ylabel('channel index')
-    else:                                 # use customized 2D layout
+    else:                                 # use customized 2D layout, e.g. GM32 array
         text_props = dict(boxstyle='round', facecolor='w', alpha=0.5)
-        [h_fig, h_axes] = create_array_layout_subplots(array_layout)
+        [h_fig, h_axes] = create_array_layout_subplots(array_layout, tf_linear_indx=False)
         plt.tight_layout()
         h_fig.subplots_adjust(hspace=0.02, wspace=0.02)
         h_fig.set_size_inches([8, 8],forward=True)
@@ -159,47 +449,60 @@ def ErpPlot(array_erp, ts, array_layout=None, depth_linear=None):
         plt.xlim(ts[0], ts[-1])
 
         # axis appearance
-        for ax in h_axes.flatten():
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
-            if len(ax.lines)==0:
-                try:  # for differenet versions of matploblib
-                    try:
-                        h_axes_top.set_facecolor([1,1,1,0])
+        if False:
+            for ax in h_axes.flatten():
+                ax.get_xaxis().set_visible(False)
+                ax.get_yaxis().set_visible(False)
+                if len(ax.lines)==0:
+                    try:  # for differenet versions of matploblib
+                        try:
+                            h_axes_top.set_facecolor([1,1,1,0])
+                        except:
+                            h_axes_top.set_axis_bgcolor([1,1,1,0])
                     except:
-                        h_axes_top.set_axis_bgcolor([1,1,1,0])
-                except:
-                    pass
-        ax_bottomleft = h_axes[-1,0]
-        plt.axes(ax_bottomleft)
-        ax_bottomleft.get_xaxis().set_visible(True)
-        ax_bottomleft.get_yaxis().set_visible(True)
-        ax_bottomleft.set_xlabel('time')
-        ax_bottomleft.set_ylabel('Voltage')
-        plt.locator_params(axis='x', nbins=4)
-        plt.locator_params(axis='y', nbins=4)
+                        pass
+            ax_bottomleft = h_axes[-1,0]
+            plt.axes(ax_bottomleft)
+            ax_bottomleft.get_xaxis().set_visible(True)
+            ax_bottomleft.get_yaxis().set_visible(True)
+            ax_bottomleft.set_xlabel('time')
+            ax_bottomleft.set_ylabel('Voltage')
+            plt.locator_params(axis='x', nbins=4)
+            plt.locator_params(axis='y', nbins=4)
+            ylim_max = np.max(np.abs(ax_bottomleft.get_ylim()))
+            ax_bottomleft.set_ylim([-ylim_max, ylim_max])
 
-        ylim_max = np.max(np.abs(ax_bottomleft.get_ylim()))
-        ax_bottomleft.set_ylim([-ylim_max, ylim_max])
+        plt.suptitle(title, fontsize=18)
 
-        plt.suptitle('ERPs', fontsize=18)
-
-    return h_fig
+    return h_fig, h_axes
 
 
-def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None):
+def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
+           psth_overlay=True, t_scale=None, fr_scale=None, sk_std=None ):
     """
     plot RF using one single plot
 
     :param data_neuro:  the data_neuro['cdtn'] contains 'x' and 'y', which represents the location of stimulus
     :param indx_sgnl:   index of signal, i.e. the data_neuro['cdtn'][:,:,indx_sgnl] would be used for plotting
-    :param t_scale:     duration of time (ts) to be mapped to unit 1 of space
-    :param fr_scale:
+    :param data:        if not None, use the data instead of data_neuro['data'][:,:,indx_sgnl], a 2D array of shape [N_trials, N_ts]
+    :param t_focus:     duration of time used to plot heatmap, e.g. [0.050, 0.200]
+    :param tf_scr_ctr:  True/False, plot [0.0] point of screen
+    :param psth_overlay:True/False overlay psth
+    :param t_scale:     for psth overlay, duration of time (ts) to be mapped to unit 1 of space
+    :param fr_scale:    for psth overlay, scale for firing rate
+    :param sk_std:      smooth kernel standard deviation, e.g. 0.005, for 5ms
     :return:
     """
 
-    data = data_neuro['data'][:,:,indx_sgnl]
+    if data is None:
+        data = data_neuro['data'][:,:,indx_sgnl]
+    else:
+        data = data[:, :, indx_sgnl]
     ts = np.array(data_neuro['ts'])
+
+    if sk_std is not None:
+        data = pna.SmoothTrace(data=data, sk_std=sk_std, ts=ts)
+
     if t_focus is None:
         t_focus = ts[[0,-1]]
 
@@ -207,7 +510,7 @@ def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None):
     x_grid = np.unique(np.array(data_neuro['cdtn'])[:,0])
     y_grid = np.unique(np.array(data_neuro['cdtn'])[:,1])
     x_spacing = np.mean(np.diff(x_grid))
-    y_spacing = np.mean(np.diff(x_grid))
+    y_spacing = np.mean(np.diff(y_grid))
     if t_scale is None:
         t_scale = ( data_neuro['ts'][-1] - data_neuro['ts'][0] )/x_spacing*1.1
 
@@ -221,19 +524,26 @@ def RfPlot(data_neuro, indx_sgnl=0, t_focus=None, t_scale=None, fr_scale=None):
     if fr_scale is None:
         fr_scale = np.nanmax(fr_2D)*2
 
-    plt.figure()
-    plt.suptitle(data_neuro['signal_info'][indx_sgnl]['name'])
-    plt.pcolormesh( center2edge(x_grid), center2edge(y_grid), fr_2D.transpose(), cmap='inferno')
+    if psth_overlay:
+        plt.figure()
+        plt.suptitle(data_neuro['signal_info'][indx_sgnl]['name'])
+        plt.pcolormesh( center2edge(x_grid), center2edge(y_grid), fr_2D.transpose(), cmap='inferno')
 
-    for i, xy in enumerate(data_neuro['cdtn']):
-        plt.fill_between(xy[0] - x_spacing/2 + (ts-ts[0]) / t_scale, xy[1] - y_spacing/2,
-                         xy[1] - y_spacing/2 + np.mean( data_neuro['data'][data_neuro['cdtn_indx'][data_neuro['cdtn'][i]], :, indx_sgnl], axis=0) / fr_scale,
-                         color='deepskyblue', alpha=0.5)
-        # plt.fill_between( xy[0]+np.array(data_neuro['ts'])/t_scale, xy[1], xy[1]+np.mean( data_neuro['data'][ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] ,:,indx_sgnl], axis=0 )/fr_scale, color=[0,0,0,0.5] )
-        # plt.plot(xy[0],xy[1],'r+', linewidth=1)
-    plt.xlim(center2edge(x_grid)[[0, -1]])
-    plt.ylim(center2edge(y_grid)[[0, -1]])
-    plt.axis('equal')
+        for i, xy in enumerate(data_neuro['cdtn']):
+            plt.fill_between(xy[0] - x_spacing/2 + (ts-ts[0]) / t_scale, xy[1] - y_spacing/2,
+                             xy[1] - y_spacing/2 + np.mean( data[data_neuro['cdtn_indx'][data_neuro['cdtn'][i]], :], axis=0) / fr_scale,
+                             color='deepskyblue', alpha=0.5)
+            # plt.fill_between( xy[0]+np.array(data_neuro['ts'])/t_scale, xy[1], xy[1]+np.mean( data_neuro['data'][ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] ,:,indx_sgnl], axis=0 )/fr_scale, color=[0,0,0,0.5] )
+            # plt.plot(xy[0],xy[1],'r+', linewidth=1)
+        plt.xlim(center2edge(x_grid)[[0, -1]])
+        plt.ylim(center2edge(y_grid)[[0, -1]])
+        plt.axis('equal')
+    else:
+        plt.pcolormesh(center2edge(x_grid), center2edge(y_grid), fr_2D.transpose(), cmap='inferno')
+    if tf_scr_ctr:
+        plt.plot(x_grid[[0,-1]], [0,0], 'w-', Linewidth=0.5)
+        plt.plot([0,0], y_grid[[0,-1]], 'w-', Linewidth=0.5)
+
 
 def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_colorbar=False):
     """
@@ -508,7 +818,8 @@ def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_r
                        cmap=plt.get_cmap('coolwarm'))
 
         # a colored line segment illustrating the conditions
-        plt.vlines(ts[[0] * M], np.insert(N_cdtn_cum, 0, 0)[0:M], N_cdtn_cum, colors=colors, linewidth=10)
+        if len(np.unique(cdtn))!=1:
+            plt.vlines(ts[[0] * M], np.insert(N_cdtn_cum, 0, 0)[0:M], N_cdtn_cum, colors=colors, linewidth=10)
     else:
         raise Exception('wrong RasterType, must by either "spk" or "LFP" ')
 
@@ -521,6 +832,7 @@ def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_r
     plt.gca().yaxis.set_ticks(keep_less_than([0]+N_cdtn_cum.tolist(), 8))
 
     return h_raster
+
 
 def DataNeuroSummaryPlot(data_neuro, sk_std=None, signal_type='auto', suptitle='', xlabel='', ylabel='', tf_legend=False):
     """
@@ -593,7 +905,7 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
                  tf_phase=False, tf_mesh_t=False, tf_mesh_f=False,
                  tf_log=False, time_baseline=None,
                  t_lim = None, f_lim = None, c_lim = None, c_lim_style=None, name_cmap=None,
-                 rate_interp=None, tf_colorbar= False):
+                 rate_interp=None, tf_colorbar= False, quiver_scale=None, max_quiver=None):
     """
     plot power spectrogram or coherence-gram, input spcg could be [ N_t * N*f ] or [ N_trial * N_t * N*f ], real or complex
 
@@ -610,7 +922,7 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
     :param tf_log:        true/false, use log scale
     :param c_lim_style:   'basic' (min, max), 'from_zero' (0, max), or 'diverge' (-max, max); default to None, select automatically based on tf_log and time_baseline
     :param time_baseline: baseline time period to be subtracted, eg. [-0.1, 0.05], default to None
-    :param name_cmap:     name of color map to use, default to 'inferno', if use diverge c_map, automatically change to 'coolwarm'; another suggested one is 'veridis'
+    :param name_cmap:     name of color map to use, default to 'inferno', if use diverge c_map, automatically change to 'coolwarm'; another suggested one is 'viridis'
     :param rate_interp:   rate of interpolation for plotting, if None, do not interpolate, suggested value is 8
     :param tf_colorbar:   true/false, plot colorbar
     :return:              figure handle
@@ -643,6 +955,19 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
                                  axis=1, keepdims=True)
         spcg = spcg - spcg_baseline
 
+    # set x, y limit
+    if t_lim is None:
+        t_lim = spcg_t[[0, -1]]
+    else:
+        tf_temp = np.logical_and(spcg_t>=t_lim[0], spcg_t<=t_lim[1])
+        spcg_t = spcg_t[tf_temp]
+        spcg   = spcg[:, tf_temp]
+    if f_lim is None:
+        f_lim = spcg_f[[0, -1]]
+    else:
+        tf_temp = np.logical_and(spcg_f >= f_lim[0], spcg_f <= f_lim[1])
+        spcg_f = spcg_f[tf_temp]
+        spcg = spcg[tf_temp, :]
 
     # set color limit
     if c_lim is None:
@@ -685,12 +1010,6 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
     h_plot = plt.pcolormesh(center2edge(spcg_t_plot), center2edge(spcg_f_plot),
                    spcg_plot, cmap=plt.get_cmap(name_cmap), shading= 'flat')
 
-    # set x, y limit
-    if t_lim is None:
-        t_lim = spcg_t[[0, -1]]
-    if f_lim is None:
-        f_lim = spcg_f[[0, -1]]
-
     plt.xlim(t_lim)
     plt.ylim(f_lim)
 
@@ -703,14 +1022,16 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
     # quiver plot of phase: pointing down if negative phase, singal1 lags signal0 for coherence
     if tf_phase is True and spcg_complex is not None:
         try:                   # plot a subset of quivers, to prevent them from filling the whole plot
-            max_quiver = 32    # max number of quivers every dimension (in both axis)
-            quiver_scale = 32  # about 1/32 of axis length
+            if max_quiver is None:
+                max_quiver = 32    # max number of quivers every dimension (in both axis)
+            if quiver_scale is None:
+                quiver_scale = 32  # about 1/32 of axis length
             [N_fs, N_ts] = spcg.shape
             indx_fs = np.array(keep_less_than(range(N_fs), max_quiver*1.0*(spcg_f.max()-spcg_f.min())/(f_lim[1]-f_lim[0])))
             indx_ts = np.array(keep_less_than(range(N_ts), max_quiver))
             plt.quiver(spcg_t[indx_ts], spcg_f[indx_fs],
                        spcg_complex[indx_fs, :][:, indx_ts].real, spcg_complex[indx_fs, :][:, indx_ts].imag,
-                       color='r', units='height', pivot='mid', headwidth=5,
+                       color='r', units='height', pivot='mid', headwidth=5, width=0.005,
                        scale=np.percentile(spcg, 99.5) * quiver_scale)
         except:
             plt.quiver(spcg_t, spcg_f, spcg_complex.real, spcg_complex.imag,
@@ -851,8 +1172,70 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, max_trial=None, limit_gap
 
     return [h_fig, h_ax]
 
+
+
+def EmbedTracePlot(loc_embed, traces=None, labels=None, labels_interactive=None, color=None, highlight=None):
+    """
+    Plot trances (e.g. ERPs) in the embeded 2D space, if labels_interactive is not None, the plot is interactive
+
+    :param loc_embedding: [N*2] array, where each row stores the [x, y] of every data point in the embedded space
+    :param traces:        if None, do not plot original
+    :param labels:        labels of every point
+    :param labels_interactive: labels of every point, shown as annotation when clicked by mouse
+    :return:
+    """
+
+    """" scatter plot for every data point """
+    if color is None:
+        color=np.zeros([len(loc_embed), 3])+0.5
+    h_scatter = plt.scatter(loc_embed[:, 0], loc_embed[:, 1], color='k', alpha=0.3, picker=True)
+
+    """ label shown in figure """
+    if labels is not None:
+        for i, xy in enumerate(loc_embed):
+            plt.annotate('{}'.format(labels[i]), xy=xy)
+
+    """ plot traces """
+    if traces is not None:
+        scale_trace = np.nanmax(np.abs(traces))
+        scale_embedding = np.max(loc_embed, axis=0) - np.min(loc_embed, axis=0)
+        if highlight is None:
+            for i, xy in enumerate(loc_embed):
+                plt.plot(loc_embed[i, 0] + np.arange(traces.shape[1]) * scale_embedding[0] / traces.shape[1] / 20,
+                         loc_embed[i, 1] + traces[i, :] / scale_trace * scale_embedding[1] / 20,
+                         color = color[i])
+        else:
+            for i, xy in enumerate(loc_embed):
+                if highlight[i] == True:
+                    plt.plot(loc_embed[i, 0] + np.arange(traces.shape[1]) * scale_embedding[0] / traces.shape[1] / 20,
+                             loc_embed[i, 1] + traces[i, :] / scale_trace * scale_embedding[1] / 20,
+                             color=color[i], linewidth=2)
+        h_scatter.set_sizes(h_scatter.get_sizes()/2)
+
+    if highlight is not None:
+        h_scatter.set_sizes(h_scatter.get_sizes()+ 4*h_scatter.get_sizes()*highlight)
+
+
+    """ label shown by mouse clicking """
+    if labels_interactive is not None:
+        h_text = plt.annotate('', xy=loc_embed[0])
+
+        def onpick(event, h_text=h_text):
+            ind = event.ind
+            for i in ind:
+                h_text.set_text('{}'.format(labels_interactive[i]))
+                h_text.set_x(loc_embed[i][0])
+                h_text.set_y(loc_embed[i][1])
+            plt.show()
+
+        fig = plt.gcf()
+        fig.canvas.mpl_connect('pick_event', onpick)
+
+
 def get_unique_elements(labels):
     return sorted(list(set(labels)))
+
+
 
 def add_axes_on_top(h_axes, r=0.25):
     """
@@ -986,19 +1369,193 @@ def SignalPlot(ts, data3D, sk_std=np.nan):
 
 
 
-def create_array_layout_subplots(array_layout):
+def create_array_layout_subplots(array_layout, tf_linear_indx=True, tf_text_ch=False):
     """
     create the subplots based on the electrode array's spatial layout
 
-    :param array_layout: electrode array's spatial layout, a dict, {chan: (row, column)}
-    :return: as the plt.subplots
+    :param array_layout:   electrode array's spatial layout, a dict, {chan: (row, column)}
+    :param tf_linear_indx: True/False the returned subplot axis is a 1D array, indexed in the channel orders, default to True
+    :param tf_text_ch:     True/False show the channel index for every axes
+    :return: [h_fig, h_axes],as the plt.subplots
     """
     [ch, r, c] = zip(*sorted([[ch, r, c] for ch, (r, c) in array_layout.items()]))
     max_r = max(r)
     max_c = max(c)
 
+    # create subplots
     [h_fig, h_axes] = plt.subplots(max_r+1, max_c+1, sharex=True, sharey=True)
+    h_axes = np.array(h_axes, ndmin=2)
+
+    # set all axes off
+    for r_cur in r:
+        for c_cur in c:
+            h_axes[r_cur, c_cur].set_axis_off()
+
+    # for the valid axes, set them on, and create a list of axes according to the order of channels
+    h_axes_linear = []
+    for ch_cur, ch_loc  in array_layout.items():
+        h_axes_linear.append(h_axes[ch_loc])
+        h_axes[ch_loc].set_axis_on()
+
+        if tf_text_ch:
+            plt.axes(h_axes[ch_loc])
+            plt.text(0.02, 0.98, 'Ch {}'.format(ch_cur), transform=plt.gca().transAxes,
+                     fontsize=10, verticalalignment='top',
+                     bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+    # if true, return the axes according to the channel, otherwise, returns 2D axes array
+    if tf_linear_indx:
+        h_axes = h_axes_linear
+
     return [h_fig, h_axes]
+
+
+def AutoRowCol(N, nrow=None, ncol=None, aspect=1.0):
+    """
+    tool function to automatically calculate number of row and col based on total number of panels
+
+    :param N:      total number of panels
+    :param nrow:   number of rows, default to None, if give, fix the number of rows
+    :param ncol:   number of columns, default to None, if give, fix the number of columns
+    :param aspect: desired aspect ratio: ncol/nrow
+    :return:       (nrow, ncol)
+    """
+
+    if nrow is not None:
+        ncol = int(np.ceil(1.0 * N / nrow))
+    elif ncol is not None:
+        nrow = int(np.ceil(1.0 * N / ncol))
+    else:
+        ncol = int(np.ceil(np.sqrt(N *1.0 * aspect)))
+        nrow = int(np.ceil(1.0 * N / ncol))
+    return (nrow, ncol)
+
+
+def DataFastSubplot(data_list, layout=None, data_type=None, gap = 0.05, tf_axis=True, tf_label=True,
+                    tf_nmlz = True, xx=None, yy=None):
+
+    N_data = len(data_list)
+
+    if data_type is None:
+        data_type = 'line'
+
+    if layout is None:             # if not give, set layout to be the number of data
+        layout = N_data
+    if np.array(layout).size==1:   # if is a single number, turn to [num_row, num_col]
+        ncol = int(np.ceil(np.sqrt(layout)))
+        nrow = int(np.ceil(1.0*layout/ncol))
+        layout = (nrow, ncol)
+
+    plt.axes([0.05, 0.02, 0.94, 0.90])
+
+    if data_type == 'mesh':
+        """ get the sizes """
+        ny_mesh, nx_mesh = data_list[0].shape    # size of every panel
+        nx_gap = int(np.ceil(nx_mesh * gap))     # size of gap between panels
+        ny_gap = int(np.ceil(ny_mesh * gap))
+        nx_cell = nx_mesh+nx_gap                 # a cell is panel with gap
+        ny_cell = ny_mesh+ny_gap
+        nx_shift = nx_gap//2                     # shift the starting point of panel to be half the gap
+        ny_shift = ny_gap // 2
+        nx_canvas = (nx_mesh + nx_gap) * ncol    # size of canvas
+        ny_canvas = (ny_mesh + ny_gap) * nrow
+
+        # initialize the data for canvas
+        mesh_canvas = np.zeros([ny_canvas, nx_canvas])*np.nan
+        # contains the data for mask (create frames between panels)
+        mask_canvas = np.zeros([ny_canvas, nx_canvas])
+
+        if xx is None:
+            xx = np.arange(nx_mesh)
+        if yy is None:
+            yy = np.arange(ny_mesh)
+
+
+        """ normalize individual mesh plot to range [0,1] before putting them together """
+        if tf_nmlz:
+            for i in range(N_data):
+                cur_min = np.nanmin(data_list[i])
+                cur_max = np.nanmax(data_list[i])
+                data_list[i] = (data_list[i] - cur_min) / (cur_max - cur_min)
+
+        """ put mesh plot together into the big canvas matrix """
+        def indx_in_canvas(indx, rowcol='row', startend='start'):
+            # function to compute the index on cavas
+            if rowcol == 'row':
+                n_cell = ny_cell
+                n_shift  = ny_shift
+                n_mesh = ny_mesh
+            else:
+                n_cell = nx_cell
+                n_shift = nx_shift
+                n_mesh = nx_mesh
+            return indx * n_cell + n_shift + n_mesh * (startend=='end')
+
+        def map_value_in_cavas(values, row=0, col=0, xy='x'):
+            if xy=='x':
+                range_value = (np.min(xx), np.max(xx))
+                n_mesh = nx_mesh
+                indx = col
+                rowcol = 'col'
+            elif xy=='y':
+                range_value = (np.min(yy), np.max(yy))
+                n_mesh = ny_mesh
+                indx = row
+                rowcol = 'row'
+            return 1.0*(np.array(values) - range_value[0]) / (range_value[1]-range_value[0]) \
+                   * (n_mesh-1) + indx_in_canvas(indx, rowcol)
+
+        for i in range(N_data):
+            row = i // ncol    # row index of panel
+            col = i %  ncol    # col index of panel
+            # fill the mesh data of the panel in to the right location of canvas matrix for mesh plot
+            mesh_canvas[indx_in_canvas(row, 'row','start') : indx_in_canvas(row, 'row','end'),
+                        indx_in_canvas(col, 'col', 'start') : indx_in_canvas(col, 'col','end')] = data_list[i]
+            # fill value 1.0 to the pixels that contains mesh data in the canvas matrix for mask
+            mask_canvas[indx_in_canvas(row, 'row','start') : indx_in_canvas(row, 'row','end'),
+                        indx_in_canvas(col, 'col', 'start') : indx_in_canvas(col, 'col','end')] = 1
+
+        # create colormap for mask (transparent if 0.0, opaque if 1.0)
+        cmap_mask = mpl.colors.LinearSegmentedColormap.from_list('cmap_mask', [(0.9, 0.9, 0.9, 1.0), (0.9, 0.9, 0.9, 0.1)], N=2)
+
+        """ plot big matrix containing all mesh plots """
+        # # mesh data
+        plt.imshow(mesh_canvas, vmin=np.nanmin(mesh_canvas), vmax=np.nanmax(mesh_canvas), cmap='inferno', aspect='auto')
+        # # maks that forms the frames that seperates data panels
+        plt.imshow(mask_canvas, vmin=0, vmax=1, cmap=cmap_mask, aspect='auto')
+
+        """ make plot look better """
+        # set y axis direction in the imshwow format
+        ylim =np.array(plt.gca().get_ylim())
+        plt.gca().set_ylim( ylim.max(), ylim.min() )
+        plt.axis('off')
+
+        """ plot panel axis and ticks """
+        if tf_axis:
+            for i in range(N_data):
+                row = i // ncol    # row index of panel
+                col = i %  ncol    # col index of panel
+                # axis line
+                plt.plot([indx_in_canvas(col, 'col', 'start'), indx_in_canvas(col, 'col', 'end') - 1],
+                         [indx_in_canvas(row, 'row', 'end') - 0.5, indx_in_canvas(row, 'row', 'end') - 0.5],
+                         'k-', alpha=0.5)
+                plt.plot([indx_in_canvas(col, 'col', 'start') -0.5, indx_in_canvas(col, 'col', 'start') -0.5],
+                         [indx_in_canvas(row, 'row', 'start') , indx_in_canvas(row, 'row', 'end') - 1],
+                         'k-', alpha=0.5)
+                # axis tick
+                plt.vlines(map_value_in_cavas(auto_tick(xx), row, col, xy='x'), indx_in_canvas(row, 'row', 'end') - 0.5,
+                           indx_in_canvas(row, 'row', 'end') - 0.5 + ny_gap / 4.0, alpha=0.5)
+                plt.hlines(map_value_in_cavas(auto_tick(yy), row, col, xy='y'), indx_in_canvas(col, 'col', 'start') - 0.5,
+                           indx_in_canvas(col, 'col', 'start') - 0.5 - nx_gap / 4.0, alpha=0.5)
+
+        """ plot labels """
+        if tf_label:
+            for i in range(N_data):
+                row = i // ncol    # row index of panel
+                col = i %  ncol    # col index of panel
+                plt.text(indx_in_canvas(col, 'col', 'start'), indx_in_canvas(row, 'row', 'start')-0.5, '')
+
+
 
 
 def center2edge(centers):
@@ -1046,6 +1603,7 @@ def gen_distinct_colors(n, luminance=0.9, alpha=0.8, style='discrete'):
     :param n:          num of colors
     :param luminance:  num between [0,1]
     :param alhpa:      num between [0,1]
+    :param style:      sting, 'discrete', or 'continuous'
     :return:           n*4 rgba color matrix
     """
 
@@ -1104,25 +1662,58 @@ def isSingle(x):
     else:
         return True
 
-def share_clim(h_ax):
+def share_clim(h_ax, c_lim=None):
     """
     tool funciton to share clim (make sure c_lim of given axes are the same), call after plotting all images
 
-    :param h_ax: list of axes
+    :param h_ax: list of axes to reset clim
+    :param c_lim: if None, calculate automatically, otherwise, use the given clim, e.g. [-1, 5]
     :return:     c_lim
     """
     h_ax_all = np.array(h_ax).flatten()
-    c_lim = [+np.Inf, -np.Inf]
-    for ax in h_ax_all:  # get clim
-        plt.axes(ax)
-        if plt.gci() is not None:
-            c_lim_new = plt.gci().get_clim()
-            c_lim = [np.min([c_lim[0], c_lim_new[0]]), np.max([c_lim[1], c_lim_new[1]])]
+    if c_lim is None:    # if not given, calculate the clim to be the smallest possible range to accommodate all axes
+        c_lim = [+np.Inf, -np.Inf]
+        for ax in h_ax_all:  # get clim
+            plt.axes(ax)
+            if plt.gci() is not None:
+                c_lim_new = plt.gci().get_clim()
+                c_lim = [np.min([c_lim[0], c_lim_new[0]]), np.max([c_lim[1], c_lim_new[1]])]
     for ax in h_ax_all:  # set clim
         plt.axes(ax)
         if plt.gci() is not None:
             plt.clim(c_lim)
     return c_lim
+
+
+
+def auto_tick(data_range, max_tick=10, tf_inside=False):
+    """
+    tool function that automatically calculate optimal ticks based on range and the max number of ticks
+    :param data_range:   range of data, e.g. [-0.1, 0.5]
+    :param max_tick:     max number of ticks, an interger, default to 10
+    :param tf_inside:    True/False if only allow ticks to be inside
+    :return:             list of ticks
+    """
+    data_range = np.array(data_range, dtype=float)
+    if len(data_range)>2:
+        data_range = [data_range.min(), data_range.max()]
+    data_span = data_range[1] - data_range[0]
+    scale = 10.0**np.floor(np.log10(data_span))    # scale of data as the order of 10, e.g. 1, 10, 100, 0.1, 0.01, ...
+    list_tick_size_nmlz = [5.0, 2.0, 1.0, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01]   # possible tick sizes for normalized data in range [1, 10]
+    tick_size_nmlz = 1.0     # initial tick size for normalized data
+    for i in range(len(list_tick_size_nmlz)):                 # every loop reduces tick size thus increases tick number
+        num_tick = data_span/scale/list_tick_size_nmlz[i]     # number of ticks for the current tick size
+        if num_tick > max_tick:                               # if too many ticks, break loop
+            tick_size_nmlz = list_tick_size_nmlz[i-1]
+            break
+    tick_size = tick_size_nmlz * scale             # tick sizse for the original data
+    ticks = np.unique(np.arange(data_range[0]/tick_size, data_range[1]/tick_size).round())*tick_size    # list of ticks
+
+    if tf_inside:     # if only allow ticks within the given range
+        ticks = ticks[ (ticks>=data_range[0]) * (ticks<=data_range[1])]
+
+    return ticks
+
 
 # to test:
 if 0:

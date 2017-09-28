@@ -167,6 +167,7 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
     # print signal_names
     return {'data': data, 'ts': ts, 'signal_info': signal_info}
 
+
 def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', name_filter='.*', chan_filter=[],spike_bin_rate=1000):
     """
     Function to break neo signal objects (in a block contains multiple segments) according to given timestamps and align them together
@@ -281,8 +282,6 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
     N_signal0= len(data_neuro['signal_info'])
     if N_signal != N_signal0:
         raise Exception("data_neuro['data'] and data_neuro['signal_info'] show different number of signals")
-
-
 
     if indx is None:    # if indx is not give, use name_filter, chan_filter and sortcode_filter to select
         indx = np.array([True] * N_signal)
