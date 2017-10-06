@@ -869,36 +869,32 @@ def DataNeuroSummaryPlot(data_neuro, sk_std=None, signal_type='auto', suptitle='
 
     name_signals = [x['name'] for x in data_neuro['signal_info']]
 
-    # plot function for every panel
-    functionPlot = lambda x: PsthPlot(x, ts=ts, cdtn=name_signals, sk_std=sk_std, tf_legend=tf_legend,
-                                      xlabel=xlabel, ylabel=ylabel, color_style='continuous')
+    if 'cdtn' in data_neuro:
+        # plot function for every panel
+        functionPlot = lambda x: PsthPlot(x, ts=ts, cdtn=name_signals, sk_std=sk_std, tf_legend=tf_legend,
+                                          xlabel=xlabel, ylabel=ylabel, color_style='continuous')
 
-    # plot every condition in every panel
-    h = SmartSubplot(data_neuro, functionPlot, suptitle=suptitle)
+        # plot every condition in every panel
+        h = SmartSubplot(data_neuro, functionPlot, suptitle=suptitle)
+    else:
+        h = PsthPlot(data_neuro['data'], ts=ts, cdtn=name_signals, sk_std=sk_std, tf_legend=tf_legend,
+                 xlabel=xlabel, ylabel=ylabel, color_style='continuous')
     return h
 
 
-def PsthPlotCdtn(data2D, data_df, ts=None, cdtn_l_name='', cdtn0_name='', cdtn1_name='', limit=None, sk_std=None, subpanel='', tf_legend=False):
+def PsthPlotCdtn(data_neuro, data_df, i_signal=0, grpby='', fltr=[], sk_std=None, subpanel='', tf_legend=False):
     """ Obsolete funciton """
 
-    N_cdtn0 = len(data_df[cdtn0_name].unique())
-    N_cdtn1 = len(data_df[cdtn1_name].unique())
-    if N_cdtn1 > 1:
-        [h_fig, h_ax] = plt.subplots(N_cdtn0, N_cdtn1, figsize=[12, 9], sharex=True, sharey=True)
-    else:
-        [N_rows, N_cols] = cal_rc(N_cdtn0)
-        [h_fig, h_ax] = plt.subplots(N_rows, N_cols, figsize=[12, 9], sharex=True, sharey=True)
-    h_ax = np.array([h_ax]).flatten()
-    for i_cdtn0, cdtn0 in enumerate(sorted(data_df[cdtn0_name].unique())):
-        for i_cdtn1, cdtn1 in enumerate(sorted(data_df[cdtn1_name].unique())):
-            plt.axes(h_ax[i_cdtn0 * N_cdtn1 + i_cdtn1])
-            PsthPlot(data2D, ts, data_df[cdtn_l_name],
-                         limit = np.logical_and(data_df[cdtn0_name] == cdtn0, data_df[cdtn1_name] == cdtn1),
-                         tf_legend=tf_legend, sk_std=sk_std, subpanel=subpanel)
-            plt.title([cdtn0, cdtn1])
-    # plt.suptitle(data_neuro['signal_info'][i_neuron]['name'])
+    data_neuro = signal_align.neuro_sort(data_df, grpby=grpby, fltr=fltr, neuro=data_neuro)
 
+    ts = data_neuro['ts']
+    # plot function for every panel
+    functionPlot = lambda x: PsthPlot(x, ts=ts, sk_std=sk_std, tf_legend=tf_legend, color_style='continuous')
 
+    # plot every condition in every panel
+    h = SmartSubplot(data_neuro, functionPlot, dataPlot=data_neuro['data'][:,:,i_signal])
+
+    return h
 
 
 def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,

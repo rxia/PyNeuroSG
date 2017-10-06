@@ -303,6 +303,7 @@ def pmf_plot2d(mu, sigma, d=[0,1], bins=np.arange(10), method='fast'):
     pmf_ravel  = compute_dmvln_pmf(grid_ravel, mu, sigma, method=method)
     pmf2d = np.reshape(pmf_ravel, [K,K])
     plt.pcolormesh(pnp.center2edge(bins), pnp.center2edge(bins), pmf2d)
+    # plt.contourf(pmf2d)
 
 
 def pairplot_model(mu, sigma, bins=np.arange(10), method='fast'):
@@ -451,3 +452,18 @@ mu_hat, sigma_hat, xs_hat, model_fa = fit_dmvln(ys, method_x='MC', method_cov='f
 # print b**2
 pairplot_model(mu_hat, sigma_hat, bins=np.arange(20))
 # plt.savefig('./temp_figs/copula_show_ys_fit.png')
+
+
+
+"""  fit neural data """
+model_fa =  sklearn.decomposition.FactorAnalysis(n_components=3)
+ys_data = spk_count[:,[1,3,4,5,6,8]]
+ys_data = spk_count[:,[1,3,4]]
+pairplot_sample(ys_data, bins=np.arange(20))
+# plt.savefig('./temp_figs/dmvln_data.png')
+mu_hat, sigma_hat, xs_hat, model_fa = fit_dmvln(ys_data, method_x='fast', method_cov='empirical', model=model_fa)
+pairplot_model(mu_hat, sigma_hat, bins=np.arange(20))
+plt.savefig('./temp_figs/dmvln_data_fit.png')
+mu_hat, sigma_hat, xs_hat, model_fa = fit_dmvln(ys_data, method_x='MC', method_cov='empirical', model=model_fa)
+pairplot_model(mu_hat, sigma_hat, bins=np.arange(20))
+

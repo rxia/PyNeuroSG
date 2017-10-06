@@ -19,6 +19,7 @@ import data_load_DLSH
 
 
 def order_consecutive(x):
+    """ function to calculate how many trials with the same feature in the row """
     x = np.array(x)
     result = [0]
     for i in range(1, len(x)):
@@ -29,6 +30,13 @@ def order_consecutive(x):
         else:
             result.append(0)
     return np.array(result)
+
+
+def response_rate_by_file(data_df):
+    """ response rate: if obsid increment continuously, there is no aborted trials, otherwise, there are aborted trials """
+    resp_by_file = data_df.groupby('file')['obsid'].agg({'n_total': 'max', 'n_resp': 'count'})
+    resp_by_file['rate_resp'] = 1.0*resp_by_file['n_resp']/resp_by_file['n_total']
+    return resp_by_file
 
 
 # dir_dg = '/shared/homes/sguan/neuro_data/stim_dg'
@@ -342,6 +350,40 @@ h_fig, h_ax = plt.subplots(2,1, figsize=[6,8])
 data_df['file_coarse'] = data_df['file']//5*5
 plt.axes(h_ax[0]);  pnp.DfPlot(data_df, values='status', x='file_coarse', c='side', title_text=title_text)
 plt.axes(h_ax[1]);  pnp.DfPlot(data_df, values='RT', x='file_coarse', c='side', title_text=title_text)
+plt.savefig('./temp_figs/training_performance_by_file_{}.png'.format(filename_common))
+h_fig, h_ax = plt.subplots(2,1, figsize=[6,8], sharex=True)
+plt.axes(h_ax[0]); pnp.DfPlot(data_df, values='status', x='order_consecutive', c='side', title_text=title_text)
+plt.axes(h_ax[1]); pnp.DfPlot(data_df, values='RT', x='order_consecutive', c='side', title_text=title_text)
+plt.savefig('./temp_figs/training_performance_by_switch_{}.png'.format(filename_common))
+
+
+
+""" 0924 """
+
+keyword_dg = 'h_matchnot.*_091517.*'
+
+_, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
+
+# select a subset of files
+data_df.reset_index(inplace=True, drop=True)
+
+data_df = data_load_DLSH.standardize_data_df(data_df)
+filename_common = misc_tools.str_common(name_datafiles)
+
+data_df['RT'] = data_df['rts'] - data_df['delay']
+data_df['order_consecutive'] = order_consecutive(data_df['side'])
+data_df['order_consecutive'] = np.clip(data_df['order_consecutive'], 0, 5)
+
+plt.plot(response_rate_by_file(data_df)['rate_resp'], 'k-')
+
+resp_rate = 1.0*len(data_df)/data_df['obs_total'][0]
+title_text = '{}, resp_rate={:.2f}'.format(filename_common, resp_rate)
+
+h_fig, h_ax = plt.subplots(2,1, figsize=[6,8])
+data_df['file_coarse'] = data_df['file']//5*5
+plt.axes(h_ax[0]);  pnp.DfPlot(data_df, values='status', x='file_coarse', c='side', title_text=title_text)
+plt.axes(h_ax[1]);  pnp.DfPlot(data_df, values='RT', x='file_coarse', c='side', title_text=title_text)
+
 plt.savefig('./temp_figs/training_performance_by_file_{}.png'.format(filename_common))
 h_fig, h_ax = plt.subplots(2,1, figsize=[6,8], sharex=True)
 plt.axes(h_ax[0]); pnp.DfPlot(data_df, values='status', x='order_consecutive', c='side', title_text=title_text)
