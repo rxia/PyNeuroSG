@@ -40,7 +40,8 @@ keyword_blk = '.*laser.*'
 def load_blk(keyword_blk=keyword_blk, keyword_tank=keyword_tank, dir_tdt_tank=dir_tdt_tank,
              tf_verbose=True, tf_interactive=False, sortname=''):
     [name_tdt_blocks, path_tdt_tank] = \
-        data_load_DLSH.get_file_name(keyword_blk, keyword_tank, tf_interactive=tf_interactive, dir_tdt_tank=dir_tdt_tank)
+        data_load_DLSH.get_file_name(keyword_blk, keyword_tank,
+                                     tf_interactive=tf_interactive, dir_tdt_tank=dir_tdt_tank, mode='tdt')
 
     name_datafiles = name_tdt_blocks
     if tf_verbose:
@@ -108,11 +109,14 @@ def GetEventEvokedResonse(blk, name_evt, signal_type='spk', t_range= (-0.1, 0.8)
 
 
 """ load block """
+keyword_tank = 'Dexter_GM32-171009'
 blk = load_blk(keyword_blk='.*laser.*', keyword_tank='Dexter-170622.*')
 blk = load_blk(keyword_blk='.*laser.*', keyword_tank='Dexter-170623.*')
+blk = load_blk(keyword_blk='.*opto.*', keyword_tank=keyword_tank)
 
 """ specify signal and event """
-signal_type = 'LFP'  # 'spk' or 'LFP'
+# signal_type = 'LFP'  # 'spk' or 'LFP'
+signal_type = 'spk'  # 'spk' or 'LFP'
 name_evt = 'la4_'
 laser_name_ch = {'la1_': 7, 'la2_': 9, 'la3_': 24, 'la4_': 26,}
 
