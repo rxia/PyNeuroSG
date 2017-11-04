@@ -921,6 +921,52 @@ def ErrIntvBinom(k=None, n=None, alpha=0.05, x=None, tf_err=True):
         return intv                                             # confidence interval of p estimate
 
 
+def cal_CohenD(data0, data1=None, axis=None, type_test='auto'):
+    """
+    calculate Cohen's d statistic for measuring effect size, as a complimentary test for t-test
+
+    :param data0: a group of data
+    :param data1: another group of data
+    :param axis:  along which axis to compute d statistic
+    :param type_test:  'auto', 'one-sample', 'independent', or 'paired'
+
+         1) 'auto': determine based on the data input:
+         use 'one-sample' if only data0 is give;
+         use 'paired' if two data are of the same size; and
+         use 'independent' if two data inputs are of different sizes
+
+         2) 'one-sample': compute one-sample d stat using only data0
+
+         3) 'independent': data0 and data1 are not directly paired, e.g., two groups of people under different treatment
+
+         4) 'paired': data0 and data1 are directly paired, e.g., the same groups of people before and after treatment
+
+    :return: d statistic
+    """
+
+    # determine test type automatically
+    if type_test=='auto':
+        if data1 is None:
+            type_test = 'one-sample'
+        elif data1.shape == data0.shape:
+            type_test = 'paired'
+        else:
+            type_test = 'independent'
+
+    if type_test == 'paired':
+        data0 = data1-data0
+    if type_test == 'paired' or type_test == 'one-sample':
+        d = np.mean(data0, axis=axis) / np.std(data0, axis=axis)
+    else:
+        if axis is None:
+            n0 = data0.size
+            n1 = data1.size
+        else:
+            n0 = data0.shape[axis]
+            n1 = data1.shape[axis]
+        pooled_std = np.sqrt(( (n0-1)*np.std(data0, axis=axis)**2 + (n1-1)*np.std(data1, axis=axis)**2 )/(n0+n1-2))
+        d = (np.mean(data1, axis=axis) - np.mean(data0, axis=axis))/pooled_std
+    return d
 
 
 
@@ -981,6 +1027,9 @@ def DimRedLDA(X=None, Y=None, X_test=None, dim=2, lda=None, return_model=False):
         return lda
     else:
         return X_2D
+
+
+
 
 
 
