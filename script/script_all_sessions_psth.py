@@ -169,11 +169,11 @@ pickle.dump([list_data_groupave, list_ts, list_signal_info, list_cdtn, list_date
 
 
 
-"""  V4, STS and IT neurons """
+"""  V4, STS and IT neurons, load saved data """
 block_type = 'srv_mask'
 # block_type = 'matchnot'
-# signal_type='spk'
-signal_type='lfp'
+signal_type='spk'
+# signal_type='lfp'
 [list_data_groupave, list_ts, list_signal_info, list_cdtn, list_date] = pickle.load(open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_{}_{}'.format(block_type, signal_type)))
 
 
@@ -190,13 +190,13 @@ def GetDataCat( list_data_groupave, list_ts, list_signal_info, list_cdtn, list_d
 
 if signal_type == 'lfp':
     data_groupave = data_groupave*10**6
-    sk_std = None
+    sk_std = 0.002
     ylabel = 'uV'
     laminar_range_ave = 1
 else:
     sk_std = 0.007
     # ylabel = 'spk/sec'
-    ylabel = 'firing rate'
+    ylabel = 'normalized firing rate'
     laminar_range_ave = 1
 
 # the brain area of the recording day
@@ -261,8 +261,10 @@ signal_info['depth'] = depth_neuron
 """ compare three areas """
 def cal_psth_std(neuron_keep):
     data_smooth = pna.SmoothTrace(data_groupave[:,:, neuron_keep], ts=ts, sk_std=sk_std, axis=1)
-    # data_norm = data_smooth/np.std(np.mean(np.mean(data_smooth, axis=0), axis=0))
-    data_norm = (data_smooth- np.mean(data_smooth, axis=(0,1), keepdims=True)) / np.std(data_smooth, axis=(0,1), keepdims=True)
+    if signal_type == 'spk':
+        data_norm = data_smooth / (np.mean(data_smooth, axis=(0,1)) + 5)   # soft normalize
+    else:
+        data_norm = (data_smooth- np.mean(data_smooth, axis=(0,1), keepdims=True)) / np.std(data_smooth, axis=(0,1), keepdims=True)
     psth_mean = np.mean(data_norm, axis=2)
     psth_std = np.std(data_norm, axis=2)
     return psth_mean, psth_std, data_norm
@@ -273,9 +275,16 @@ def t_test_score(data_norm):
     t_ns_no, p_ns_no = sp.stats.ttest_1samp(data_norm[0, :, :] - data_norm[2, :, :], 0, axis=1)
     t_ns_fa, p_ns_fa = sp.stats.ttest_1samp(data_norm[3, :, :] - data_norm[5, :, :], 0, axis=1)
     return np.vstack([t_nf_00, t_nf_50, t_nf_70, t_ns_no, t_ns_fa])
+def d_test_score(data_norm):
+    d_nf_00 = pna.cal_CohenD(data_norm[0, :, :], data_norm[3, :, :], axis=1, type_test='paired')
+    d_nf_50 = pna.cal_CohenD(data_norm[1, :, :], data_norm[4, :, :], axis=1, type_test='paired')
+    d_nf_70 = pna.cal_CohenD(data_norm[2, :, :], data_norm[5, :, :], axis=1, type_test='paired')
+    d_ns_no = pna.cal_CohenD(data_norm[0, :, :], data_norm[2, :, :], axis=1, type_test='paired')
+    d_ns_fa = pna.cal_CohenD(data_norm[3, :, :], data_norm[5, :, :], axis=1, type_test='paired')
+    return np.vstack([d_nf_00, d_nf_50, d_nf_70, d_ns_no, d_ns_fa])
 
 colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), pnp.gen_distinct_colors(3, luminance=0.6)])
-linestyles = ['-', '-', '-', '--', '--', '--']
+linestyles = ['--', '--', '--', '-', '-', '-']
 colors_p     = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), [0.4,0.4,0.4,1], [0,0,0,1]])
 linestyles_p = ['-', '-', '-', '--', '--']
 
@@ -300,24 +309,40 @@ elif plot_highlight == '':
     alphas_p = [1, 1, 1, 1, 1]
 else:
     alphas = [1, 1, 1, 1, 1, 1]
-    alphas_p = [1, 1, 1, 1, 1]
+    alphas_p = [0.5, 0.5, 0.5, 0.5, 0.5]
 
 t_thrhd = 4
 def plot_psth_p(neuron_keep):
     N_neuron = np.sum(neuron_keep)
     [psth_mean, psth_std, data_norm] = cal_psth_std(neuron_keep)
     t_values = t_test_score(data_norm)
+    d_values = d_test_score(data_norm)
+
     for i in range(psth_mean.shape[0]):
         plt.plot(ts, psth_mean[i, :], color=colors[i], linestyle=linestyles[i], alpha=alphas[i])
         plt.fill_between(ts, psth_mean[i, :] - psth_std[i, :] / np.sqrt(N_neuron),
                          psth_mean[i, :] + psth_std[i, :] / np.sqrt(N_neuron), color=colors[i], alpha=0.2*alphas[i])
     plt.xlabel('t (s)')
     plt.ylabel(ylabel)
-    for i, t in enumerate(t_values):
-        shift_t_plot = -3 if signal_type =='lfp' else -1
-        plt.plot(ts[np.abs(t) > t_thrhd], shift_t_plot-(i + 1) * 0.1 * np.ones(np.sum( np.abs(t) > t_thrhd)), '.', color=colors_p[i], alpha=alphas_p[i])
 
-[h_fig, h_ax]=plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True, figsize=[12,5])
+    h_ax_top = pnp.add_sub_axes(h_axes=plt.gca(), size=0.4, loc='top')
+    plt.axes(h_ax_top)
+    thrhd_d_small = 0.2
+    thrhd_d_medium = 0.5
+    for i, d in enumerate(d_values):
+        plt.fill_between(ts, -i + d, -i, color=colors_p[i], alpha=0.1*alphas_p[i])
+        plt.fill_between(ts, -i + d, -i, where=np.abs(d) >= thrhd_d_small, color=colors_p[i], alpha=0.3*alphas_p[i])
+        plt.fill_between(ts, -i + d, -i, where=np.abs(d) >= thrhd_d_medium, color=colors_p[i], alpha=0.7*alphas_p[i])
+    plt.ylim([-len(d_values),1])
+    plt.ylabel('d stat for effect size')
+    plt.yticks([])
+    # for i, t in enumerate(t_values):
+    #     plt.plot(ts[np.abs(t) > t_thrhd], -(i + 1) * 0.1 * np.ones(np.sum( np.abs(t) > t_thrhd)), '|', color=colors_p[i], alpha=alphas_p[i])
+    # for i, t in enumerate(t_values):
+    #     shift_t_plot = -3 if signal_type =='lfp' else -1
+    #     plt.plot(ts[np.abs(t) > t_thrhd], shift_t_plot-(i + 1) * 0.1 * np.ones(np.sum( np.abs(t) > t_thrhd)), '|', color=colors_p[i], alpha=alphas_p[i])
+
+[h_fig, h_ax]=plt.subplots(nrows=1, ncols=3, sharex='all', sharey='all', figsize=[12,5])
 
 plt.axes(h_ax[0])
 neuron_keep = ( signal_info['channel_index']<=32)
@@ -334,8 +359,11 @@ neuron_keep = ( signal_info['channel_index']>32) * (signal_info['area']=='TEm')
 plot_psth_p(neuron_keep)
 plt.title('TEm, N={}'.format(np.sum(neuron_keep)))
 
+plt.axes(h_ax[2])
 plt.xticks(np.arange(-0.1,0.5+0.01,0.1))
-plt.legend(cdtn)
+# plt.legend(cdtn)
+h_legend = plt.legend(['nov, 0%', 'nov,50%', 'nov,70%', 'fam, 0%', 'fam,50%', 'fam,70%'], loc='upper left', bbox_to_anchor=(0.9, 1.05))
+plt.setp(h_legend.texts, family='monospace')
 plt.suptitle('PSTH by area {} {}'.format(block_type, signal_type))
 plt.savefig('./temp_figs/PSTH_by_area_{}_{}_{}.pdf'.format(block_type, signal_type, plot_highlight))
 plt.savefig('./temp_figs/PSTH_by_area_{}_{}_{}.png'.format(block_type, signal_type, plot_highlight))
@@ -345,14 +373,14 @@ plt.savefig('./temp_figs/PSTH_by_area_{}_{}_{}.png'.format(block_type, signal_ty
 
 """ compare laminar difference for IT TEd and TEm """
 colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), pnp.gen_distinct_colors(3, luminance=0.7)])
-linestyles = ['-', '-', '-', '--', '--', '--']
+linestyles = ['--', '--', '--', '-', '-', '-']
 
 
 # plot in one panel
 range_l = range(-8,9,2)
 def plot_psth_by_depth(area='TEd'):
-    scale_depth=3
-    [h_fig, h_ax]=plt.subplots(nrows=1, ncols=6, sharex=True, sharey=True, figsize=[10,8])
+    scale_depth=1.0 if signal_type=='spk' else 3.0
+    [h_fig, h_ax]=plt.subplots(nrows=1, ncols=6, sharex='all', sharey='all', figsize=[10,8])
     for l in range_l:
         neuron_keep = (signal_info['channel_index'] > 32) * (signal_info['area']==area) * (np.abs(signal_info['depth']-l)<=laminar_range_ave)
         if np.sum(neuron_keep)>0:
