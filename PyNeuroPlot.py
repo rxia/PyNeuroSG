@@ -1228,6 +1228,11 @@ def EmbedTracePlot(loc_embed, traces=None, labels=None, labels_interactive=None,
         fig.canvas.mpl_connect('pick_event', onpick)
 
 
+
+""" ========== ========= tool functions ========== ========== """
+
+
+
 def get_unique_elements(labels):
     return sorted(list(set(labels)))
 
@@ -1235,7 +1240,7 @@ def get_unique_elements(labels):
 
 def add_axes_on_top(h_axes, r=0.25):
     """
-    tool funciton to add an axes on the top of the existing axis
+    tool funciton to add an axes on the top of the existing axis, used by funciton PsthPlot
 
     :param h_axes: the curret axex handle
     :param r:      ratio of the height of the newly added axes
@@ -1260,107 +1265,73 @@ def add_axes_on_top(h_axes, r=0.25):
     return h_axes_top
 
 
-
-def NeuroPlot(data_neuro, layout=[], sk_std=np.nan, tf_seperate_window=False, tf_legend=True):
-
-    [_,_,N_sgnl] = data_neuro['data'].shape
-
-    if tf_seperate_window:
-        lh_fig = []
-        for i in range(N_sgnl):
-            lh_fig.append(plt.figure(figsize=(16,9)))
-    else:
-        fig = plt.figure(figsize=(16, 9))
-
-    if 'cdtn' in data_neuro.keys():
-        N_cndt = len(data_neuro['cdtn'])
-        if len(layout) == 0:
-            N_col = np.ceil(np.sqrt(N_cndt)).astype(int)
-            N_row = np.ceil(1.0*N_cndt/N_col).astype(int)
-        else:
-            [N_row, N_col] = layout
-
-        axes1 = plt.subplot(N_row, N_col, 1)
-        for i in range(N_cndt):
-            cdtn = data_neuro['cdtn'][i]
-            if tf_seperate_window:
-                for j in range(N_sgnl):
-                    plt.figure(lh_fig[j].number)
-                    plt.subplot(N_row, N_col, i + 1, sharey=axes1)
-                    hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'][data_neuro['cdtn_indx'][cdtn], :, [j]], sk_std)
-                    plt.title(prettyfloat(cdtn))
-                    if i==0:
-                        lh_fig[j].suptitle(data_neuro['signal_info']['name'][j])
-            else:
-                plt.figure(fig.number)
-                plt.subplot(N_row, N_col, i + 1, sharey=axes1)
-                hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'][data_neuro['cdtn_indx'][cdtn], :, :], sk_std)
-                if tf_legend:
-                    plt.legend(hl_plot, data_neuro['signal_info']['name'].tolist(), labelspacing=0.1, prop={'size':8}, fancybox=True, framealpha=0.5)
-                    plt.title(prettyfloat(cdtn))
-    else:
-        hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'], sk_std )
-        # plt.legend(hl_plot, data_neuro['signal_info']['name'].tolist())
-        plt.title(prettyfloat(cdtn))
-
-    return 1
-
-
-
-def SignalPlot(ts, data3D, sk_std=np.nan):
+def add_sub_axes(h_axes=None, loc='top', size=0.25, gap=0.02, sub_rect = None):
     """
-    function to generate plot using data3D, (N_trial * N_ts * N_signal)
+    tool funciton to add an axes around the existing axis
 
-    :param ts:      timestamps (in sec)
-    :param data3D:  data
-    :param sk_std:  smooth kernel std (in sec); default is nan, do not smooth data
-    :return:        plot handle
+    :param h_axes: the current axes handle, default to None, use the gca
+    :param loc:    location of the newly added sub-axes: one of ['top', 'bottom', 'left', 'right', 'custom'], default to 'top'
+
+                    - if one of ['top', 'bottom', 'left', 'right'], the size of sub axes is determined by size and gap parameter;
+                    - if set to 'custom', the location and size if specifited by sub_rect parameter
+    :param size:   size of the sub-axes, with respect to the origial axes, default to 0.25
+    :param gap:    gap between the original axes and and the newly added sub-axes
+    :param sub_rect: the rect of custom sub-axes, rect = [x_left, y_bottom, ]
+    :return:       handle of sub axes
     """
-
-    tf_smooth_every_trial = False    # very slow if set to true
-
-    if data3D.ndim==2:
-        data2D = data3D
-        (N_tr, N_ts) = data2D.shape
-        data3D = np.ones([N_tr,N_ts,1])
-        data3D[:,:,0] = data2D
+    if h_axes is None:
+        h_axes = plt.gca()
+    # get axes position
+    axes_rect = h_axes.get_position()
+    x0, y0, width, height = axes_rect.x0, axes_rect.y0, axes_rect.width, axes_rect.height
 
 
-    (_, N_ts, N_sign) = data3D.shape
-
-    if sk_std is not np.nan:   # condition for using smoothness kernel
-        ts_interval = np.diff(np.array(ts)).mean()        # get sampling interval
-        kernel_std  = sk_std/ts_interval                  # std in frames
-        kernel_len  = int(np.ceil(kernel_std)*3*2+1)      # num of frames, 3*std on each side, an odd number
-        smooth_kernel = sgn.gaussian(kernel_len,kernel_std)
-        smooth_kernel = smooth_kernel/smooth_kernel.sum() # normalized smooth kernel
-
-        if tf_smooth_every_trial:
-            smooth_kernel_3D = np.zeros([1, kernel_len, 1])
-            smooth_kernel_3D[0,:,0] = smooth_kernel
-            data3D_smooth = sgn.convolve(data3D, smooth_kernel_3D, 'same')
-
-            data_plot = np.mean(data3D_smooth, axis=0)
-        else:
-            data_plot = np.zeros([N_ts, N_sign])
-            for i in range(N_sign):
-                data_plot[:,i] = np.convolve(np.mean(data3D, axis=0)[:, i], smooth_kernel, 'same')
+    # set modefied axes and new sub-axes position
+    if sub_rect is not None:
+        loc = 'custom'
+    if loc == 'top':
+        x0_new, y0_new, width_new, height_new = x0, y0, width, height * (1 - size - gap)
+        x0_sub, y0_sub, width_sub, height_sub = x0, y0+height * (1 - size), width, height * size
+        sharex, sharey = h_axes, None
+    elif loc == 'bottom':
+        x0_new, y0_new, width_new, height_new = x0, y0 + height * (size + gap), width, height * (1 - size - gap)
+        x0_sub, y0_sub, width_sub, height_sub = x0, y0, width, height * size
+        sharex, sharey = h_axes, None
+    elif loc == 'left':
+        x0_new, y0_new, width_new, height_new = x0 + width * (size + gap), y0, width * (1 - size - gap), height
+        x0_sub, y0_sub, width_sub, height_sub = x0, y0, width * size, height
+        sharex, sharey = None, h_axes
+    elif loc == 'right':
+        x0_new, y0_new, width_new, height_new = x0, y0, width * (1 - size - gap), height
+        x0_sub, y0_sub, width_sub, height_sub = x0 + width * (1 - size), y0, width * size, height
+        sharex, sharey = None, h_axes
+    elif loc == 'custom':
+        x0_rel, y0_rel, width_rel, height_rel = sub_rect
+        x0_new, y0_new, width_new, height_new = x0, y0, width, height
+        x0_sub, y0_sub, width_sub, height_sub = x0 + x0_rel * width, y0 + y0_rel * height, width * width_rel, height * height_rel
+        sharex, sharey = None, None
     else:
-        data_plot = np.mean(data3D, axis=0)
+        warnings.warn('loc has to be one of "top", "bottom", "left", "right", or "custom"')
+        return None
+
+    # make the curretn axes smaller
+    h_axes.set_position([x0_new, y0_new, width_new, height_new])
+    # add a new axes
+    h_subaxes = h_axes.figure.add_axes([x0_sub, y0_sub, width_sub, height_sub], sharex=sharex, sharey=sharey)
+
+    # adjust tick labels
+    if loc == 'top':
+        plt.setp(h_subaxes.get_xticklabels(), visible=False)
+    elif loc == 'bottom':
+        plt.setp(h_axes.get_xticklabels(), visible=False)
+    elif loc == 'left':
+        plt.setp(h_axes.get_yticklabels(), visible=False)
+    elif loc == 'right':
+        plt.setp(h_subaxes.get_yticklabels(), visible=False)
+
+    return h_subaxes
 
 
-    name_colormap = 'rainbow'
-    cycle_color = plt.cm.get_cmap(name_colormap)(np.linspace(0, 1, N_sign))
-    cycle_linestyle = ['-']
-
-    hl_plot = []   # handle list
-    for i in range(N_sign):
-        plt.plot()
-        h_plot, = plt.plot(ts, data_plot[:,i], c=cycle_color[i%len(cycle_color)]*0.9, linestyle=cycle_linestyle[i%len(cycle_linestyle)], linewidth=2 )
-        hl_plot.append(h_plot)
-        plt.xlim(ts[0], ts[-1])
-
-    return hl_plot
 
 
 
@@ -1711,6 +1682,105 @@ def auto_tick(data_range, max_tick=10, tf_inside=False):
     return ticks
 
 
-# to test:
-if 0:
-    import PyNeuroPlot as pnp; reload(pnp); pnp.NeuroPlot(data_neuro)
+
+""" ========== ========== obsolete function ========== ========== """
+
+def SignalPlot(ts, data3D, sk_std=np.nan):
+    """
+    function to generate plot using data3D, (N_trial * N_ts * N_signal)
+
+    :param ts:      timestamps (in sec)
+    :param data3D:  data
+    :param sk_std:  smooth kernel std (in sec); default is nan, do not smooth data
+    :return:        plot handle
+    """
+
+    tf_smooth_every_trial = False    # very slow if set to true
+
+    if data3D.ndim==2:
+        data2D = data3D
+        (N_tr, N_ts) = data2D.shape
+        data3D = np.ones([N_tr,N_ts,1])
+        data3D[:,:,0] = data2D
+
+
+    (_, N_ts, N_sign) = data3D.shape
+
+    if sk_std is not np.nan:   # condition for using smoothness kernel
+        ts_interval = np.diff(np.array(ts)).mean()        # get sampling interval
+        kernel_std  = sk_std/ts_interval                  # std in frames
+        kernel_len  = int(np.ceil(kernel_std)*3*2+1)      # num of frames, 3*std on each side, an odd number
+        smooth_kernel = sgn.gaussian(kernel_len,kernel_std)
+        smooth_kernel = smooth_kernel/smooth_kernel.sum() # normalized smooth kernel
+
+        if tf_smooth_every_trial:
+            smooth_kernel_3D = np.zeros([1, kernel_len, 1])
+            smooth_kernel_3D[0,:,0] = smooth_kernel
+            data3D_smooth = sgn.convolve(data3D, smooth_kernel_3D, 'same')
+
+            data_plot = np.mean(data3D_smooth, axis=0)
+        else:
+            data_plot = np.zeros([N_ts, N_sign])
+            for i in range(N_sign):
+                data_plot[:,i] = np.convolve(np.mean(data3D, axis=0)[:, i], smooth_kernel, 'same')
+    else:
+        data_plot = np.mean(data3D, axis=0)
+
+
+    name_colormap = 'rainbow'
+    cycle_color = plt.cm.get_cmap(name_colormap)(np.linspace(0, 1, N_sign))
+    cycle_linestyle = ['-']
+
+    hl_plot = []   # handle list
+    for i in range(N_sign):
+        plt.plot()
+        h_plot, = plt.plot(ts, data_plot[:,i], c=cycle_color[i%len(cycle_color)]*0.9, linestyle=cycle_linestyle[i%len(cycle_linestyle)], linewidth=2 )
+        hl_plot.append(h_plot)
+        plt.xlim(ts[0], ts[-1])
+
+    return hl_plot
+
+
+def NeuroPlot(data_neuro, layout=[], sk_std=np.nan, tf_seperate_window=False, tf_legend=True):
+
+    [_,_,N_sgnl] = data_neuro['data'].shape
+
+    if tf_seperate_window:
+        lh_fig = []
+        for i in range(N_sgnl):
+            lh_fig.append(plt.figure(figsize=(16,9)))
+    else:
+        fig = plt.figure(figsize=(16, 9))
+
+    if 'cdtn' in data_neuro.keys():
+        N_cndt = len(data_neuro['cdtn'])
+        if len(layout) == 0:
+            N_col = np.ceil(np.sqrt(N_cndt)).astype(int)
+            N_row = np.ceil(1.0*N_cndt/N_col).astype(int)
+        else:
+            [N_row, N_col] = layout
+
+        axes1 = plt.subplot(N_row, N_col, 1)
+        for i in range(N_cndt):
+            cdtn = data_neuro['cdtn'][i]
+            if tf_seperate_window:
+                for j in range(N_sgnl):
+                    plt.figure(lh_fig[j].number)
+                    plt.subplot(N_row, N_col, i + 1, sharey=axes1)
+                    hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'][data_neuro['cdtn_indx'][cdtn], :, [j]], sk_std)
+                    plt.title(prettyfloat(cdtn))
+                    if i==0:
+                        lh_fig[j].suptitle(data_neuro['signal_info']['name'][j])
+            else:
+                plt.figure(fig.number)
+                plt.subplot(N_row, N_col, i + 1, sharey=axes1)
+                hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'][data_neuro['cdtn_indx'][cdtn], :, :], sk_std)
+                if tf_legend:
+                    plt.legend(hl_plot, data_neuro['signal_info']['name'].tolist(), labelspacing=0.1, prop={'size':8}, fancybox=True, framealpha=0.5)
+                    plt.title(prettyfloat(cdtn))
+    else:
+        hl_plot = SignalPlot(data_neuro['ts'], data_neuro['data'], sk_std )
+        # plt.legend(hl_plot, data_neuro['signal_info']['name'].tolist())
+        plt.title(prettyfloat(cdtn))
+
+    return 1
