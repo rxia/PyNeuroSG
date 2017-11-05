@@ -11,7 +11,10 @@ import matplotlib.pyplot as plt
 import re                   # regular expression
 import time                 # time code execution
 import cPickle as pickle
-
+import warnings
+import sklearn
+from sklearn.kernel_ridge import KernelRidge
+import statsmodels.nonparametric.kernel_regression as kernel_regression
 
 import dg2df                # for DLSH dynamic group (behavioral data)
 import neo                  # data structure for neural data
@@ -46,7 +49,7 @@ list_name_tanks_1 = [name_tank for name_tank in list_name_tanks if re.match('Dan
 list_name_tanks = sorted(list_name_tanks_0) + sorted(list_name_tanks_1)
 
 
-def GetTuningCurve(tankname, t_window=[0,050, 0.350]):
+def GetTuningMeanStd(tankname, t_window=[0,050, 0.350]):
     try:
         [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', tankname, tf_interactive=False,
                                                                dir_tdt_tank='/shared/homes/sguan/neuro_data/tdt_tank',
@@ -67,32 +70,40 @@ def GetTuningCurve(tankname, t_window=[0,050, 0.350]):
     blk = data_load_DLSH.standardize_blk(blk)
 
     t_plot = [-0.100, 0.500]
+    data_df['mask_orientation_order'] = data_df['mask_orientation'] - np.mean(data_df['mask_orientation'])
 
     data_neuro_spk = signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='spiketrains.*', name_filter='.*Code[1-9]$', spike_bin_rate=1000, chan_filter=range(1,48+1))
-    data_neuro_spk = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int'], [], data_neuro_spk)
+    data_neuro_spk = signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity_int', 'mask_orientation_order'], [], data_neuro_spk)
 
     ts = data_neuro_spk['ts']
     signal_info = data_neuro_spk['signal_info']
     cdtn = data_neuro_spk['cdtn']
 
-    list_rank_tuning_all = []
-    for i in range(len(signal_info)):
-        list_rank_tuning = []
-        for cdtn_cur in data_neuro_spk['cdtn']:
-            [_, rank_tuning_cur] = pna.TuningCurve(data_neuro_spk['data'][:, :, i], label=data_df['stim_sname'],
-                                     limit=data_neuro_spk['cdtn_indx'][cdtn_cur],
-                                     ts=data_neuro_spk['ts'], t_window=t_window)
-            list_rank_tuning.append(rank_tuning_cur)
-        rank_tuning_neuron = np.vstack(list_rank_tuning)
-        list_rank_tuning_all.append(rank_tuning_neuron)
-    rank_tuning = np.dstack(list_rank_tuning_all)
+    def cal_tuning_one_session(tuning_stat='mean'):
+        list_tuning_all = []
+        for i in range(len(signal_info)):
+            list_tuning = []
+            for cdtn_cur in data_neuro_spk['cdtn']:
+                [tuning_x, tuning_cur] = pna.TuningCurve(data_neuro_spk['data'][:, :, i], label=data_df['stim_sname'],
+                                         limit=data_neuro_spk['cdtn_indx'][cdtn_cur], stat_trials=tuning_stat, type='',
+                                         ts=data_neuro_spk['ts'], t_window=t_window)
+                list_tuning.append(tuning_cur)
+            tuning_neuron = np.vstack(list_tuning)
+            list_tuning_all.append(tuning_neuron)
+        tuning = np.dstack(list_tuning_all)
+        return tuning
 
-    return [rank_tuning, ts, signal_info, cdtn]
+    tuning_mean = cal_tuning_one_session('mean')
+    tuning_std = cal_tuning_one_session('std')
 
-list_rank_tuning = []
-list_rank_tuning_early = []
-list_rank_tuning_late = []
-list_ts = []
+    # trick use real component to store mean and imaginary component to store std
+    tuning = tuning_mean + tuning_std*1j
+
+    return [tuning, signal_info, cdtn]
+
+list_tuning = []
+list_tuning_early = []
+list_tuning_late = []
 list_cdtn = []
 list_signal_info = []
 list_tankname = []
@@ -100,19 +111,19 @@ list_tankname = []
 for tankname in list_name_tanks:
     try:
         list_tankname.append(tankname)
-        [rank_tuning, ts, signal_info, cdtn] = GetTuningCurve(tankname, t_window=[0.050, 0.350])
-        [rank_tuning_early, _, _, _] = GetTuningCurve(tankname, t_window=[0.050, 0.150])
-        [rank_tuning_late,  _, _, _] = GetTuningCurve(tankname, t_window=[0.200, 0.350])
-        list_rank_tuning.append(rank_tuning)
-        list_rank_tuning_early.append(rank_tuning_early)
-        list_rank_tuning_late.append(rank_tuning_late)
-        list_ts.append(ts)
+        [tuning, signal_info, cdtn] = GetTuningMeanStd(tankname, t_window=[0.050, 0.350])
+        [tuning_early , _, _] = GetTuningMeanStd(tankname, t_window=[0.050, 0.150])
+        [tuning_late, _, _] = GetTuningMeanStd(tankname, t_window=[0.200, 0.350])
+        list_tuning.append(tuning)
+        list_tuning_early.append(tuning_early)
+        list_tuning_late.append(tuning_late)
         list_signal_info.append(signal_info)
         list_cdtn.append(cdtn)
-        pickle.dump([list_rank_tuning, list_rank_tuning_early, list_rank_tuning_late, list_ts, list_signal_info, list_cdtn], open('/shared/homes/sguan/Coding_Projects/support_data/RankTuning_srv_mask', "wb"))
+        pickle.dump([list_tuning, list_tuning_early, list_tuning_late, list_signal_info, list_cdtn], open('../support_data/Tuning_mean_std_srv_mask', "wb"))
     except:
+        warnings.warn('can not process tuning mean and std for tank {}'.format(tankname))
         pass
-pickle.dump([list_rank_tuning, list_rank_tuning_early, list_rank_tuning_late, list_ts, list_signal_info, list_cdtn], open('/shared/homes/sguan/Coding_Projects/support_data/RankTuning_srv_mask', "wb"))
+pickle.dump([list_tuning, list_tuning_early, list_tuning_late, list_signal_info, list_cdtn], open('../support_data/Tuning_mean_std_srv_mask', "wb"))
 
 
 
@@ -122,7 +133,7 @@ pickle.dump([list_rank_tuning, list_rank_tuning_early, list_rank_tuning_late, li
 
 """ ========== load saved data ========== """
 
-[list_rank_tuning, list_rank_tuning_early, list_rank_tuning_late, list_ts, list_signal_info, list_cdtn] = pickle.load(open('/shared/homes/sguan/Coding_Projects/support_data/RankTuning_srv_mask'))
+[list_tuning, list_tuning_early, list_tuning_late, list_signal_info, list_cdtn] = pickle.load(open('../support_data/Tuning_mean_std_srv_mask'))
 list_date = ['161015','161023','161026','161029','161118','161121','161125','161202','161206','161222','161228','170103','170106','170113','170117','170214','170221']
 
 date_area = dict()
@@ -145,62 +156,122 @@ date_area['170214'] = 'TEd'
 date_area['170221'] = 'TEd'
 
 
-def GetDataCat( list_rank_tuning, list_ts, list_signal_info, list_cdtn ):
+def GetDataCat( list_tuning, list_signal_info, list_cdtn):
     list_signal_info_date=[]
     for signal_info, date in zip(list_signal_info, list_date):
         signal_info_date = pd.DataFrame(signal_info)
         signal_info_date['date'] = date
         list_signal_info_date.append(signal_info_date)
-    return [np.dstack(list_rank_tuning), list_ts[0], pd.concat(list_signal_info_date, ignore_index=True), list_cdtn[0]]
+    return [np.dstack(list_tuning), pd.concat(list_signal_info_date, ignore_index=True), list_cdtn[0]]
 
 tuning_time_window = 'full'
 if tuning_time_window == 'full':
-    [data_RankTuning, ts, signal_info, cdtn] = GetDataCat(list_rank_tuning, list_ts, list_signal_info, list_cdtn)
+    [data_tuning_org, signal_info, cdtn_org] = GetDataCat(list_tuning, list_signal_info, list_cdtn)
     tuning_time_window_str = '50-350ms'
+    tuning_dur = 0.3
 elif tuning_time_window == 'early':
-    [data_RankTuning, ts, signal_info, cdtn] = GetDataCat(list_rank_tuning_early, list_ts, list_signal_info, list_cdtn)
+    [data_tuning_org, signal_info, cdtn_org] = GetDataCat(list_tuning_early, list_signal_info, list_cdtn)
     tuning_time_window_str = '50-150ms'
+    tuning_dur = 0.1
 elif tuning_time_window == 'late':
-    [data_RankTuning, ts, signal_info, cdtn] = GetDataCat(list_rank_tuning_late, list_ts, list_signal_info, list_cdtn)
+    [data_tuning_org, signal_info, cdtn_org] = GetDataCat(list_tuning_late, list_signal_info, list_cdtn)
     tuning_time_window_str = '250-350ms'
+    tuning_dur = 0.1
 
 
 signal_info['area'] = [date_area[i] for i in signal_info['date'].tolist()]
 
+# average_over_mask_orientation:
+data_tuning = ( data_tuning_org[0::2] + data_tuning_org[1::2] )/2
+data_tuning_mean = np.real(data_tuning)
+data_tuning_std = np.imag(data_tuning)
+
+
+cdtn = [cdtn_org[i][:2] for i in range(0, len(cdtn_org), 2)]
+
 colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), pnp.gen_distinct_colors(3, luminance=0.6)])
 linestyles = ['--', '--', '--', '-', '-', '-']
+
+
+def plot_kr(x,y, color='k', linestyle='-'):
+    range_x = np.percentile(x, [5, 95])
+    kr = kernel_regression.KernelReg(y, x, ['c'], bw=[np.diff(range_x) / 5])
+    xx = np.linspace(range_x[0], range_x[1], 100)
+    plt.plot(xx, kr.fit(xx)[0], '-', color=color, linestyle=linestyle)
+
+
+
+
 [h_fig, h_ax]=plt.subplots(nrows=1, ncols=3, sharex='all', sharey='all', figsize=[12,5])
 
 plt.axes(h_ax[0])
 neuron_keep = signal_info['channel_index'] <= 32
-for i in range(data_RankTuning.shape[0]):
-    plt.plot(np.mean(data_RankTuning[i, :, neuron_keep], axis=0), color=colors[i],
-             linestyle=linestyles[i])
+for i in range(data_tuning_mean.shape[0]):
+    plot_kr(data_tuning_mean[i, :, neuron_keep].ravel(), data_tuning_std[i, :, neuron_keep].ravel(),
+            color=colors[i], linestyle=linestyles[i])
+
 plt.title('V4, N={}'.format(np.sum(neuron_keep)))
-plt.xlabel('image rank')
-plt.ylabel('spk/sec')
+plt.xlabel('mean firing rate (spk/sec)')
+plt.ylabel('firing rate std')
 
 plt.axes(h_ax[1])
 neuron_keep = (signal_info['channel_index']>32)*(signal_info['area']=='TEd')
-for i in range(data_RankTuning.shape[0]):
-    plt.plot( np.mean(data_RankTuning[i,:, neuron_keep ], axis=0), color=colors[i], linestyle=linestyles[i])
+for i in range(data_tuning_mean.shape[0]):
+    plot_kr(data_tuning_mean[i, :, neuron_keep].ravel(), data_tuning_std[i, :, neuron_keep].ravel(),
+            color=colors[i], linestyle=linestyles[i])
 plt.title('TEd, N={}'.format(np.sum(neuron_keep)))
 
 plt.axes(h_ax[2])
 neuron_keep = (signal_info['channel_index']>32)*(signal_info['area']=='TEm')
-for i in range(data_RankTuning.shape[0]):
-    plt.plot( np.mean(data_RankTuning[i,:, neuron_keep ], axis=0), color=colors[i], linestyle=linestyles[i])
+for i in range(data_tuning_mean.shape[0]):
+    plot_kr(data_tuning_mean[i, :, neuron_keep].ravel(), data_tuning_std[i, :, neuron_keep].ravel(),
+            color=colors[i], linestyle=linestyles[i])
 plt.legend(cdtn)
 plt.title('TEm, N={}'.format(np.sum(neuron_keep)))
 
-plt.suptitle('population rank tuning during {}'.format(tuning_time_window_str))
-plt.savefig('./temp_figs/RangkTuning_srv_mask_{}.pdf'.format(tuning_time_window))
-plt.savefig('./temp_figs/RangkTuning_srv_mask_{}.png'.format(tuning_time_window))
-
-#
+plt.suptitle('firing rate std vs mean {}'.format(tuning_time_window_str))
+plt.savefig('./temp_figs/firing_rat_ std_vs_mean_srv_mask_{}.pdf'.format(tuning_time_window))
+plt.savefig('./temp_figs/firing_rat_ std_vs_mean_srv_mask_{}.png'.format(tuning_time_window))
 
 
 
+""" ===== plot fano factor ===== """
+
+
+data_tuning_sum = data_tuning_mean * tuning_dur
+data_tuning_var = (data_tuning_std * tuning_dur)**2
+n_cdtn, n_img, n_neuron = data_tuning_sum.shape
+fano = np.ones([n_cdtn, n_neuron])
+for i_neuron in range(n_neuron):
+    if np.mean(data_tuning_sum[:,:,i_neuron])<=1:
+        fano[:, i_neuron] = np.nan
+    else:
+        for i_cdtn in range(n_cdtn):
+            fano[i_cdtn, i_neuron] = sp.stats.linregress(data_tuning_sum[i_cdtn,:,i_neuron], data_tuning_var[i_cdtn,:,i_neuron])[0]
+
+neuron_keep = (signal_info['channel_index']>32)*(signal_info['area']=='TEd')*(signal_info['sort_code']>=2)
+plt.hist(fano[3,neuron_keep]-fano[0,neuron_keep], range=[-2,2])
+
+
+
+
+
+
+
+
+
+""" temp_script """
+x, y = data_tuning_mean[:,:,-10:-1].ravel(), data_tuning_std[:,:,-10:-1].ravel()
+kr = KernelRidge()
+kr.fit(x,y)
+
+kr = kernel_regression.KernelReg(y, x, ['c'], bw=[np.std(x)/5])
+plt.plot(x,y, '.')
+plt.plot(x, kr.fit(x)[0], 'o')
+
+
+for i in range(data_tuning_mean.shape[0]):
+    plot_kr(data_tuning_mean[i, :, -3].ravel(), data_tuning_std[i, :, -3].ravel(), color=colors[i], linestyle=linestyles[i])
 
 
 """ legacy code """
