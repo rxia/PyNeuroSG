@@ -236,21 +236,26 @@ plt.savefig('./temp_figs/firing_rat_ std_vs_mean_srv_mask_{}.png'.format(tuning_
 
 
 """ ===== plot fano factor ===== """
-
+import statsmodels.api as sm
 
 data_tuning_sum = data_tuning_mean * tuning_dur
 data_tuning_var = (data_tuning_std * tuning_dur)**2
 n_cdtn, n_img, n_neuron = data_tuning_sum.shape
 fano = np.ones([n_cdtn, n_neuron])
 for i_neuron in range(n_neuron):
-    if np.mean(data_tuning_sum[:,:,i_neuron])<=1:
+    if np.mean(data_tuning_sum[:,:,i_neuron])<=1:  # do not include if mean is too small
         fano[:, i_neuron] = np.nan
     else:
-        for i_cdtn in range(n_cdtn):
-            fano[i_cdtn, i_neuron] = sp.stats.linregress(data_tuning_sum[i_cdtn,:,i_neuron], data_tuning_var[i_cdtn,:,i_neuron])[0]
-
+        for i_cdtn in range(n_cdtn):  # compute fano factor
+            # fano[i_cdtn, i_neuron] = sp.stats.linregress(data_tuning_sum[i_cdtn,:,i_neuron], data_tuning_var[i_cdtn,:,i_neuron])[0]
+            # fano[i_cdtn, i_neuron] = np.mean(data_tuning_var[i_cdtn, :, i_neuron])/np.mean(data_tuning_sum[i_cdtn, :, i_neuron])
+            fano[i_cdtn, i_neuron] = sm.OLS(data_tuning_var[i_cdtn,:,i_neuron], data_tuning_sum[i_cdtn,:,i_neuron]).fit().params
 neuron_keep = (signal_info['channel_index']>32)*(signal_info['area']=='TEd')*(signal_info['sort_code']>=2)
-plt.hist(fano[3,neuron_keep]-fano[0,neuron_keep], range=[-2,2])
+plt.hist(fano[5,neuron_keep]-fano[3,neuron_keep], bins=20, range=[-1,1])
+diff_fano = fano[5,neuron_keep]-fano[3,neuron_keep]
+diff_fano = diff_fano[~np.isnan(diff_fano)]
+pna.cal_CohenD(diff_fano)
+
 
 
 
