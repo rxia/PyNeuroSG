@@ -1097,6 +1097,40 @@ def index_int2bool(index_int, N=None):
     return index_bool>0.5
 
 
+def group_shuffle(indx_grps, n=None):
+    """
+    controlled shuffle within index groups
+    :param indx_grps: list of indexes, eg. [[0,1,2,3], [4,5,6,7]], will shuffle within [0,1,2,3], and within [4,5,6,7], but not between them
+    :param n:         number of elements to shufflt, defaul to None, s
+    :return:          shuffled index, e.g. [0,3,1,2,5,4,7,6]
+    """
+    if n is None:
+        n = np.max([np.max(grp) for grp in indx_grps]) + 1
+    indx_shuffle = np.arange(n)
+    for grp in indx_grps:
+        indx_shuffle[grp] = np.random.permutation(grp)
+    return indx_shuffle
+
+
+def group_shuffle_data(data, indx_grps=None, axis=0):
+    """
+    controlled shuffle within index groups
+    :param data:      data to be shuffled along an axis
+    :param indx_grps: list of indexes, eg. [[0,1,2,3], [4,5,6,7]], will shuffle within [0,1,2,3], and within [4,5,6,7], but not between them
+    :param axis:      along which to shuffle data
+    :return:          shuffled data
+    """
+
+    n = data.shape[axis]
+    if indx_grps is None:  # shuffle all if not given
+        indx_grps = [np.arange(n)]
+
+    indx_shuffle = group_shuffle(indx_grps, n)
+    data_shuffle = np.take(data, indx_shuffle, axis=axis)
+    return data_shuffle
+
+
+
 """ ========== obsolete functions ========== """
 
 def GP_ERP_smooth(lfp, ts=None, cs=None):
