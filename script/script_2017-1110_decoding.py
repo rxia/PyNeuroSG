@@ -101,67 +101,47 @@ def compute_decoding_of_day(tankname):
     signal_info = data_neuro['signal_info']
     cdtn = data_neuro['cdtn']
 
-    if tf_cumsum:
-        data_neuro['data'] = np.cumsum(data_neuro['data'], axis=1)
-    else:
-        data_neuro['data'] = pna.SmoothTrace(data_neuro['data'], ts=ts, sk_std=0.050)
+    X = np.mean(data_neuro['data'][:, (ts >= 0.20) * (ts <= 0.40), :], axis=1)
+    Y = np.array(data_df['stim_sname'])
 
-    decoding_img_GM32 = {}
-    decoding_img_U16  = {}
-    decoding_noi_GM32 = {}
-    decoding_noi_U16  = {}
-    for cdtn in data_neuro['cdtn']:
-        print(cdtn)
-        decoding_img_GM32[cdtn] = compute_decoding(data_neuro, data_df, label_name='stim_sname', electrode_type='GM32', cdtn=cdtn)
-        decoding_img_U16 [cdtn] = compute_decoding(data_neuro, data_df, label_name='stim_sname', electrode_type='U16' , cdtn=cdtn)
-        decoding_noi_GM32[cdtn] = compute_decoding(data_neuro, data_df, label_name='mask_orientation', electrode_type='GM32', cdtn=cdtn)
-        decoding_noi_U16 [cdtn] = compute_decoding(data_neuro, data_df, label_name='mask_orientation', electrode_type='U16' , cdtn=cdtn)
+    def decoding_over_noise(X=X, Y=Y, V4_IT='IT', nov_fam=0):
+        if V4_IT == 'V4':
+            tf_neuron = (data_neuro['signal_info']['channel_index'] <= 32)
+        elif V4_IT == 'IT':
+            tf_neuron = (data_neuro['signal_info']['channel_index'] > 32)
+        X = X[:, tf_neuron]
+        fltr_00 = data_neuro['cdtn_indx'][cdtn[nov_fam * 3]]
+        fltr_50 = data_neuro['cdtn_indx'][cdtn[nov_fam * 3 + 1]]
+        fltr_70 = data_neuro['cdtn_indx'][cdtn[nov_fam * 3 + 2]]
+        X_00 = X[fltr_00, :]
+        Y_00 = Y[fltr_00]
+        X_50 = X[fltr_50, :]
+        Y_50 = Y[fltr_50]
+        X_70 = X[fltr_70, :]
+        Y_70 = Y[fltr_70]
+        clf = linear_model.LogisticRegression(solver='lbfgs', warm_start=False, multi_class='multinomial',
+                                              fit_intercept=False)
+        # print(model_selection.cross_val_score(clf, X_cur, Y_cur, cv=2))
 
-    decoding={}
-    decoding['img_GM32'] = decoding_img_GM32
-    decoding['img_U16']  = decoding_img_U16
-    decoding['noi_GM32'] = decoding_noi_GM32
-    decoding['noi_U16']  = decoding_noi_U16
-    decoding['date']     = date
-    decoding['ts']       = ts
+        def get_score_p(clf, X, Y):
+            dict_label2indx = dict(zip(clf.classes_, np.arange(len(clf.classes_))))
+            Y_indx = np.array([dict_label2indx[y] for y in Y])
+            proba_all = clf.predict_proba(X)
+            proba_target = proba_all[np.arange(len(Y)), Y_indx]
+            return np.mean(proba_target)
 
-    h_fig, h_axes = plt.subplots(2, 3, sharex=True, sharey=True, figsize=(10,7.5))
-    h_axes=np.ravel(h_axes)
-    for i, cdtn in enumerate(data_neuro['cdtn']):
-        plt.axes(h_axes[i])
-        plt.plot(ts, np.nanmean(decoding_img_GM32[cdtn], axis=(0, 1)))
-        plt.plot(ts, np.nanmean(decoding_noi_GM32[cdtn], axis=(0, 1)))
-        plt.title(cdtn)
-        plt.gca().xaxis.set_major_locator(mpl.ticker.FixedLocator(np.arange(-0.2, 0.81, 0.2)))
-        plt.gca().xaxis.set_minor_locator(mpl.ticker.FixedLocator(np.arange(-0.2, 0.81, 0.1)))
-        plt.grid(which='minor')
-    plt.ylim([0.4,1.0])
-    plt.xlim([t_plot[0], t_plot[1]])
-    h_fig.text(0.5, 0.04, 'ts (s)', ha='center')
-    h_fig.text(0.04, 0.5, 'decoding accuracy', va='center', rotation='vertical')
-    plt.suptitle('binary_decoding_GM32_{}'.format(date))
-    plt.savefig('./temp_figs/binary_decoding_GM32_{}.pdf'.format(date))
-    plt.savefig('./temp_figs/binary_decoding_GM32_{}.png'.format(date))
+        n_splits = 20
+        object_cv = model_selection.StratifiedShuffleSplit(n_splits=n_splits, test_size=0.4)
+        score_cv = []
+        for indx_train, indx_test in object_cv.split(X_00, Y_00):
+            clf.fit(X_00[indx_train, :], Y_00[indx_train])
+            score_cv.append([get_score_p(clf, X_00[indx_test, :], Y_00[indx_test]), get_score_p(clf, X_50, Y_50),
+                             get_score_p(clf, X_70, Y_70)])
 
-    h_fig, h_axes = plt.subplots(2, 3, sharex=True, sharey=True, figsize=(10,7.5))
-    h_axes=np.ravel(h_axes)
-    for i, cdtn in enumerate(data_neuro['cdtn']):
-        plt.axes(h_axes[i])
-        plt.plot(ts, np.nanmean(decoding_img_U16[cdtn], axis=(0, 1)))
-        plt.plot(ts, np.nanmean(decoding_noi_U16[cdtn], axis=(0, 1)))
-        plt.title(cdtn)
-        plt.gca().xaxis.set_major_locator(mpl.ticker.FixedLocator(np.arange(-0.2, 0.81, 0.2)))
-        plt.gca().xaxis.set_minor_locator(mpl.ticker.FixedLocator(np.arange(-0.2, 0.81, 0.1)))
-        plt.grid(which='minor')
-    plt.ylim([0.4,1.0])
-    plt.xlim([t_plot[0], t_plot[1]])
-    h_fig.text(0.5, 0.04, 'ts (s)', ha='center')
-    h_fig.text(0.04, 0.5, 'decoding accuracy', va='center', rotation='vertical')
-    plt.suptitle('binary_decoding_U16_{}'.format(date))
-    plt.savefig('./temp_figs/binary_decoding_U16_{}.pdf'.format(date))
-    plt.savefig('./temp_figs/binary_decoding_U16_{}.png'.format(date))
+        return np.mean(score_cv, axis=0)
 
-    return decoding
+    return decoding_over_noise(V4_IT='V4', nov_fam=0), decoding_over_noise(V4_IT='V4', nov_fam=1), \
+           decoding_over_noise(V4_IT='IT', nov_fam=0), decoding_over_noise(V4_IT='IT', nov_fam=1)
 
 
 """" run code for all sesions, store decodign results (very slow) """
@@ -180,15 +160,11 @@ if tf_cumsum == True:
 else:
     signal_cum = ''
 pickle.dump(list_decoding_result,
-                    open('/shared/homes/sguan/Coding_Projects/support_data/Decoding_Binary_{}{}'.format(block_type, signal_cum), "wb"))
+                    open('/shared/homes/sguan/Coding_Projects/support_data/Decoding_over_noise_{}'.format(block_type), "wb"))
 
+plt.plot(np.mean(np.array(list_decoding_result), axis=0).transpose());  plt.legend([1,2,3,4])
 
 """" load data, plot """
-list_decoding_result = pickle.load(open('/shared/homes/sguan/Coding_Projects/support_data/decoding_binary_old/Decoding_Binary_{}{}'.format(block_type, signal_cum)))
-
-list_decoding_result = pickle.load(open('/shared/homes/sguan/Coding_Projects/support_data/decoding_binary_old/Decoding_Binary_matchnot'))
-
-
 list_cdtn = sorted(list_decoding_result[0]['img_GM32'].keys())
 ts = np.array([-0.175, -0.125, -0.075, -0.025,  0.025,  0.075,  0.125,  0.175,
         0.225,  0.275,  0.325,  0.375,  0.425,  0.475,  0.525,  0.575,
@@ -243,7 +219,6 @@ for i, cdtn in enumerate(list_cdtn):
 
     decoding_ave['noi_STS'][cdtn] = np.mean(np.vstack(
         [np.nanmean(decoding_cur['noi_U16'][cdtn], axis=(0, 1)) for decoding_cur in list_decoding_result if date_area[decoding_cur['date']]=='STS']), axis=0)
-
 
 h_fig, h_axes = plt.subplots(2, 3, sharex=True, sharey=True, figsize=(10, 7.5))
 h_axes = np.ravel(h_axes)
@@ -303,29 +278,53 @@ plt.savefig('./temp_figs/binary_decoding_ave_STS.png')
 
 
 
-""" single_panel """
-colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9), pnp.gen_distinct_colors(3, luminance=0.6)])
-linestyles = ['--', '--', '--', '-', '-', '-']
+""" test script """
+import sklearn.linear_model as linear_model
+import sklearn.model_selection as model_selection
 
-h_fig, h_ax = plt.subplots(1,2, sharex='all', sharey='all')
-plt.axes(h_ax[0])
-for i, cdtn in enumerate(list_cdtn):
-    plt.plot(ts, decoding_ave['img_V4'][cdtn], color=colors[i], linestyle=linestyles[i])
-    # plt.plot(ts, decoding_ave['noi_V4'][cdtn])
-    plt.title('V4')
-    plt.xlabel('ts (s)')
-    plt.ylabel('decoding accuracy')
-plt.axes(h_ax[1])
-for i, cdtn in enumerate(list_cdtn):
-    plt.plot(ts, decoding_ave['img_IT'][cdtn], color=colors[i], linestyle=linestyles[i])
-    # plt.plot(ts, decoding_ave['noi_IT'][cdtn])
-    plt.title('IT')
-# plt.axes(h_ax[2])
-# for i, cdtn in enumerate(list_cdtn):
-#     plt.plot(ts, decoding_ave['img_STS'][cdtn], color=colors[i], linestyle=linestyles[i])
-#     # plt.plot(ts, decoding_ave['noi_V4'][cdtn])
-#     plt.title(cdtn)
-plt.ylim([0.4, 1.0])
-plt.xlim([-0.2, 0.6])
-plt.savefig('./temp_figs/decoding_temp.pdf')
-plt.savefig('./temp_figs/decoding_temp.png')
+
+
+X = np.mean(data_neuro['data'][:, (ts>=0) * (ts<=0.40), :], axis=1)
+Y = np.array(data_df['stim_sname'])
+
+def decoding_over_noise(X=X, Y=Y, V4_IT= 'IT', nov_fam=0):
+    if V4_IT == 'V4':
+        tf_neuron = ( data_neuro['signal_info']['channel_index'] <= 32 )
+    elif V4_IT == 'IT':
+        tf_neuron = ( data_neuro['signal_info']['channel_index'] > 32 )
+    X = X[:, tf_neuron]
+    fltr_00 = data_neuro['cdtn_indx'][cdtn[nov_fam*3]]
+    fltr_50 = data_neuro['cdtn_indx'][cdtn[nov_fam*3+1]]
+    fltr_70 = data_neuro['cdtn_indx'][cdtn[nov_fam*3+2]]
+    X_00 = X[fltr_00, :]
+    Y_00 = Y[fltr_00]
+    X_50 = X[fltr_50, :]
+    Y_50 = Y[fltr_50]
+    X_70 = X[fltr_70, :]
+    Y_70 = Y[fltr_70]
+    clf = linear_model.LogisticRegression(solver='lbfgs', warm_start=False, multi_class='multinomial', fit_intercept=False)
+    # print(model_selection.cross_val_score(clf, X_cur, Y_cur, cv=2))
+
+    def get_score_p(clf, X, Y):
+        dict_label2indx = dict(zip(clf.classes_, np.arange(len(clf.classes_))))
+        Y_indx = np.array([dict_label2indx[y] for y in Y])
+        proba_all = clf.predict_proba(X)
+        proba_target = proba_all[np.arange(len(Y)), Y_indx]
+        return np.mean(proba_target)
+
+    n_splits= 20
+    object_cv = model_selection.StratifiedShuffleSplit(n_splits=n_splits, test_size=0.4)
+    score_cv= []
+    for indx_train, indx_test in object_cv.split(X_00, Y_00):
+        clf.fit(X_00[indx_train, :], Y_00[indx_train])
+        score_cv.append([get_score_p(clf, X_00[indx_test,:], Y_00[indx_test]) , get_score_p(clf, X_50, Y_50), get_score_p(clf, X_70, Y_70)])
+
+    return np.mean(score_cv, axis=0)
+
+
+decoding_over_noise(V4_IT= 'IT', nov_fam=0)
+print (decoding_over_noise(V4_IT= 'IT', nov_fam=0))
+print (decoding_over_noise(V4_IT= 'IT', nov_fam=1))
+
+
+

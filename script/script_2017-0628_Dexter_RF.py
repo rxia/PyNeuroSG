@@ -27,7 +27,7 @@ dir_dg='/shared/lab/projects/analysis/ruobing/data_dg'
 
 f_lim = [30,55]
 stimulate_type = 0
-signal_type = 'spk'
+signal_type = 'coh'
 keyword_tank = '.*Dexter.*0703.*'
 task_type = 'colorxgrating'
 if task_type=='spot':
@@ -192,7 +192,7 @@ def plot_PSTH(t_window_plot=t_range, signal_type=signal_type,data_neuro = data_n
     return h_fig, h_axes
 
 #if task_type == 'MTS':
-#    plot_PSTH(t_window_plot=t_range, signal_type=signal_type, data_neuro=data_neuro)
+# plot_PSTH(t_window_plot=t_range, signal_type=signal_type, data_neuro=data_neuro)
 
 
 """ Get difference between stimulate & non stimulate """

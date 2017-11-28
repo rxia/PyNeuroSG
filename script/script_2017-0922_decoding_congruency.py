@@ -35,7 +35,7 @@ from sklearn import cross_validation
 # keyword_tank = '.*GM32.*U16.*161125.*'
 keyword_tank = '.*GM32.*U16.*161222.*'
 block_type = 'srv'
-def gen_codeing_consistence_analysis(keyword_tank):
+def gen_codeing_consistence_analysis(keyword_tank, brain_region='V4_IT'):
     [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*{}.*'.format(block_type), keyword_tank,
                                                                tf_interactive=False,
                                                                dir_tdt_tank='/shared/homes/sguan/neuro_data/tdt_tank',
@@ -85,8 +85,15 @@ def gen_codeing_consistence_analysis(keyword_tank):
     clf_IT = sklearn.linear_model.LogisticRegression()
     dre_V4 = sklearn.discriminant_analysis.LinearDiscriminantAnalysis(n_components=1)
     dre_IT = sklearn.discriminant_analysis.LinearDiscriminantAnalysis(n_components=1)
-    indx_signal_V4 = (data_neuro['signal_info']['channel_index']<=32)
-    indx_signal_IT = (data_neuro['signal_info']['channel_index']>32)
+    if brain_region == 'V4_IT':
+        indx_signal_V4 = (data_neuro['signal_info']['channel_index']<=32)
+        indx_signal_IT = (data_neuro['signal_info']['channel_index']>32)
+    elif brain_region == 'in_IT':
+        indx_signal_V4 = (data_neuro['signal_info']['channel_index'] > 32) * (data_neuro['signal_info']['channel_index'] %2 ==0)
+        indx_signal_IT = (data_neuro['signal_info']['channel_index'] > 32) * (data_neuro['signal_info']['channel_index'] %2 ==1)
+    elif brain_region == 'in_V4':
+        indx_signal_V4 = (data_neuro['signal_info']['channel_index'] <= 32) * (data_neuro['signal_info']['channel_index'] %2 ==0)
+        indx_signal_IT = (data_neuro['signal_info']['channel_index'] <= 32) * (data_neuro['signal_info']['channel_index'] %2 ==1)
     list_color = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
     h_fig_lg, h_ax_lg = plt.subplots(nrows=2, ncols=3, figsize=(8,4), squeeze=False, sharex=True, sharey=True)
@@ -136,22 +143,22 @@ def gen_codeing_consistence_analysis(keyword_tank):
         X_lg_cdtn[c] = X_lg
         X_ld_cdtn[c] = X_ld
 
-    pickle.dump(X_lg, open('./temp_data/coding_consistency_V4_IT_lg_{}.pkl'.format(filename_common), 'wb'))
-    pickle.dump(X_ld, open('./temp_data/coding_consistency_V4_IT_ld_{}.pkl'.format(filename_common), 'wb'))
+    pickle.dump(X_lg, open('./temp_data/coding_consistency_{}_lg_{}.pkl'.format(brain_region, filename_common), 'wb'))
+    pickle.dump(X_ld, open('./temp_data/coding_consistency_{}_ld_{}.pkl'.format(brain_region, filename_common), 'wb'))
     plt.figure(h_fig_lg.number)
     plt.xlim(0,1)
     plt.ylim(0,1)
     plt.xlabel('V4')
     plt.ylabel('IT')
-    plt.suptitle('trial_by_trial_decoding_consistency_V4_vs_IT_{}_logistic_regression'.format(filename_common))
-    plt.savefig('./temp_figs/trial_by_trial_decoding_consistency_V4_vs_IT_lg_{}.png'.format(filename_common))
+    plt.suptitle('trial_by_trial_decoding_consistency_{}_{}_logistic_regression'.format(brain_region, filename_common))
+    plt.savefig('./temp_figs/trial_by_trial_decoding_consistency_{}_lg_{}.png'.format(brain_region, filename_common))
     plt.figure(h_fig_ld.number)
     plt.xlim(-5,5)
     plt.ylim(-5,5)
     plt.xlabel('V4')
     plt.ylabel('IT')
-    plt.suptitle('trial_by_trial_decoding_consistency_V4_vs_IT_{}_linear_discriminant'.format(filename_common))
-    plt.savefig('./temp_figs/trial_by_trial_decoding_consistency_V4_vs_IT_ld_{}.png'.format(filename_common))
+    plt.suptitle('trial_by_trial_decoding_consistency_{}_{}_linear_discriminant'.format(brain_region, filename_common))
+    plt.savefig('./temp_figs/trial_by_trial_decoding_consistency_{}_ld_{}.png'.format(brain_region, filename_common))
 
 
 
@@ -170,8 +177,8 @@ def gen_codeing_consistence_analysis(keyword_tank):
         plt.title(c)
     plt.xlabel('corr between V4 & IT LDA projection')
     plt.legend(['empirical correlation', 'permutation test'])
-    plt.suptitle('decoding_corr_V4_IT_ld_by_{}_{}'.format(grpby, filename_common))
-    plt.savefig('./temp_figs/decoding_corr_V4_IT_ld_{}.png'.format(filename_common))
+    plt.suptitle('decoding_corr_{}_ld_by_{}_{}'.format(brain_region, grpby, filename_common))
+    plt.savefig('./temp_figs/decoding_corr_{}_ld_{}.png'.format(brain_region, filename_common))
 
 
 
@@ -217,8 +224,8 @@ def gen_codeing_consistence_analysis(keyword_tank):
         plt.title(c)
     plt.xlabel('mutual info between V4 & IT')
     plt.legend(['empirical correlation', 'permutation test'])
-    plt.suptitle('decoding_mutural_info_V4_IT_lg_by_{}_{}'.format(grpby, filename_common))
-    plt.savefig('./temp_figs/decoding_mutural_info_V4_IT_lg_{}.png'.format(filename_common))
+    plt.suptitle('decoding_mutural_info_{}_lg_by_{}_{}'.format(brain_region, grpby, filename_common))
+    plt.savefig('./temp_figs/decoding_mutural_info_{}_lg_{}.png'.format(brain_region, filename_common))
 
 
 """ run for everyday """
@@ -233,19 +240,24 @@ list_name_tanks = sorted(list_name_tanks_0) + sorted(list_name_tanks_1)
 
 for name_tank in list_name_tanks:
     try:
-        gen_codeing_consistence_analysis(name_tank)
+        gen_codeing_consistence_analysis(name_tank, brain_region='in_V4')
     except:
         print('this day {} experience an error'.format(name_tank))
     plt.close('all')
 
 
 
+""" load data """
+temp_data_folder = './temp_data/'
+pickle.dump(X_lg, open('./temp_data/coding_consistency_V4_IT_lg_{}.pkl'.format(filename_common), 'wb'))
+pickle.dump(X_ld, open('./temp_data/coding_consistency_V4_IT_ld_{}.pkl'.format(filename_common), 'wb'))
 
 
 
 
 
-""" ========== ---------- code pool ---------- ========== """
+
+""" ========== ---------- old code pool ---------- ========== """
 """ decode """
 X_raw = np.mean(data_neuro['data'], axis=1)
 X = (X_raw - np.mean(X_raw, axis=0, keepdims=True)) \

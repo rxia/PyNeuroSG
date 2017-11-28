@@ -260,7 +260,7 @@ def cal_STA(X, Xt=None, ts=None, t_window=None, zero_point_zero = False):
 
 
 def decode_over_time(data, label, limit_tr=None, limit_ch=None, ts=None, ts_win_train=None):
-    """ decoding realted """
+    """ decoding realted, temporary """
     data = np.array(data)
     label = np.array(label)
     [N_tr, N_ts, N_ch] = data.shape
