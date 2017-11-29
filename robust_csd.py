@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sp
 import scipy.optimize as optimize
 
-def cal_robust_csd(lfp, lambda_dev=1, lambda_der=1, sigma_t=0, tf_edge=True, spacing=1.0):
+def cal_robust_csd(lfp, lambda_dev=1, lambda_der=1, sigma_t=0, tf_edge=False, spacing=1.0):
     """
     Robust estimation of CSD that deals with varied gain across channels. a wrapper funciton of cal_1dCSD() and lfp_robutst_smooth().
 
@@ -14,9 +14,9 @@ def cal_robust_csd(lfp, lambda_dev=1, lambda_der=1, sigma_t=0, tf_edge=True, spa
                             range between 0 and 1. if channel [i] is noisy, set lambda_dev[i] small or just zero
     :param lambda_der: coefficient of the derivative for the cost term, scalar.  Larger values leads to more smoothed result.
     :param sigma_t:    std for gaussian smoothing along time axis, set to 0 if do not smooth along time, the unit is number of timestampes
-    :param tf_edge:    true/false to interpolate the two channels on the edge, affect the shape of the result
+    :param tf_edge:    true/false to interpolate the two channels on the edge; if false, the two edge channel are set to nan
     :param spacing:    inter-channel distance, a scalar, affect the scale of the CSD
-    :return:        csd, [N_channels-2, N_timestamps] or [N_channels, N_timestamps], dependign on tf_edge
+    :return:        csd [N_channels, N_timestamps]
     """
 
     # smooth lfp using function lfp_robust_smooth()
@@ -44,7 +44,7 @@ def cal_1dCSD(lfp, axis_ch=0, tf_edge=False, spacing=1):
         csd_edge_l = 2*np.take(csd,  0, axis=axis_ch) - np.take(csd,  1, axis=axis_ch)
         csd_edge_r = 2*np.take(csd, -1, axis=axis_ch) - np.take(csd, -2, axis=axis_ch)
     else:
-        csd_dege_l = np.take(csd,  0, axis=axis_ch)*np.nan
+        csd_edge_l = np.take(csd,  0, axis=axis_ch)*np.nan
         csd_edge_r = np.take(csd,  0, axis=axis_ch)*np.nan
     csd = np.concatenate([np.expand_dims(csd_edge_l, axis=axis_ch), csd, np.expand_dims(csd_edge_r, axis=axis_ch)], axis=axis_ch)
     return csd
