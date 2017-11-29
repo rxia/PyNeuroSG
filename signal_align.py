@@ -318,7 +318,7 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
     return data_neuro_new
 
 
-def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}, tf_plt=False):
+def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}):
     """
     funciton to sort a table arrording to some columns, returns the index of each condition
 
@@ -330,6 +330,12 @@ def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}, tf_plt=False):
     """
 
     # process inputs
+    if grpby is None:
+        grpby = []
+    if fltr is None:
+        fltr = []
+
+    fltr = np.array(fltr)
     if type(grpby) is str:
         grpby = [grpby]
     if len(fltr) == 0:

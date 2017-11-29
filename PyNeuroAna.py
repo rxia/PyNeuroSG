@@ -109,7 +109,7 @@ def GroupAve(data_neuro, data=None):
 
 
 
-def TuningCurve(data, label, type='', ts=None, t_window=None, limit=None, stat='mean'):
+def TuningCurve(data, label, type='', ts=None, t_window=None, limit=None, stat_t='mean', stat_trials='mean'):
     """
     Calculate the tuning curve of a neuron's response
 
@@ -134,18 +134,35 @@ def TuningCurve(data, label, type='', ts=None, t_window=None, limit=None, stat='
     def InRange(x, x_range):
         return np.logical_and(x>=x_range[0], x<=x_range[1])
 
-    # get the mean response in the t_window
-    if stat == 'mean':
-        response = np.mean( data[:, InRange(ts, t_window) ], axis=1)
-    elif stat == 'std':
+    # get the response in the t_window
+    if stat_t == 'mean':
+        response = np.mean(data[:, InRange(ts, t_window) ], axis=1)
+    elif stat_t == 'median':
+        response = np.median(data[:, InRange(ts, t_window)], axis=1)
+    elif stat_t == 'sum':
+        response = np.sum(data[:, InRange(ts, t_window)], axis=1)
+    elif stat_t == 'std':
         response = np.std(data[:, InRange(ts, t_window)], axis=1)
+    else:   # stat_t is a function handle
+        response = stat_t(data[:, InRange(ts, t_window)], axis=1)
+
+
+    # get the response over trials of the same condition
+    if stat_trials == 'mean':
+        stat_trials = np.mean
+    elif stat_trials == 'median':
+        stat_trials = np.median
+    elif stat_trials == 'sum':
+        stat_trials = np.sum
+    elif stat_trials == 'std':
+        stat_trials = np.std
     else:
-        response = np.mean(data[:, InRange(ts, t_window)], axis=1)
+        pass
 
     x = np.unique(label)
     y = np.zeros(len(x))
     for i, xx in enumerate(x):
-        y[i] = np.mean(response[label==xx])
+        y[i] = stat_trials(response[label==xx])
 
     if type == 'rank':   # sort in descending order
         i_sort = np.argsort(y)[::-1]
@@ -243,7 +260,7 @@ def cal_STA(X, Xt=None, ts=None, t_window=None, zero_point_zero = False):
 
 
 def decode_over_time(data, label, limit_tr=None, limit_ch=None, ts=None, ts_win_train=None):
-    """ decoding realted """
+    """ decoding realted, temporary """
     data = np.array(data)
     label = np.array(label)
     [N_tr, N_ts, N_ch] = data.shape
@@ -921,6 +938,52 @@ def ErrIntvBinom(k=None, n=None, alpha=0.05, x=None, tf_err=True):
         return intv                                             # confidence interval of p estimate
 
 
+def cal_CohenD(data0, data1=None, axis=None, type_test='auto'):
+    """
+    calculate Cohen's d statistic for measuring effect size, as a complimentary test for t-test
+
+    :param data0: a group of data
+    :param data1: another group of data
+    :param axis:  along which axis to compute d statistic
+    :param type_test:  'auto', 'one-sample', 'independent', or 'paired'
+
+         1) 'auto': determine based on the data input:
+         use 'one-sample' if only data0 is give;
+         use 'paired' if two data are of the same size; and
+         use 'independent' if two data inputs are of different sizes
+
+         2) 'one-sample': compute one-sample d stat using only data0
+
+         3) 'independent': data0 and data1 are not directly paired, e.g., two groups of people under different treatment
+
+         4) 'paired': data0 and data1 are directly paired, e.g., the same groups of people before and after treatment
+
+    :return: d statistic
+    """
+
+    # determine test type automatically
+    if type_test=='auto':
+        if data1 is None:
+            type_test = 'one-sample'
+        elif data1.shape == data0.shape:
+            type_test = 'paired'
+        else:
+            type_test = 'independent'
+
+    if type_test == 'paired':
+        data0 = data1-data0
+    if type_test == 'paired' or type_test == 'one-sample':
+        d = np.mean(data0, axis=axis) / np.std(data0, axis=axis)
+    else:
+        if axis is None:
+            n0 = data0.size
+            n1 = data1.size
+        else:
+            n0 = data0.shape[axis]
+            n1 = data1.shape[axis]
+        pooled_std = np.sqrt(( (n0-1)*np.std(data0, axis=axis)**2 + (n1-1)*np.std(data1, axis=axis)**2 )/(n0+n1-2))
+        d = (np.mean(data1, axis=axis) - np.mean(data0, axis=axis))/pooled_std
+    return d
 
 
 
@@ -984,6 +1047,9 @@ def DimRedLDA(X=None, Y=None, X_test=None, dim=2, lda=None, return_model=False):
 
 
 
+
+
+
 """ ========== Tool functons ========== """
 
 def center2edge(centers):
@@ -1029,6 +1095,40 @@ def index_int2bool(index_int, N=None):
     index_bool = np.zeros(N)
     index_bool[index_int]=1
     return index_bool>0.5
+
+
+def group_shuffle(indx_grps, n=None):
+    """
+    controlled shuffle within index groups
+    :param indx_grps: list of indexes, eg. [[0,1,2,3], [4,5,6,7]], will shuffle within [0,1,2,3], and within [4,5,6,7], but not between them
+    :param n:         number of elements to shufflt, defaul to None, s
+    :return:          shuffled index, e.g. [0,3,1,2,5,4,7,6]
+    """
+    if n is None:
+        n = np.max([np.max(grp) for grp in indx_grps]) + 1
+    indx_shuffle = np.arange(n)
+    for grp in indx_grps:
+        indx_shuffle[grp] = np.random.permutation(grp)
+    return indx_shuffle
+
+
+def group_shuffle_data(data, indx_grps=None, axis=0):
+    """
+    controlled shuffle within index groups
+    :param data:      data to be shuffled along an axis
+    :param indx_grps: list of indexes, eg. [[0,1,2,3], [4,5,6,7]], will shuffle within [0,1,2,3], and within [4,5,6,7], but not between them
+    :param axis:      along which to shuffle data
+    :return:          shuffled data
+    """
+
+    n = data.shape[axis]
+    if indx_grps is None:  # shuffle all if not given
+        indx_grps = [np.arange(n)]
+
+    indx_shuffle = group_shuffle(indx_grps, n)
+    data_shuffle = np.take(data, indx_shuffle, axis=axis)
+    return data_shuffle
+
 
 
 """ ========== obsolete functions ========== """
