@@ -169,10 +169,10 @@ pickle.dump([list_data_groupave, list_ts, list_signal_info, list_cdtn, list_date
 
 
 
-"""  V4, STS and IT neurons """
+"""  V4, TEd and TEm neurons """
 block_type = 'srv_mask'
 # block_type = 'matchnot'
-# signal_type='spk'
+signal_type='spk'
 # signal_type='lfp'
 [list_data_groupave, list_ts, list_signal_info, list_cdtn, list_date] = pickle.load(open('/shared/homes/sguan/Coding_Projects/support_data/GroupAve_{}_{}'.format(block_type, signal_type)))
 
