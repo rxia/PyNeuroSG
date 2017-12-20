@@ -867,7 +867,10 @@ def DataNeuroSummaryPlot(data_neuro, sk_std=None, signal_type='auto', suptitle='
         elif signal_type == 'LFP':
             ylabel = 'LFP (V)'
 
-    name_signals = [x['name'] for x in data_neuro['signal_info']]
+    try:
+        name_signals = [x['name'] for x in data_neuro['signal_info']]
+    except:
+        name_signals = np.arange(data_neuro['data'].shape[2])
 
     if 'cdtn' in data_neuro:
         # plot function for every panel
