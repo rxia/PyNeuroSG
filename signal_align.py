@@ -106,7 +106,8 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
 
                             * data:          3D numpy array, [N_trials * N_ts_in_trial * N_signals]
                             * ts:            1D numpy array, in ts
-                            * signal_info:   1D numpy array, N_signals * [('name', 'S32'), ('type', 'S32'), ('sampling_rate', float), ('channel_index', int), ('sort_code', int)]
+                            * signal_info:   1D numpy array, N_signals * [('name', 'U32'), ('type', 'U32'),
+                            ('sampling_rate', float), ('channel_index', int), ('sort_code', int)]
     """
 
     signal_name = []
@@ -146,8 +147,19 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
                             cur_sortcode = 0
                         signal_chan.append(cur_chan)
                         signal_sortcode.append(cur_sortcode)
-    signal_info = zip(signal_name, signal_type, signal_sampling_rate, signal_chan, signal_sortcode)
-    signal_info = np.array( signal_info, dtype=[('name', 'S32'), ('type', 'S32'), ('sampling_rate', float), ('channel_index', int), ('sort_code', int)]  )
+    signal_info = list(zip(signal_name, signal_type, signal_sampling_rate, signal_chan, signal_sortcode))
+    """
+    signal_info = np.array( signal_info, dtype=[('name', 'S32'),
+                                                ('type', 'S32'),
+                                                ('sampling_rate', float),
+                                                ('channel_index', int),
+                                                ('sort_code', int)])
+    """
+    signal_info = np.array(signal_info, dtype=[('name', 'U32'),
+                                               ('type', 'U32'),
+                                               ('sampling_rate', 'float'),
+                                               ('channel_index', 'int'),
+                                               ('sort_code', 'int')])
 
     if len(signal_aligned) == 0:
         warnings.warn('no signals in the segment match the selection filter for alignment')
@@ -185,7 +197,8 @@ def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', nam
 
                             * data:          3D numpy array, [N_trials * N_ts_in_trial * N_signals]
                             * ts:            1D numpy array, in ts
-                            * signal_info:   1D numpy array, N_signals * [('name', 'S32'), ('type', 'S32'), ('sampling_rate', float), ('channel_index', int), ('sort_code', int)]
+                            * signal_info:   1D numpy array, N_signals * [('name', 'U32'), ('type', 'U32'),
+                            ('sampling_rate', float), ('channel_index', int), ('sort_code', int)]
     """
 
     data_neuro_list = []

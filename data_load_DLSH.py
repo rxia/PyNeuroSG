@@ -8,7 +8,7 @@ import dg2df  # for reading behavioral data
 import pandas as pd
 import re     # use regular expression to find file names
 import numpy as np
-from standardize_TDT_blk import select_obj_by_attr
+from standardize_TDT_blk import select_obj_by_attr, convert_name_to_unicode
 import warnings
 
 
@@ -66,7 +66,7 @@ def get_file_name(keyword = None,           # eg. 'd_.*_122816'
             print('')
             print('the tank selected is {}'.format(name_tdt_tank))
             print('the blocks selected are {}'.format(name_tdt_blocks))
-            action_keyboard = raw_input('please type to confirm: accept all (a) / decline all (d) / select one-by-one (s)')
+            action_keyboard = input('please type to confirm: accept all (a) / decline all (d) / select one-by-one (s)')
             if action_keyboard == 'a':
                 pass
             elif action_keyboard == 'd':
@@ -76,7 +76,7 @@ def get_file_name(keyword = None,           # eg. 'd_.*_122816'
                 i=0
                 while i<len(name_tdt_blocks):
                     name_block = name_tdt_blocks[i]
-                    yn_keyboard = raw_input('keep file {}: (y/n)'.format(name_block))
+                    yn_keyboard = input('keep file {}: (y/n)'.format(name_block))
                     if yn_keyboard == 'y':
                         name_tdt_blocks_select.append(name_block)
                         i = i + 1
@@ -95,7 +95,7 @@ def get_file_name(keyword = None,           # eg. 'd_.*_122816'
             if re.match(keyword, name_dg):   # if matches the keyword
                 name_dgs.append(name_dg)
         # remove .dg extention name
-        name_dgs = [re.match('(.*)\.dg', name_dg).group(1) for name_dg in name_dgs if re.match('.*\.dg', name_dg) is not None]
+        name_dgs = [re.search('(.*)\.dg', name_dg).group(1) for name_dg in name_dgs if re.search('.*\.dg', name_dg) is not None]
         name_dgs.sort()
 
         """ interactive mode if tdt is not used """
@@ -103,7 +103,7 @@ def get_file_name(keyword = None,           # eg. 'd_.*_122816'
             name_dgs_select = []
             print('')
             print('the dgs selected are {}'.format(name_dgs))
-            action_keyboard = raw_input('please type to confirm: accept all (a) / decline all (d) / select one-by-one (s)')
+            action_keyboard = input('please type to confirm: accept all (a) / decline all (d) / select one-by-one (s)')
             if action_keyboard == 'a':
                 pass
             elif action_keyboard == 'd':
@@ -111,7 +111,7 @@ def get_file_name(keyword = None,           # eg. 'd_.*_122816'
             elif action_keyboard == 's':
                 for i in range(len(name_dgs)):
                     name_dg = name_dgs[i]
-                    yn_keyboard = raw_input('keep file {}: (y/n)'.format(name_dg))
+                    yn_keyboard = input('keep file {}: (y/n)'.format(name_dg))
                     if yn_keyboard == 'y':
                         name_dgs_select.append(name_dg)
                     elif yn_keyboard == 'n':
@@ -236,7 +236,7 @@ def standardize_data_df(data_df, filename_common=''):
         # make mask opacity a int, better for printing
         data_df['mask_opacity_int'] = np.round(data_df['mask_opacity'] * 100).astype(int)
         # make short name for stim, e.g. face_fam_6016
-        data_df['stim_sname'] = map((lambda (a, b): re.sub('_\w*_', '_fam_', a) if b == 1 else re.sub('_\w*_', '_nov_', a)),
+        data_df['stim_sname'] = map((lambda temp: re.sub('_\w*_', '_fam_', temp[0]) if temp[1] == 1 else re.sub('_\w*_', '_nov_', temp[0])),
                                 zip(data_df['stim_names'].tolist(), data_df['stim_familiarized'].tolist(), ))
     return data_df
 
@@ -248,6 +248,11 @@ def standardize_blk(blk):
     :param blk:    neo block object
     :return:       neo block object
     """
+
+    try:
+        convert_name_to_unicode(blk)
+    except:
+        warnings.warn('convert name to unicode was not successful')
 
     for seg in blk.segments:   # for every segment
         for spktrain in seg.spiketrains:       # for spiketrain, add channel_index and sort_code to annotations
@@ -267,7 +272,7 @@ def standardize_blk(blk):
 
 def get_ts_align(blk, data_df,
                   dg_name_obsid='obsid', dg_tos_align='stimon', dg_tof_obs = 'endobs',
-                  neo_name_obson='obsv', neo_name_obsoff='obs\\',
+                  neo_name_obson=r'obsv', neo_name_obsoff=r'obs\\',
                   tf_align_test=True, thrhld_misalign=0.002):
     """
     Get onset timestamps of the alignment events (eg. StimOn), in the neo time frame
@@ -303,14 +308,17 @@ def get_ts_align(blk, data_df,
         blk_StimOn.append(ts_StimOn)
 
         if tf_align_test:
-            ts_ObsvOff = np.array(select_obj_by_attr(blk.segments[i].events, attr='name', value=neo_name_obsoff)[0].times)
-            dur_obs_neo = ts_ObsvOff - ts_ObsvOn                         # obs duration from neo
-            dur_obs_dg  = np.array(data_df_segment[dg_tof_obs])/1000.0   # obs duration from stim dg
-            dur_misalign = np.max(np.abs(dur_obs_neo[id_Obsv] - dur_obs_dg))   # max diff for corresponding obs
-            if dur_misalign > thrhld_misalign:
-                num_misalign = np.sum( np.abs(dur_obs_neo[id_Obsv] - dur_obs_dg) > thrhld_misalign )
-                cur_file_name =  data_df[data_df['fileindex'] == i]['filename'].tolist()[0]
-                print(red_text( '{} misalignments, maximum misalignment time is {} ms, in file {}'.format(num_misalign, dur_misalign*1000, cur_file_name) ))
+            try:
+                ts_ObsvOff = np.array(select_obj_by_attr(blk.segments[i].events, attr='name', value=neo_name_obsoff)[0].times)
+                dur_obs_neo = ts_ObsvOff - ts_ObsvOn                         # obs duration from neo
+                dur_obs_dg  = np.array(data_df_segment[dg_tof_obs])/1000.0   # obs duration from stim dg
+                dur_misalign = np.max(np.abs(dur_obs_neo[id_Obsv] - dur_obs_dg))   # max diff for corresponding obs
+                if dur_misalign > thrhld_misalign:
+                    num_misalign = np.sum( np.abs(dur_obs_neo[id_Obsv] - dur_obs_dg) > thrhld_misalign )
+                    cur_file_name =  data_df[data_df['fileindex'] == i]['filename'].tolist()[0]
+                    print(red_text( '{} misalignments, maximum misalignment time is {} ms, in file {}'.format(num_misalign, dur_misalign*1000, cur_file_name) ))
+            except:
+                warnings.warn('tf_align_test can not be executed')
     return blk_StimOn
 
 

@@ -280,7 +280,7 @@ def DfPlot(df, values, x='', c='', p='', limit=None, plot_type=None, **kwargs):
     return h_ax
 
 
-def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
+def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=None):
     """
     Plot spk waveforms of a segment, one channel per axes, different sort codes are color coded
 
@@ -292,18 +292,22 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=8):
     """
     
     N_chan = max([item.annotations['channel_index'] for item in seg.spiketrains])   # ! depend on the frame !
-    nrows  = int(np.ceil(1.0 * N_chan / ncols))
+    if ncols is None:
+        nrows, ncols = cal_rc(N_chan)
+    else:
+        nrows  = int(np.ceil(1.0 * N_chan / ncols))
     # spike waveforms:
-    fig, axes2d = plt.subplots(nrows=nrows, ncols=ncols, sharex=True, sharey=True, figsize=(8,6))
+    fig, axes2d = plt.subplots(nrows=nrows, ncols=ncols, sharex='all', sharey='all',
+                               figsize=(8,6), squeeze=False)
     plt.tight_layout()
     fig.subplots_adjust(hspace=0.05, wspace=0.05)
-    axes1d = [item for sublist in axes2d for item in sublist]  # flatten axis
+    axes1d = axes2d.ravel()
     sortcode_color = {0: np.array([225, 217, 111]) / 255.0,
                       1: np.array([149, 196, 128]) / 255.0,
                       2: np.array([112, 160, 234]) / 255.0,
                       3: np.array([142, 126, 194]) / 255.0,
-                      4: np.array([202, 066, 045]) / 255.0,
-                      5: np.array([229, 145, 066]) / 255.0}
+                      4: np.array([202,  66,  45]) / 255.0,
+                      5: np.array([229, 145,  66]) / 255.0}
     for i, axes in enumerate(axes1d):
         plt.sca(axes)
         plt.xticks([])
@@ -1604,6 +1608,7 @@ def keep_less_than(list_in, n=6):
     else:
         list_in = [ list_in[i] for i in range(0, m, 2) ]
         return keep_less_than(list_in, n)
+
 
 def cal_rc(N):
     """

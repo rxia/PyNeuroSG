@@ -3,12 +3,12 @@
 
 import os
 import sys
-cur_path = os.path.dirname(__file__)  # get the path of this file
-sys.path.append(os.path.join(cur_path, 'dgread'))
+# cur_path = os.path.dirname(__file__)  # get the path of this file
+# sys.path.append(os.path.join(cur_path, 'dgread'))
 
-import dgread
 import pandas as pd
 from scipy import stats
+import dgread
 
 def dg2df(dgfile):
     data_dg = dgread.dgread(dgfile)
@@ -23,7 +23,7 @@ def dg2df(dgfile):
 def remove_short_columns(data_dg, f_verbose=False):
     # ===== remove irregular columns of dg, make it ready to be converted to pandas df =====
     dg_keys = data_dg.keys()
-    if data_dg.has_key('ids'):
+    if 'ids' in data_dg:
         # ----- get number of rows by key "ids" -----
         N = len(data_dg['ids'])
     else:
@@ -36,7 +36,7 @@ def remove_short_columns(data_dg, f_verbose=False):
         N = stats.mode(num_rows)[0][0]  # get number of rows by majority vote
 
     # ----- remove columns with different numbers of rows -----
-    for dg_key in dg_keys:
+    for dg_key in list(dg_keys):
         if len(data_dg[dg_key]) != N:
             if f_verbose:
                 print('remove dg column: {} that contains {} rows'.format(dg_key, len(data_dg[dg_key]) ))
