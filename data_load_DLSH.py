@@ -236,8 +236,8 @@ def standardize_data_df(data_df, filename_common=''):
         # make mask opacity a int, better for printing
         data_df['mask_opacity_int'] = np.round(data_df['mask_opacity'] * 100).astype(int)
         # make short name for stim, e.g. face_fam_6016
-        data_df['stim_sname'] = map((lambda temp: re.sub('_\w*_', '_fam_', temp[0]) if temp[1] == 1 else re.sub('_\w*_', '_nov_', temp[0])),
-                                zip(data_df['stim_names'].tolist(), data_df['stim_familiarized'].tolist(), ))
+        data_df['stim_sname'] = list(map((lambda temp: re.sub('_\w*_', '_fam_', temp[0]) if temp[1] == 1 else re.sub('_\w*_', '_nov_', temp[0])),
+                                zip(data_df['stim_names'].tolist(), data_df['stim_familiarized'].tolist(), )))
     return data_df
 
 

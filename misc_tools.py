@@ -3,6 +3,7 @@ misc toool functions
 """
 
 import datetime
+import numpy as np
 
 def get_time_string(microsecond=True):
     if microsecond:
@@ -29,6 +30,7 @@ def str_common(list_of_strings):
         string_out = string_out+char_cur
     return string_out
 
+
 def red_text(str_in):
     """
     tool function to set text font color to red, using ASCII
@@ -36,3 +38,28 @@ def red_text(str_in):
     :return:        str that will print in red
     """
     return('\033[91m{}\033[0m'.format(str_in))
+
+
+def index_bool2int(index_bool):
+    """
+    tool function to transform bool index to int. e.g. turn [True, False, True] into [0, 2]
+
+    :param index_bool: bool index, like [True, False, True]
+    :return:           int index, like [0, 2]
+    """
+    return np.where(index_bool)
+
+
+def index_int2bool(index_int, N=None):
+    """
+    tool function to transform int index to bool. e.g. turn into [0, 2] into [True, False, True]
+
+    :param index_int: int index, like [0, 2]
+    :param N:         length of boolean array
+    :return:          bool index, like [True, False, True]
+    """
+    if N is None:
+        N=np.max(index_int)+1
+    index_bool = np.zeros(N)
+    index_bool[index_int]=1
+    return index_bool>0.5

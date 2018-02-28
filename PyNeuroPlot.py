@@ -1,6 +1,5 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-mpl.style.use('ggplot')
 import mpl_toolkits
 import pandas as pd
 import numpy as np
@@ -8,276 +7,18 @@ import scipy as sp
 from scipy import signal as sgn
 import re
 import warnings
+
 import misc_tools
 import signal_align
+import df_ana
 import PyNeuroAna as pna
 
+mpl.style.use('ggplot')
 
 
-def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_legend=True, tf_count=True,
-              values_name='', x_name='', c_name='', p_name='', title_text='', **kwargs):
-    """
-    function to plot values according to multiple levels of grouping keys: x, c, and p.
-    The input values, x, c and p can be viewed as columns from the same table
 
-    Example usage could be found in show_case/GroupPlot_DfPlot.py
-
-    :param values:      values to plot, array of length N
-    :param x:           grouping key, plot as x axis, array of length N, default to None.
-
-                        * if x is continuous, plot_type can be one of ['dot','line'], plot values against x
-                        * elif x is discrete, plot_type can be one of ['bar','box','violin'], plot values groupped by x
-    :param c:           grouping key, plot as separate colors within panel, array of length N, default to None
-    :param p:           grouping key, plot as separate panels, array of length N, default to None
-    :param limit:       used to select a subset of data, boolean array of length N
-    :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically:
-
-                        * 'dot': values against x;
-                        * 'line': values against x;
-                        * 'bar', mean values with errbar determined by errbar;
-                        * 'box': median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;
-                        * 'violin': median and distribution of values
-    :param tf_legend:   True/False flag, whether plot legend
-    :param tf_count:    Trur/False flag, whether to show count of values for plot type ['bar', 'box', 'violin']
-    :param values_name: text on plot, for values
-    :param x_name:      text on plot, for x
-    :param c_name:      text on plot, for colors
-    :param p_name:      text on plot, for panels
-    :param title_text:  text for title
-    :param errbar:      type of error bar, only used for bar plot, one of ['auto', 'std', 'se', 'binom', ''], default to auto:
-
-                        * 'auto':  if values are binary, use binom, otherwise, use se
-                        * 'std':   standard deviation
-                        * 'se':    standard error
-                        * 'binom': binomial distribution confidence interval based on binom_alpha
-                        * '':      do not use error bar
-    :param binom_alpha: alpha value for binomial distribution error bar (hpyothesis test for binary values), default = 0.05
-    :return:            handles of axes
-    """
-
-    """ set default values for inputs """
-    N = len(values)
-    if x is None:
-        x = np.array(['']*N)
-    else:
-        x = np.array(x)
-    if c is None:
-        c = np.array(['']*N)
-    else:
-        c = np.array(c)
-    if p is None:
-        p = np.array(['']*N)
-    else:
-        p = np.array(p)
-    if limit is None:
-        limit = np.ones(N, dtype=bool)
-    else:
-        values = values[limit]
-        x = x[limit]
-        c = c[limit]
-        p = p[limit]
-
-    errbar = 'auto'
-    binom_alpha = 0.05
-    for arg_name, arg_value in kwargs.iteritems():
-        if arg_name == 'errbar':
-            errbar = arg_value
-        elif arg_name == 'binom_alpha':
-            binom_alpha = arg_value
-
-    """ number of conditions to seperate data with """
-    values_unq = np.unique(values)
-    x_unq = np.unique(x)
-    c_unq = np.unique(c)
-    p_unq = np.unique(p)
-    Nvalues = len(values_unq)
-    Nx = len(x_unq)
-    Nc = len(c_unq)
-    Np = len(p_unq)
-
-    if errbar == 'auto':
-        errbar = 'binom' if Nvalues <=2 else 'se'
-
-    """ determine plot style if not specified """
-    if plot_type is None:
-        if Nx <= 0.1*N:          # if x is discrete
-            if Nvalues <=2:       # if binary data, bar plot, error bar using binomial distribution for errarbar
-                plot_type = 'bar'
-            else:
-                plot_type = 'box' # if continuous data, box plot, error bar using standard error
-        else:                 # if x is continuous
-            plot_type = 'dot'
-
-    if plot_type in ['bar', 'box', 'violin']:
-        plot_supertype = 'discrete'
-    elif plot_type in ['dot', 'line']:
-        plot_supertype = 'continuous'
-    else:
-        plot_supertype = ''
-        warnings.warn('plot_type not supported, must be one of {}'.format(['dot','line', 'bar', 'box', 'violin']))
-
-    if Nc <=1:
-        tf_legend = False
-
-    """ if multipanel, open new fig and use subplot; otherwise, just use current axes """
-    tf_multipanel = (Np >1)
-    if tf_multipanel:
-        nrow, ncol = AutoRowCol(len(p_unq))
-        h_fig, h_ax = plt.subplots(nrows=nrow, ncols=ncol, sharex=True, sharey=True, squeeze=False)
-        h_ax = np.ravel(h_ax)
-        string_suptitle = '{}   {} by {}'.format(title_text, values_name, p_name) if p_name!='' else '{}   {} '.format(title_text, values_name)
-        plt.suptitle(string_suptitle)
-    else:
-        h_ax = [plt.gca()]
-        plt.title('{}    {}'.format(title_text, values_name))
-
-    plt.xlabel(x_name)
-    plt.axes(h_ax[0])
-    plt.ylabel(values_name)
-
-    """ ----- loops for plot ----- """
-    default_color_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
-    legend_obj = []
-    h_text_count = []
-    """ for every panel """
-    for p_i, p_c in enumerate(p_unq):
-        plt.axes(h_ax[p_i])
-        if tf_multipanel:
-            plt.title(p_c, style='normal', fontsize=10)
-        """ for every condition """
-        for c_i, c_c in enumerate(c_unq):
-            tf_cur = (p==p_c) * (c==c_c)
-            """ if x variable is continuous, plot y against x """
-            if plot_supertype == 'continuous':
-                if plot_type == 'dot':
-                    plt.plot(x[tf_cur], values[tf_cur], 'o')
-                elif plot_type == 'line':
-                    plt.plot(x[tf_cur], values[tf_cur], '-')
-                """ otherwise if x variable is discrete, group y by x """
-            elif plot_supertype == 'discrete':
-                # values_plot is a length Nx list, where every entry is a array containing values under that x condition
-                values_by_x = []
-                for x_c in x_unq:
-                    values_by_x.append(values[tf_cur * (x==x_c)])
-                # numbers of values in every x condition
-                values_by_x_num = [len(values_by_x_single) for values_by_x_single in values_by_x]
-                # width related thing for bar/box/violin
-                cell_width = 1.0/(Nc+1)
-                x_loc = np.arange(Nx) + cell_width * (-Nc*0.5 + c_i + 0.5 +0.05)
-                bar_width = cell_width*0.90
-                values_by_x_median = [np.nanmedian(values_by_x_single) for values_by_x_single in values_by_x]
-                if plot_type == 'bar':     # if bar plot
-                    values_by_x_mean = [np.nanmean(values_by_x_single) for values_by_x_single in values_by_x]
-                    if errbar == 'std':
-                        values_by_x_std = [np.nanstd(values_by_x_single) for values_by_x_single in values_by_x]
-                        values_by_x_err = values_by_x_std
-                    elif errbar == 'se':
-                        values_by_x_std = [np.nanstd(values_by_x_single) for values_by_x_single in values_by_x]
-                        values_by_x_se  = np.array(values_by_x_std)/np.sqrt(np.array(values_by_x_num))
-                        values_by_x_err = values_by_x_se
-                    elif errbar == 'binom':
-                        values_by_x_err = np.array([np.abs(pna.ErrIntvBinom(x=values_by_x_single, alpha=binom_alpha)) for values_by_x_single in values_by_x]).transpose()
-                    else:
-                        values_by_x_err = 0
-                    plt.bar(left=x_loc, height=values_by_x_mean, yerr=values_by_x_err, width=bar_width, error_kw=dict(capsize=2) )
-                elif plot_type == 'box':    # if box plot
-                    current_color = default_color_cycle[c_i % len(default_color_cycle)]
-                    medianprops = dict(linestyle='-', linewidth=4, color=current_color)
-                    meanpointprops = dict(marker='x', markeredgecolor=current_color, markersize=10, markeredgewidth=2)
-                    flierprops = dict(marker='.', markersize=5)
-                    h_box = plt.boxplot(values_by_x, positions=x_loc, widths=bar_width, showmeans=True,
-                                medianprops=medianprops, meanprops=meanpointprops, flierprops=flierprops)
-                    if tf_legend and (p_i==0):
-                        legend_obj.append(h_box['medians'][0])
-                elif plot_type == 'violin':  # if violin plot
-                    values_by_x = [[np.nan, np.nan] if len(values_by_x_single)==0 else values_by_x_single for values_by_x_single in values_by_x]
-                    h_vioinplot = plt.violinplot(values_by_x, positions=x_loc, widths=bar_width, showmedians=True, showextrema=False)
-                    if tf_legend and (p_i==0):
-                        legend_obj.append(h_vioinplot['bodies'][0])
-                """ show count of values for every bar/box/violin """
-                if tf_count:
-                    for txt_loc_x, txt_loc_y, text_str in zip(x_loc, values_by_x_median, values_by_x_num):
-                        h_text_count_cur = plt.text(txt_loc_x, txt_loc_y, text_str, ha='center', va='bottom', fontsize='x-small', rotation='vertical')
-                        h_text_count.append(h_text_count_cur)
-                """ axes look """
-                plt.xlim([-0.5,Nx-0.5])
-                plt.xticks(np.arange(Nx), x_unq)
-    """ plot legend """
-    if tf_legend:
-        plt.axes(h_ax[0])
-        if len(legend_obj)==0:
-            plt.legend(c_unq, title=c_name, fontsize='small')
-        else:
-            plt.legend(legend_obj, c_unq, title=c_name, fontsize='small')
-    """ set text for values count to the bottom of plot  """
-    if tf_count and (plot_supertype=='discrete'):
-        y_lim_min = h_ax[0].get_ylim()[0]
-        h_ax[0].text(-0.5, y_lim_min, 'count', va='bottom', fontsize='x-small', rotation='vertical')
-        for h_text_count_cur in h_text_count:
-            h_text_count_cur.set_y(y_lim_min)
-
-    return h_ax
-
-
-def DfPlot(df, values, x='', c='', p='', limit=None, plot_type=None, **kwargs):
-    """
-    function to plot values according to multiple levels of grouping keys: x, c, and p for Pandas DataFrame df.
-    This is a wrapper of  function GroupPlot
-
-    Example usage could be found in show_case/GroupPlot_DfPlot.py
-
-    :param values:      name of the column containing values to plot
-    :param x:           name grouping key, plot as x axis, array of length N, default to None:
-
-                        * if x is continuous, plot_type can be one of ['dot','line'], plot values against x
-                        * elif x is discrete, plot_type can be one of ['bar','box','violin'], plot values groupped by x
-    :param c:           name of grouping key, plot as separate colors within panel, array of length N, default to None
-    :param p:           name of grouping key, plot as separate panels, array of length N, default to None
-    :param limit:       used to select a subset of data, boolean array of length N
-    :param plot_type:   the type of plot, one of ['dot', 'line', 'bar', 'box', 'violin'], if None, determined automatically:
-
-                        * 'dot': values against x;
-                        * 'line': values against x;
-                        * 'bar', mean values with errbar determined by errbar;
-                        * 'box': median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;
-                        * 'violin': median and distribution of values
-    :param tf_legend:   True/False flag, whether plot legend
-    :param tf_count:    Trur/False flag, whether to show count of values for plot type ['bar', 'box', 'violin']
-    :param title_text:  text for title
-    :param errbar:      type of error bar, only used for bar plot, one of ['std', 'se', 'binom']:
-
-                        * std:   standard deviation
-                        * se:    standard error
-                        * binom: binomial distribution confidence interval based on binom_alpha
-    :param binom_alpha: alpha value for binomial distribution error bar (hpyothesis test for binary values), default = 0.05
-    :param errbar:      type of error bar, only used for bar plot, one of ['auto', 'std', 'se', 'binom', ''], default to auto:
-
-                    * 'auto':  if values are binary, use binom, otherwise, use se
-                    * 'std':   standard deviation
-                    * 'se':    standard error
-                    * 'binom': binomial distribution confidence interval based on binom_alpha
-                    * '':      do not use error bar
-    :return:            handles of axes
-    """
-
-    df = df.reset_index()
-    df[''] = [''] * len(df)  # empty column, make some default condition easy
-
-    values_name = values
-    x_name = x
-    c_name = c
-    p_name = p
-
-    values_data = df[values]
-    x_data = df[x]
-    c_data = df[c]
-    p_data = df[p]
-
-    # call funciton GroupPlot, inherit arguments
-    h_ax = GroupPlot(values=values_data, x=x_data, c=c_data, p=p_data, limit=limit, plot_type=plot_type,
-              values_name=values_name, x_name=x_name, c_name=c_name, p_name=p_name, **kwargs)
-
-    return h_ax
+""" df (pandas DataFrame) related opeartions """
+from df_ana import GroupPlot, DfPlot
 
 
 def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=None):
@@ -293,7 +34,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=None):
     
     N_chan = max([item.annotations['channel_index'] for item in seg.spiketrains])   # ! depend on the frame !
     if ncols is None:
-        nrows, ncols = cal_rc(N_chan)
+        nrows, ncols = AutoRowCol(N_chan)
     else:
         nrows  = int(np.ceil(1.0 * N_chan / ncols))
     # spike waveforms:
@@ -340,6 +81,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=None):
     fig.suptitle('spike waveforms, y_range={} uV'.format(np.round(np.diff(np.array(axes.get_ylim())) * 1000000)[0] ))
 
     return fig
+
 
 def ErpPlot_singlePanel(erp, ts=None, tf_inverse_color=False, cmap='coolwarm', c_lim_style='diverge', trace_scale=1):
     """
@@ -529,8 +271,8 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
         fr_scale = np.nanmax(fr_2D)*2
 
     if psth_overlay:
-        plt.figure()
-        plt.suptitle(data_neuro['signal_info'][indx_sgnl]['name'])
+        # plt.figure()
+        plt.title(data_neuro['signal_info'][indx_sgnl]['name'])
         plt.pcolormesh( center2edge(x_grid), center2edge(y_grid), fr_2D.transpose(), cmap='inferno')
 
         for i, xy in enumerate(data_neuro['cdtn']):
@@ -547,6 +289,36 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
     if tf_scr_ctr:
         plt.plot(x_grid[[0,-1]], [0,0], 'w-', Linewidth=0.5)
         plt.plot([0,0], y_grid[[0,-1]], 'w-', Linewidth=0.5)
+
+
+def CreateSubplotFromGroupby(df_groupby_ord, figsize=None, tf_title=True):
+    """ todo: description """
+
+    if len(df_groupby_ord) == 0:
+        raise Exception('input dictionary can not be empty')
+    elif isinstance(list(df_groupby_ord.values())[0], int):  # input is {str/num: int}, e.g. {'a': 0, 'b': 1}
+        N = max(df_groupby_ord.values())+1
+        num_r, num_c = AutoRowCol(N)
+        h_fig, h_axes = plt.subplots(num_r, num_c, sharex='all', sharey='all', squeeze=False, figsize=figsize)
+        h_axes = np.ravel(h_axes)
+        h_axes = {key: h_axes[val] for key, val in df_groupby_ord.items()}
+    else:      # input is {tuple_of_cdtn: tuple_of_order}, e.g. {('a',1): (0,0), ('b',1): (1,1)}
+        Ns = list(map(lambda a: max(a)+1, zip(*df_groupby_ord.values())))
+        if len(Ns)==1:
+            h_fig, h_axes = plt.subplots(Ns[0], 1, sharex='all', sharey='all', squeeze=False, figsize=figsize)
+            h_axes = {key: h_axes[val][0] for key, val in df_groupby_ord.items()}
+        elif len(Ns)==2:
+            h_fig, h_axes = plt.subplots(Ns[0], Ns[1], sharex='all', sharey='all', squeeze=False, figsize=figsize)
+            h_axes = {key: h_axes[val] for key, val in df_groupby_ord.items()}
+        else:
+            raise Exception('val can not be more than two dimensions in input {key: val}')
+
+    if tf_title:
+        for key in h_axes:
+            plt.axes(h_axes[key])
+            plt.title(str(key))
+
+    return h_fig, h_axes
 
 
 def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_colorbar=False):
@@ -566,7 +338,7 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_c
         dataPlot = data_neuro['data']
     if isSingle(data_neuro['cdtn'][0]):            # if cdtn is 1D, automatically decide row and column
         N_cdtn = len(data_neuro['cdtn'])
-        [n_rows, n_cols] = cal_rc(N_cdtn)
+        [n_rows, n_cols] = AutoRowCol(N_cdtn)
         [h_fig, h_ax]= plt.subplots(n_rows, n_cols, sharex=True, sharey=True)      # creates subplots
         h_ax = np.array(h_ax).flatten()
         for i, cdtn in enumerate(data_neuro['cdtn']):
@@ -611,7 +383,6 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_c
     return [h_fig, h_ax]
 
 
-
 def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete', tf_legend=False, xlabel=None, ylabel=None):
     """
     funciton to plot psth with a raster panel on top of PSTH, works for both spike data and LFP data
@@ -641,10 +412,10 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
     """ ----- process the input, to work with various inputs ----- """
     if limit is not None:       # select trials of interest
         limit = np.array(limit)
-        data = np.take(np.array(data), np.flatnonzero(limit), axis=0)
+        data = data[limit]
 
     cdtn_unq = None
-    if len(data.shape) ==3:     # if data is 3D [N_trials * N_ts * N_signals]
+    if len(data.shape) == 3:     # if data is 3D [N_trials * N_ts * N_signals]
         [N,T,S] = data.shape
         data2D = signal_align.data3Dto2D(data)   # re-organize as 2D [(N_trials* N_signals) * N_ts ]
         if cdtn is None:                         # condition is the tag of the last dimension (e.g. signal name)
@@ -656,19 +427,19 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
             cdtn = ['']*(N*S)
             warnings.warn('cdtn length does not match the number of signals in data')
 
-    elif len(data.shape) ==2:   # if data is 2D [N_trials * N_ts]
+    elif len(data.shape) == 2:   # if data is 2D [N_trials * N_ts]
         data2D = data
         [N, T] = np.shape(data2D)
         if cdtn is None:                         # condition is the tag of the trials
-            cdtn = ['']*N
-        if limit is not None:
-            cdtn   = cdtn[limit]
+            cdtn = np.array(['']*N)
+        elif limit is not None:
+            cdtn = cdtn[limit]
     else:
-        raise( Exception('input data does not have the right dimension') )
+        raise(Exception('input data does not have the right dimension'))
 
     cdtn = np.array(cdtn)
     if cdtn_unq is None:
-        cdtn_unq  = get_unique_elements(cdtn)        # unique conditions
+        cdtn_unq = get_unique_elements(cdtn)        # unique conditions
     M = len(cdtn_unq)
 
     if ts is None:
@@ -709,7 +480,8 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
         hl_lines.append(hl_line)
 
     textprops = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-    plt.text(0.05, 0.9, 'N={}'.format(N), transform=ax_psth.transAxes, verticalalignment='top',bbox=textprops)
+    plt.text(0.05, 0.9, 'N={}'.format(N), transform=ax_psth.transAxes,
+             verticalalignment='top', fontsize='x-small', bbox=textprops)
 
     ax_psth.set_xlim([ts[0], ts[-1]])
     if tf_legend:
@@ -833,8 +605,7 @@ def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_r
     plt.xlim(ts[0],ts[-1])
     plt.ylim(0, N)
     plt.gca().invert_yaxis()
-    plt.gca().yaxis.set_ticks(keep_less_than([0]+N_cdtn_cum.tolist(), 8))
-
+    plt.yticks(keep_less_than([0]+N_cdtn_cum.tolist(), 8), fontsize='x-small')
     return h_raster
 
 
@@ -1389,20 +1160,49 @@ def AutoRowCol(N, nrow=None, ncol=None, aspect=1.0):
     tool function to automatically calculate number of row and col based on total number of panels
 
     :param N:      total number of panels
-    :param nrow:   number of rows, default to None, if give, fix the number of rows
-    :param ncol:   number of columns, default to None, if give, fix the number of columns
-    :param aspect: desired aspect ratio: ncol/nrow
+    :param nrow:   optional, the desired number of rows, if given, fix the number of rows
+    :param ncol:   optional, the desired number of columns, if given, fix the number of columns
+    :param aspect: desired aspect ratio: ncol/nrow, default to 1/1
     :return:       (nrow, ncol)
     """
 
     if nrow is not None:
-        ncol = int(np.ceil(1.0 * N / nrow))
+        ncol, rem = divmod(int(N), int(nrow))
+        if rem > 0:
+            ncol += 1
     elif ncol is not None:
-        nrow = int(np.ceil(1.0 * N / ncol))
+        nrow, rem = divmod(int(N), int(ncol))
+        if rem > 0:
+            nrow += 1
     else:
-        ncol = int(np.ceil(np.sqrt(N *1.0 * aspect)))
-        nrow = int(np.ceil(1.0 * N / ncol))
-    return (nrow, ncol)
+        ncol = int(np.ceil(np.sqrt(N * 1.0 * aspect)))
+        nrow, rem = divmod(int(N), int(ncol))
+        if rem > 0:
+            nrow += 1
+    return nrow, ncol
+
+
+def SubplotsAutoRowCol(num_panels, nrow=None, ncol=None, aspect=1.0, **kwargs):
+    """
+    tool function to create subplots using the number of panels, a wrapper of plt.subplots() and AutoRowCol()
+
+    the function will automatically decide the number of rows and columns, and the returned h_axes is a linear array .
+
+    :param num_panels: total number of subplot panels
+    :param nrow:       optional, the desired number of rows,
+    :param ncol:       optional, the desired number of columns,
+    :param aspect:     optional, the desired ratio: ncol/nrow, default to 1/1
+    :param kwargs:     other arguments to pass to plt.subplots()
+    :return:           h_fig, h_axes,  where h_axes is a linear array of axes
+    """
+
+    # get the number of rows and columns
+    nrow, ncol = AutoRowCol(num_panels, nrow=nrow, ncol=ncol, aspect=aspect)
+
+    kwargs['squeeze'] = False
+    h_fig, h_axes = plt.subplots(nrow, ncol, **kwargs)
+    h_axes = np.ravel(h_axes)    # make it a 1D array
+    return h_fig, h_axes
 
 
 def DataFastSubplot(data_list, layout=None, data_type=None, gap = 0.05, tf_axis=True, tf_label=True,
@@ -1612,7 +1412,7 @@ def keep_less_than(list_in, n=6):
 
 def cal_rc(N):
     """
-    calculate n_row, n_column automatically, for subplot layout
+    calculate n_row, n_column automatically, for subplot layout, obsolete, should switch to AutoRowCol
 
     :return: [n_rows, n_cols]
     """
