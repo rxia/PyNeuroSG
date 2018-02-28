@@ -520,3 +520,100 @@ plt.axes(h_ax[0]);  pnp.DfPlot(data_df, values='status', x='file', title_text=ti
 plt.axes(h_ax[1]);  pnp.DfPlot(data_df, values='id_incr', x='file', title_text=title_text, plot_type='bar', errbar='')
 
 plt.savefig('./temp_figs/training_performance_by_file_{}.png'.format(filename_common))
+
+
+""" 1203 """
+
+keyword_dg = 'h_matchnot.*_120317.*'
+
+_, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
+
+# select a subset of files
+data_df.reset_index(inplace=True, drop=True)
+
+data_df = data_load_DLSH.standardize_data_df(data_df)
+filename_common = misc_tools.str_common(name_datafiles)
+
+data_df['RT'] = data_df['rts'] - data_df['delay']
+data_df['order_consecutive'] = order_consecutive(data_df['side'])
+data_df['order_consecutive'] = np.clip(data_df['order_consecutive'], 0, 5)
+data_df['id_incr'] = trial_increment(data_df['ids'])
+
+# plt.plot(response_rate_by_file(data_df)['rate_resp'], 'k-')
+
+resp_rate = 1.0*len(data_df)/data_df['obs_total'][0]
+title_text = '{}, resp_rate={:.2f}'.format(filename_common, resp_rate)
+
+h_fig, h_ax = plt.subplots(3,1, figsize=[8,8])
+data_df['file_coarse'] = data_df['file']//5*5
+plt.axes(h_ax[0]);  pnp.DfPlot(data_df, values='status', x='file', c='side', title_text=title_text)
+plt.axes(h_ax[1]);  pnp.DfPlot(data_df, values='id_incr', x='file', title_text=title_text, plot_type='bar')
+plt.axes(h_ax[2]);  pnp.DfPlot(data_df, values='ProbeX', x='file', title_text=title_text, plot_type='bar', errbar='')
+
+plt.savefig('./temp_figs/training_performance_by_file_{}.png'.format(filename_common))
+
+
+""" 1204 """
+
+keyword_dg = 'h_matchnot.*_120417.*'
+
+_, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
+
+# select a subset of files
+data_df.reset_index(inplace=True, drop=True)
+
+data_df = data_load_DLSH.standardize_data_df(data_df)
+filename_common = misc_tools.str_common(name_datafiles)
+
+data_df['RT'] = data_df['rts'] - data_df['delay']
+data_df['order_consecutive'] = order_consecutive(data_df['side'])
+data_df['order_consecutive'] = np.clip(data_df['order_consecutive'], 0, 5)
+data_df['id_incr'] = trial_increment(data_df['ids'])
+
+# plt.plot(response_rate_by_file(data_df)['rate_resp'], 'k-')
+
+resp_rate = 1.0*len(data_df)/data_df['obs_total'][0]
+title_text = '{}, resp_rate={:.2f}'.format(filename_common, resp_rate)
+
+plt.figure(figsize=[8,8])
+data_df['file_coarse'] = data_df['file']//5*5
+plt.subplot(2,1,1);  pnp.DfPlot(data_df, values='status', x='file', c='side', title_text=title_text)
+plt.subplot(4,1,3);  pnp.DfPlot(data_df, values='id_incr', x='file', title_text=title_text, plot_type='bar')
+plt.subplot(4,1,4);  pnp.DfPlot(data_df, values='ProbeX', x='file', title_text=title_text, plot_type='bar', errbar='')
+
+plt.savefig('./temp_figs/training_performance_by_file_{}.png'.format(filename_common))
+
+
+""" 1210 """
+
+keyword_dg = 'h_matchnot.*_120917.*'
+
+_, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
+
+# select a subset of files
+data_df.reset_index(inplace=True, drop=True)
+
+data_df = data_load_DLSH.standardize_data_df(data_df)
+filename_common = misc_tools.str_common(name_datafiles)
+
+data_df['RT'] = data_df['rts'] - data_df['delay']
+data_df['order_consecutive'] = order_consecutive(data_df['side'])
+data_df['order_consecutive'] = np.clip(data_df['order_consecutive'], 0, 5)
+data_df['id_incr'] = trial_increment(data_df['ids'])
+
+# plt.plot(response_rate_by_file(data_df)['rate_resp'], 'k-')
+
+resp_rate = 1.0*len(data_df)/data_df['obs_total'][0]
+title_text = '{}, resp_rate={:.2f}'.format(filename_common, resp_rate)
+
+plt.figure(figsize=[8,8])
+data_df['file_coarse'] = data_df['file']//5*5
+plt.subplot(2,1,1);  pnp.DfPlot(data_df, values='status', x='file', c='side', title_text=title_text)
+plt.subplot(4,1,3);  pnp.DfPlot(data_df, values='id_incr', x='file', title_text=title_text, plot_type='bar')
+plt.subplot(4,1,4);  pnp.DfPlot(data_df, values='ProbeOnset', x='file', title_text=title_text, plot_type='bar', errbar='')
+
+plt.savefig('./temp_figs/training_performance_by_file_{}.png'.format(filename_common))
+
+
+
+

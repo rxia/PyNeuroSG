@@ -19,6 +19,7 @@ blk (neo block, corresponding to tdt tank):
         segments[N]
 
 """
+import re
 import numpy as np
 from neo.core import (Block, Segment, ChannelIndex, AnalogSignal, Unit)
 
@@ -92,6 +93,18 @@ def create_chan_indx_for_spktrains(blk):
 
 
 
+def convert_name_to_unicode(obj):
+    """
+    convert the all names to unicode name: i.g. convert b'abcde123' to 'abcde123'
+
+    used for python3, input obj could be nay neo object, like Block, Segments, .etc
+    """
+    if hasattr(obj, 'name') and isinstance(obj.name, str):    # use regular expression to replace string
+        obj.name = re.sub(r"b'([^']*)'", r'\1', obj.name)
+
+    if hasattr(obj, 'children'):
+        for subobj in obj.children:
+            convert_name_to_unicode(subobj)
 
 
 
