@@ -15,8 +15,8 @@ import warnings
 def get_file_name(keyword = None,           # eg. 'd_.*_122816'
                   keyword_tank = None,      # eg. '.*GM32_U16.*161228.*'
                   tf_interactive = False, tf_verbose=False,
-                  dir_tdt_tank  = '/Volumes/Labfiles/projects/encounter/data/TDT/',
-                  dir_dg  = '/Volumes/Labfiles/projects/analysis/shaobo/data_dg',
+                  dir_tdt_tank  = '/shared/lab/projects/encounter/data/TDT/',
+                  dir_dg  = '/shared/lab/projects/analysis/shaobo/data_dg',
                   mode='both'):
     """
     funciton to get the name of data files
@@ -121,15 +121,18 @@ def get_file_name(keyword = None,           # eg. 'd_.*_122816'
                 name_dgs = name_dgs_select
 
         if mode=='both':    # get intersection of name_tdt_blocks and name_dgs
-            print('the following tdt blockes are selected: {}'.format(name_tdt_blocks))
-            print('the following dg files are selected: {}'.format(name_dgs))
             name_tdt_blocks = list(np.intersect1d(name_tdt_blocks, name_dgs))
-            print('the their intersections are: {}'.format(name_tdt_blocks))
+            if tf_verbose:
+                print('the following tdt blockes are selected: {}'.format(name_tdt_blocks))
+                print('the following dg files are selected: {}'.format(name_dgs))
+                print('the their intersections are: {}'.format(name_tdt_blocks))
         elif mode=='dg':
             name_tdt_blocks = name_dgs
-            print('the following dg files are selected: {}'.format(name_dgs))
+            if tf_verbose:
+                print('the following dg files are selected: {}'.format(name_dgs))
         elif mode=='tdt':
-            print('the following tdt blosks are selected: {}'.format(name_tdt_blocks))
+            if tf_verbose:
+                print('the following tdt blosks are selected: {}'.format(name_tdt_blocks))
 
     return (name_tdt_blocks, path_tdt_tank)
 
@@ -137,8 +140,8 @@ def get_file_name(keyword = None,           # eg. 'd_.*_122816'
 
 def load_data(keyword = None,
               keyword_tank = None,
-              dir_tdt_tank  = '/Volumes/Labfiles/projects/encounter/data/TDT/',
-              dir_dg  = '/Volumes/Labfiles/projects/analysis/shaobo/data_dg',
+              dir_tdt_tank  = '/shared/lab/projects/encounter/data/TDT/',
+              dir_dg  = '/shared/lab/projects/analysis/shaobo/data_dg',
               sortname = 'PLX',
               tf_interactive = True ,
               tf_verbose = True,
