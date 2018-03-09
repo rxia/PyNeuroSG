@@ -18,7 +18,7 @@ mpl.style.use('ggplot')
 
 
 """ df (pandas DataFrame) related opeartions """
-from df_ana import GroupPlot, DfPlot
+# from df_ana import GroupPlot, DfPlot
 
 
 def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=None):
