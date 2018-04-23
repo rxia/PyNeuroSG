@@ -150,51 +150,51 @@ for tankname in list_name_tanks:
 
 """ ========== below: temp script for testing ========== """
 
-signal_info_detail = pd.read_pickle('/shared/homes/sguan/Coding_Projects/support_data/spike_wf_info_Dante.pkl')
-signal_info = pd.DataFrame(data_neuro['signal_info'])
-signal_info['date'] = date_code
-signal_info = signal_info.merge(signal_info_detail, how='inner', on=['date','channel_index','sort_code'], copy=False)
-
-def df_col_type(df):
-    for key in df.keys():
-        print type(df[key][0])
-df_col_type(df)
-
-data_df_str = data_df.to_json(path_or_buf=None)
-
-# write to hdf5
-hf = h5py.File('{}/test_h5py.hdf5'.format(dir_data_save), 'a')
-
-if date_code not in hf.keys():
-    h_data_day = hf.create_group(date_code)
-if 'data_spk' not in hf[date_code]:
-    hf[date_code].create_group('data_spk')
-    hf[date_code]['data_spk'].create_dataset('data', data = data_neuro['data'])
-    hf[date_code]['data_spk'].create_dataset('ts', data=data_neuro['ts'])
-    hf[date_code]['data_spk'].create_dataset('trial_info', data=data_df_str)
-# if 'pd' not in hf.keys():
-hf.close()
-
-
-
-hf = pd.HDFStore('{}/test_h5py.hdf5'.format(dir_data_save))
-hf.put(key='pd', value=signal_info, format='table', data_columns=[])
-hf.close()
-
-
-#data_sub.to_hdf('{}/test_h5py.hdf5'.format(dir_data_save), key='data_df')
-temp = pd.read_hdf('{}/test_h5py.hdf5'.format(dir_data_save), key='data_df')
-
-
-
-
-
-
-data_df_valid = get_df_valid_for_hdf5(data_df)
-get_df_valid_for_hdf5(signal_info_detail).keys()
-
-
-
-hf = pd.HDFStore('{}/test_h5py.hdf5'.format(dir_data_save))
-hf.put(key='sub/pd', value=data_df_valid, format='table', data_columns=True)
-hf.close()
+# signal_info_detail = pd.read_pickle('/shared/homes/sguan/Coding_Projects/support_data/spike_wf_info_Dante.pkl')
+# signal_info = pd.DataFrame(data_neuro['signal_info'])
+# signal_info['date'] = date_code
+# signal_info = signal_info.merge(signal_info_detail, how='inner', on=['date','channel_index','sort_code'], copy=False)
+#
+# def df_col_type(df):
+#     for key in df.keys():
+#         print(type(df[key][0]))
+# df_col_type(df)
+#
+# data_df_str = data_df.to_json(path_or_buf=None)
+#
+# # write to hdf5
+# hf = h5py.File('{}/test_h5py.hdf5'.format(dir_data_save), 'a')
+#
+# if date_code not in hf.keys():
+#     h_data_day = hf.create_group(date_code)
+# if 'data_spk' not in hf[date_code]:
+#     hf[date_code].create_group('data_spk')
+#     hf[date_code]['data_spk'].create_dataset('data', data = data_neuro['data'])
+#     hf[date_code]['data_spk'].create_dataset('ts', data=data_neuro['ts'])
+#     hf[date_code]['data_spk'].create_dataset('trial_info', data=data_df_str)
+# # if 'pd' not in hf.keys():
+# hf.close()
+#
+#
+#
+# hf = pd.HDFStore('{}/test_h5py.hdf5'.format(dir_data_save))
+# hf.put(key='pd', value=signal_info, format='table', data_columns=[])
+# hf.close()
+#
+#
+# #data_sub.to_hdf('{}/test_h5py.hdf5'.format(dir_data_save), key='data_df')
+# temp = pd.read_hdf('{}/test_h5py.hdf5'.format(dir_data_save), key='data_df')
+#
+#
+#
+#
+#
+#
+# data_df_valid = get_df_valid_for_hdf5(data_df)
+# get_df_valid_for_hdf5(signal_info_detail).keys()
+#
+#
+#
+# hf = pd.HDFStore('{}/test_h5py.hdf5'.format(dir_data_save))
+# hf.put(key='sub/pd', value=data_df_valid, format='table', data_columns=True)
+# hf.close()

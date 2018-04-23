@@ -44,7 +44,7 @@ h5filepath = '{}/all_data_thor_{}.hdf5'.format(dir_data_save, block_type)
 
 def LoadDataOneDay(tankname, block_name_filter=block_name_filter):
 
-    date_code = re.findall('.*-(\d{6}).*', tankname)
+    date_code = re.findall('.*-(\d{6}).*', tankname)[0]
 
     [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data(block_name_filter, tankname,
                                                                tf_interactive=False,
@@ -79,13 +79,14 @@ def LoadDataOneDay(tankname, block_name_filter=block_name_filter):
 
 def get_signal_id(signal_info, date_code):
     signal_info = pd.DataFrame(signal_info)
-    signal_info['date'] = date_code
+    signal_info['date'] = [date_code]*len(signal_info)
+    signal_info['signal_id'] = signal_info['date']
     signal_info['signal_id'] = signal_info['date'].apply(lambda x: '{:0>6}'.format(x)).str.cat(
         [signal_info['channel_index'].apply(lambda x: '{:0>2}'.format(x)),
         signal_info['sort_code'].apply(lambda x: '{:0>1}'.format(x))],
         sep='_'
         )
-    return np.array(signal_info['signal_id']).astype('str')
+    return np.array(signal_info['signal_id']).astype('S16')
 
 
 def get_df_valid_for_hdf5(data_df):
@@ -125,9 +126,9 @@ def SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, data_df, h5filepat
             hf[date_code]['lfp'].create_dataset('ts', data=data_neuro_lfp['ts'])
             hf[date_code]['lfp'].create_dataset('signal_id', data=signal_id_lfp)
 
-    with pd.HDFStore(h5filepath) as hf_pandas:
-
-        hf_pandas.put(key='{}/trial_info'.format(date_code), value=data_df_valid_for_h5, format='table', data_columns=True)
+    if False:
+        with pd.HDFStore(h5filepath) as hf_pandas:
+            hf_pandas.put(key='{}/trial_info'.format(date_code), value=data_df_valid_for_h5, format='table', data_columns=True)
 
 
 for tankname in list_name_tanks:
@@ -138,9 +139,6 @@ for tankname in list_name_tanks:
         warnings.warn('tank {} cannot be processed'.format(tankname))
 
 
-for tankname in list_name_tanks[:2]:
-        [date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay(tankname)
-        SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, data_df)
 
 
 """ ========== below: temp script for testing ========== """
