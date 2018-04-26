@@ -180,7 +180,7 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
                         values_by_x_err = np.array([np.abs(pna.ErrIntvBinom(x=values_by_x_single, alpha=binom_alpha)) for values_by_x_single in values_by_x]).transpose()
                     else:
                         values_by_x_err = 0
-                    plt.bar(left=x_loc, height=values_by_x_mean, yerr=values_by_x_err, width=bar_width, error_kw=dict(capsize=2) )
+                    plt.bar(x=x_loc, height=values_by_x_mean, yerr=values_by_x_err, width=bar_width, error_kw=dict(capsize=2) )
                 elif plot_type == 'box':    # if box plot
                     current_color = default_color_cycle[c_i % len(default_color_cycle)]
                     medianprops = dict(linestyle='-', linewidth=4, color=current_color)

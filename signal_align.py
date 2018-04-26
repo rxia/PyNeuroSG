@@ -379,20 +379,12 @@ def data3Dto2D(data3D):
     [N1, N2, N3] = data3D.shape
     return np.vstack(data3D[:,:,i] for i in range(N3))
 
+
 # ==================== Some test script  ====================
 # to test
-if 0:
-    import time
-    import signal_align; reload(signal_align); from signal_align import signal_align_to_evt
+if False:
     test_analog_signal = neo.core.AnalogSignal(np.random.rand(10000), units='mV', sampling_rate = 1000*pq.Hz)
     test_evt_align_ts  = np.random.rand(100)*20 *pq.sec
     test_window_offset = [-0.1,0.2] * pq.sec
     t = time.time(); ch=0; temp =  signal_align_to_evt(test_analog_signal, test_evt_align_ts, test_window_offset); elapsed = time.time() - t; print(elapsed)
 
-# to test signal_array_align_to_evt
-if 0:
-    import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.signal_array_align_to_evt(blk.segments[0], ts_StimOn, [-0.100, 0.500], type_filter='spiketrains.*',spike_bin_rate=1000); print(time.time()-t)
-
-# to test neuro_sort
-if 0:
-    import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity'], [], data_neuro); print(time.time()-t)

@@ -100,11 +100,9 @@ def GroupAve(data_neuro, data=None):
     data_grpave_shape[0] = len(data_neuro['cdtn'])
     data_groupave = np.zeros(data_grpave_shape)
     for i, cdtn in enumerate(data_neuro['cdtn']):
-        ave = np.mean(np.take(data, data_neuro['cdtn_indx'][cdtn], axis=0), axis=0)
-        try:
-            data_groupave[i, :, :] = ave
-        except:
-            data_groupave[i, :] = ave
+        # ave = np.mean(np.take(data, data_neuro['cdtn_indx'][cdtn], axis=0), axis=0)
+        ave = np.mean(data[data_neuro['cdtn_indx'][cdtn], :], axis=0)
+        data_groupave[i, :] = ave
     return data_groupave
 
 
