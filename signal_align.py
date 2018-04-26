@@ -292,9 +292,10 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
     """
 
     N_signal = data_neuro['data'].shape[2]
-    N_signal0= len(data_neuro['signal_info'])
-    if N_signal != N_signal0:
-        raise Exception("data_neuro['data'] and data_neuro['signal_info'] show different number of signals")
+    if 'signal_info' in data_neuro.keys():
+        N_signal0= len(data_neuro['signal_info'])
+        if N_signal != N_signal0:
+            raise Exception("data_neuro['data'] and data_neuro['signal_info'] show different number of signals")
 
     if indx is None:    # if indx is not give, use name_filter, chan_filter and sortcode_filter to select
         indx = np.array([True] * N_signal)
@@ -326,7 +327,10 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
 
     data_neuro_new = dict(data_neuro)
     data_neuro_new['data'] = data_neuro['data'][:, :, indx]
-    data_neuro_new['signal_info'] = data_neuro['signal_info'][indx]
+    if 'signal_info' in data_neuro_new.keys():
+        data_neuro_new['signal_info'] = data_neuro['signal_info'][indx]
+    if 'signal_id' in data_neuro_new.keys():
+        data_neuro_new['signal_id'] = data_neuro['signal_id'][indx]
 
     return data_neuro_new
 
@@ -360,7 +364,7 @@ def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}):
     # filter the results by the binary mask of fltr
     indx_fltrd = np.where(fltr)[0]
 
-    for cdtn_name in cdtn_indx.keys():
+    for cdtn_name in list(cdtn_indx.keys()):
         cdtn_indx[cdtn_name] = np.intersect1d(cdtn_indx[cdtn_name], indx_fltrd)
         if len(cdtn_indx[cdtn_name]) == 0:
             del cdtn_indx[cdtn_name]
