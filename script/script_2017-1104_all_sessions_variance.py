@@ -10,7 +10,7 @@ import matplotlib as mpl    # plot
 import matplotlib.pyplot as plt
 import re                   # regular expression
 import time                 # time code execution
-import cPickle as pickle
+import pickle as pickle
 import warnings
 import sklearn
 from sklearn.kernel_ridge import KernelRidge
@@ -49,7 +49,7 @@ list_name_tanks_1 = [name_tank for name_tank in list_name_tanks if re.match('Dan
 list_name_tanks = sorted(list_name_tanks_0) + sorted(list_name_tanks_1)
 
 
-def GetTuningMeanStd(tankname, t_window=[0,050, 0.350]):
+def GetTuningMeanStd(tankname, t_window=[0.050, 0.350]):
     try:
         [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*srv_mask.*', tankname, tf_interactive=False,
                                                                dir_tdt_tank='/shared/homes/sguan/neuro_data/tdt_tank',

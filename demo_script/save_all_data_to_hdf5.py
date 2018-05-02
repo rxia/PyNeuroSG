@@ -17,28 +17,54 @@ import misc_tools           # in this package: misc
 import data_load_DLSH       # package specific for DLSH lab data
 
 """ ========== set parameters ========== """
+if False:
 
-# ----- data directory
-dir_data_save = '/shared/homes/sguan/Coding_Projects/support_data'
-dir_tdt_tank = '/shared/lab/projects/encounter/data/TDT/'
-dir_dg = '/shared/lab/projects/analysis/shaobo/data_dg'
+    # ----- data directory
+    dir_data_save = '/shared/homes/sguan/Coding_Projects/support_data'
+    dir_tdt_tank = '/shared/lab/projects/encounter/data/TDT/'
+    dir_dg = '/shared/lab/projects/analysis/shaobo/data_dg'
 
-# ----- tank names to use
-list_name_tanks = os.listdir(dir_tdt_tank)
-keyword_tank = '.*Thor.*U16'
-list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keyword_tank, name_tank) is not None]
-list_name_tanks = sorted(list_name_tanks)
+    # ----- tank names to use
+    list_name_tanks = os.listdir(dir_tdt_tank)
+    keyword_tank = '.*Thor.*U16'
+    list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keyword_tank, name_tank) is not None]
+    list_name_tanks = sorted(list_name_tanks)
 
-# ----- filename (blockname) to use
-block_type = 'srv_mask'
-# block_type = 'matchnot'
-if block_type == 'matchnot':
-    t_plot = [-0.200, 1.200]
-else:
-    t_plot = [-0.200, 0.600]
-block_name_filter = 'h_.*{}.*'.format(block_type)
+    # ----- filename (blockname) to use
+    block_type = 'srv_mask'
+    # block_type = 'matchnot'
+    if block_type == 'matchnot':
+        t_plot = [-0.200, 1.200]
+    else:
+        t_plot = [-0.200, 0.600]
+    block_name_filter = 'h_.*{}.*'.format(block_type)
 
-h5filepath = '{}/all_data_thor_{}.hdf5'.format(dir_data_save, block_type)
+    h5filepath = '{}/all_data_thor_{}.hdf5'.format(dir_data_save, block_type)
+
+
+if True:
+    dir_data_save = '/shared/homes/sguan/Coding_Projects/support_data'
+    dir_tdt_tank = '/shared/homes/sguan/neuro_data/tdt_tank'
+    dir_dg = '/shared/homes/sguan/neuro_data/stim_dg'
+
+    list_name_tanks = os.listdir(dir_tdt_tank)
+    keyword_tank = '.*GM32.*U16'
+    list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keyword_tank, name_tank) is not None]
+    list_name_tanks_0 = [name_tank for name_tank in list_name_tanks if re.match('Dante.*', name_tank) is None]
+    list_name_tanks_1 = [name_tank for name_tank in list_name_tanks if re.match('Dante.*', name_tank) is not None]
+    list_name_tanks = sorted(list_name_tanks_0) + sorted(list_name_tanks_1)
+
+    # ----- filename (blockname) to use
+    block_type = 'srv_mask'
+    # block_type = 'matchnot'
+    if block_type == 'matchnot':
+        t_plot = [-0.200, 1.200]
+    else:
+        t_plot = [-0.200, 0.600]
+    block_name_filter = 'd_.*{}.*'.format(block_type)
+
+    h5filepath = '{}/all_data_dante_{}.hdf5'.format(dir_data_save, block_type)
+
 
 """ ========== define functions ========== """
 
@@ -126,9 +152,9 @@ def SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, data_df, h5filepat
             hf[date_code]['lfp'].create_dataset('ts', data=data_neuro_lfp['ts'])
             hf[date_code]['lfp'].create_dataset('signal_id', data=signal_id_lfp)
 
-    if False:
+    if True:
         with pd.HDFStore(h5filepath) as hf_pandas:
-            hf_pandas.put(key='{}/trial_info'.format(date_code), value=data_df_valid_for_h5, format='table', data_columns=True)
+            hf_pandas.put(key='{}/trial_info'.format(date_code), value=data_df, data_columns=True)
 
 
 for tankname in list_name_tanks:
@@ -142,3 +168,6 @@ for tankname in list_name_tanks:
 
 
 """ ========== below: temp script for testing ========== """
+
+
+
