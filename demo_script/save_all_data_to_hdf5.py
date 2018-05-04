@@ -70,7 +70,7 @@ if True:
 
 def LoadDataOneDay(tankname, block_name_filter=block_name_filter):
 
-    date_code = re.findall('.*-(\d{6}).*', tankname)[0]
+    date_code = re.match('.*?-(\d{6}).*', tankname).group(1)
 
     [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data(block_name_filter, tankname,
                                                                tf_interactive=False,
@@ -93,11 +93,11 @@ def LoadDataOneDay(tankname, block_name_filter=block_name_filter):
 
     data_neuro_lfp = signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='ana.*',
                                                    name_filter='LFPs.*',
-                                                   chan_filter=range(1, 16 + 1))
+                                                   chan_filter=range(1, 48 + 1))
 
     data_neuro_spk = signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='spiketrains.*',
                                                        name_filter='.*Code[1-9]$', spike_bin_rate=data_neuro_lfp['signal_info'][0]['sampling_rate'],
-                                                       chan_filter=range(1, 16 + 1))
+                                                       chan_filter=range(1, 48 + 1))
 
 
     return [date_code, data_neuro_spk, data_neuro_lfp, data_df]
