@@ -30,7 +30,7 @@ list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keywor
 list_name_tanks = sorted(list_name_tanks)
 
 # ----- filename (blockname) to use
-block_type = 'featureMTS'
+block_type = 'image'
 if block_type == 'featureMTS':
     t_plot = [-0.600, 1.600]
 elif block_type == 'image':
@@ -42,23 +42,18 @@ block_name_filter = 'x_.*{}.*'.format(block_type)
 h5filepath = '{}/all_data_dexter_{}.hdf5'.format(dir_data_save, block_type)
 
 """ ========== define functions ========== """
-
 def LoadDataOneDay(tankname, block_name_filter=block_name_filter):
 
-    date_code = re.findall('.*-(\d{6}).*', tankname)[0]
+    date_code = re.match('.*?-(\d{6}).*', tankname).group(1)
 
     [blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data(block_name_filter, tankname,
                                                                tf_interactive=False,
                                                                dir_tdt_tank=dir_tdt_tank,
                                                                dir_dg=dir_dg)
 
-
     filename_common = misc_tools.str_common(name_tdt_blocks)
     data_df = data_load_DLSH.standardize_data_df(data_df, filename_common)
     blk = data_load_DLSH.standardize_blk(blk)
-
-    if True:
-        print([seg.events[0] for seg in blk.segments])
 
     """ Get StimOn time stamps in neo time frame """
     ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
@@ -71,19 +66,10 @@ def LoadDataOneDay(tankname, block_name_filter=block_name_filter):
     blk = data_load_DLSH.standardize_blk(blk)
 
     data_neuro_lfp = signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='ana.*',
-                                                   name_filter='LFPs.*',
-                                                   chan_filter=range(1, 16 + 1))
+                                                   name_filter='LFPs.*')
 
     data_neuro_spk = signal_align.blk_align_to_evt(blk, ts_StimOn, t_plot, type_filter='spiketrains.*',
-                                                       name_filter='.*Code[1-9]$', spike_bin_rate=data_neuro_lfp['signal_info'][0]['sampling_rate'],
-                                                       chan_filter=range(1, 16 + 1))
-
-    data_df = data_df.replace(44, 45)
-    data_df = data_df.replace(66, 67)
-    data_df = data_df.replace(88, 90)
-    data_df = data_df.replace(110, 112)
-    data_df = data_df.replace(132, 135)
-    data_df = data_df.replace(154, 157)
+                                                       name_filter='.*Code[1-9]$', spike_bin_rate=data_neuro_lfp['signal_info'][0]['sampling_rate'])
 
 
     return [date_code, data_neuro_spk, data_neuro_lfp, data_df]
@@ -138,9 +124,9 @@ def SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, data_df, h5filepat
             hf[date_code]['lfp'].create_dataset('ts', data=data_neuro_lfp['ts'])
             hf[date_code]['lfp'].create_dataset('signal_id', data=signal_id_lfp)
 
-    if False:
+    if True:
         with pd.HDFStore(h5filepath) as hf_pandas:
-            hf_pandas.put(key='{}/trial_info'.format(date_code), value=data_df_valid_for_h5, format='table', data_columns=True)
+            hf_pandas.put(key='{}/trial_info'.format(date_code), value=data_df, data_columns=True)
 
 n = 0
 for tankname in list_name_tanks:
