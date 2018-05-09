@@ -575,16 +575,19 @@ def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_r
     N_cdtn_cum = np.cumsum(N_cdtn)
 
     if RasterType == 'spk':
-        [y,x] = zip(*np.argwhere(data2D>0))
-        x_ts  = ts[np.array(x)]   # x loc of raster lines
-        y     = np.array(y)       # y loc of raster lines
-        y_min = y - 0.0005*N
-        y_max = y+1 +0.0005*N
+        if np.sum(data2D > 0) > 0 :
+            [y,x] = zip(*np.argwhere(data2D>0))
+            x_ts  = ts[np.array(x)]   # x loc of raster lines
+            y     = np.array(y)       # y loc of raster lines
+            y_min = y - 0.0005*N
+            y_max = y+1 +0.0005*N
 
-        c     = np.array(colors)[ cdtn_indx_of_trial[np.array(y)] ]
+            c = np.array(colors)[ cdtn_indx_of_trial[np.array(y)] ]
 
-        # ----- major plot commmand -----
-        h_raster = plt.vlines(x_ts, y_min, y_max, colors=c, linewidth=2)
+            # ----- major plot commmand -----
+            h_raster = plt.vlines(x_ts, y_min, y_max, colors=c, linewidth=2)
+        else:
+            h_raster = plt.vlines([], [], [])
 
     elif RasterType == 'LFP':
         # -----  major plot command -----
