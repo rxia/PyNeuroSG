@@ -276,7 +276,7 @@ def standardize_blk(blk):
 def get_ts_align(blk, data_df,
                   dg_name_obsid='obsid', dg_tos_align='stimon', dg_tof_obs = 'endobs',
                   neo_name_obson=r'obsv', neo_name_obsoff=r'obs\\',
-                  tf_align_test=True, thrhld_misalign=0.002):
+                  tf_align_test=True, thrhld_misalign=0.002, tf_trial_num_correction=False):
     """
     Get onset timestamps of the alignment events (eg. StimOn), in the neo time frame
     :param blk:              neo block
@@ -319,7 +319,7 @@ def get_ts_align(blk, data_df,
                 if dur_misalign > thrhld_misalign:
                     num_misalign = np.sum( np.abs(dur_obs_neo[id_Obsv] - dur_obs_dg) > thrhld_misalign )
                     cur_file_name =  data_df[data_df['fileindex'] == i]['filename'].tolist()[0]
-                    print(red_text( '{} misalignments, maximum misalignment time is {} ms, in file {}'.format(num_misalign, dur_misalign*1000, cur_file_name) ))
+                    warnings.warn('{} misalignments, maximum misalignment time is {} ms, in file {}'.format(num_misalign, dur_misalign*1000, cur_file_name))
             except:
                 warnings.warn('tf_align_test can not be executed')
     return blk_StimOn

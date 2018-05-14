@@ -84,8 +84,59 @@ def AveOverTime(data, t_range=None, ts=None, t_axis=1, tf_count=False):
     return data_ave
 
 
+def GroupWithoutAve(data_neuro, data=None):
+    """
+    for data_neuro object, get average response using the groupby information
 
-def GroupAve(data_neuro, data=None):
+    :param data_neuro: data neuro object after signal_align.neuro_sort() function, contains 'cdtn' and 'cdtn_indx' which directs the grouping rule
+    :param data:       data, if not give, set to data_neuro['data].  It's zero-th dimension correspond to the index of data_neuro['cdtn_indx]
+    :return:           data_groupave, e.g. array with the size of [num_cdtn * num_ts* num_chan]
+    """
+
+    if data is None:
+        data = data_neuro['data']
+    data_group = []
+    for i, cdtn in enumerate(data_neuro['cdtn']):
+        # ave = np.mean(np.take(data, data_neuro['cdtn_indx'][cdtn], axis=0), axis=0)
+        data_group.append(data[data_neuro['cdtn_indx'][cdtn], :])
+    return data_group
+
+
+def GroupStat(data_neuro, data=None, axis=0, statfun='mean', **statfunargs):
+    """
+    for data_neuro object, get average response using the groupby information
+
+    :param data_neuro: data neuro object after signal_align.neuro_sort() function, contains 'cdtn' and 'cdtn_indx' which directs the grouping rule
+    :param data:       data, if not give, set to data_neuro['data].  It's zero-th dimension correspond to the index of data_neuro['cdtn_indx]
+    :param statfun:    stat function to apply along axis, either strings in ['mean', 'std', 'median'] or function handels like np.min, note the function must contain axis argument
+    :param statfunargs: any argument for statfun, e.g. q=20 for np.percentile
+    :return:           data_groupstat, e.g. array with the size of [num_cdtn, :], all other dimentions are the same with data
+    """
+
+    assert 'cdtn' in data_neuro and 'cdtn_indx' in data_neuro
+    if data is None:
+        data = data_neuro['data']
+    data_grpstat_shape = list(data.shape)
+    data_grpstat_shape.pop(axis)
+    data_grpstat_shape = [len(data_neuro['cdtn'])] + data_grpstat_shape
+    data_groupstat = np.zeros(data_grpstat_shape)
+    if statfun == 'mean':
+        statfun = np.mean
+    elif statfun == 'std':
+        statfun = np.std
+    elif statfun == 'median':
+        statfun = np.median
+
+    assert hasattr(statfun, '__call__')
+    statfun_final = lambda x: statfun(x, axis=axis, **statfunargs)
+
+    for i, cdtn in enumerate(data_neuro['cdtn']):
+        data_groupstat[i, :] = statfun_final(data[data_neuro['cdtn_indx'][cdtn], :])
+
+    return data_groupstat
+
+
+def GroupAve(data_neuro, data=None, axis=0, return_std=False):
     """
     for data_neuro object, get average response using the groupby information
 
@@ -99,11 +150,14 @@ def GroupAve(data_neuro, data=None):
     data_grpave_shape = list(data.shape)
     data_grpave_shape[0] = len(data_neuro['cdtn'])
     data_groupave = np.zeros(data_grpave_shape)
+    data_groupstd = np.zeros(data_grpave_shape)
     for i, cdtn in enumerate(data_neuro['cdtn']):
-        # ave = np.mean(np.take(data, data_neuro['cdtn_indx'][cdtn], axis=0), axis=0)
-        ave = np.mean(data[data_neuro['cdtn_indx'][cdtn], :], axis=0)
-        data_groupave[i, :] = ave
-    return data_groupave
+        data_groupave[i, :] = np.mean(data[data_neuro['cdtn_indx'][cdtn], :], axis=axis)
+        data_groupstd[i, :] =  np.std(data[data_neuro['cdtn_indx'][cdtn], :], axis=axis)
+    if return_std:
+        return data_groupave, data_groupstd
+    else:
+        return data_groupave
 
 
 
