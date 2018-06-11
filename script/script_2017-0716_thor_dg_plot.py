@@ -69,7 +69,6 @@ plt.savefig('./temp_figs/RT_{}.png'.format(filename_common))
 """ train left/right switch """
 keyword_dg = 'h.*_071917.*'
 
-print "haha"
 
 _, data_df, name_datafiles = data_load_DLSH.load_data(keyword=keyword_dg, tf_interactive=True, dir_dg=dir_dg, mode='dg')
 data_df = data_load_DLSH.standardize_data_df(data_df)
@@ -83,10 +82,10 @@ pnp.DfPlot(data_df, values='RT', x='file', c='side', plot_type='box', title_text
 pnp.DfPlot(data_df, values='RT', x='side', c='status', plot_type='violin', title_text='{}, resp_rate={:.2f}'.format(filename_common, resp_rate))
 
 
-reload(pnp); pnp.DfPlot(data_df, values='status', x='file', c='side', title_text=title_text)
-reload(pnp); pnp.DfPlot(data_df, values='RT', x='file', c='side', title_text=title_text)
-reload(pnp); pnp.DfPlot(data_df, values='status', x='TargetOnset', c='side', title_text=title_text)
-reload(pnp); pnp.DfPlot(data_df, values='RT', x='TargetOnset', c='status', p='side', title_text=title_text)
+pnp.DfPlot(data_df, values='status', x='file', c='side', title_text=title_text)
+pnp.DfPlot(data_df, values='RT', x='file', c='side', title_text=title_text)
+pnp.DfPlot(data_df, values='status', x='TargetOnset', c='side', title_text=title_text)
+pnp.DfPlot(data_df, values='RT', x='TargetOnset', c='status', p='side', title_text=title_text)
 
 
 
@@ -98,8 +97,8 @@ data_df = data_load_DLSH.standardize_data_df(data_df)
 filename_common = misc_tools.str_common(name_datafiles)
 data_df['RT'] = data_df['rts'] - data_df['TargetOnset']
 
-reload(pnp); pnp.DfPlot(data_df, values='status', x='TargetOnset', c='side', title_text=title_text)
-reload(pnp); pnp.DfPlot(data_df, values='RT', x='TargetOnset', c='status', p='side', title_text=title_text)
+pnp.DfPlot(data_df, values='status', x='TargetOnset', c='side', title_text=title_text)
+pnp.DfPlot(data_df, values='RT', x='TargetOnset', c='status', p='side', title_text=title_text)
 
 
 """ train left/right switch """
@@ -110,9 +109,9 @@ data_df = data_load_DLSH.standardize_data_df(data_df)
 filename_common = misc_tools.str_common(name_datafiles)
 data_df['RT'] = data_df['rts'] - data_df['TargetOnset']
 
-reload(pnp); pnp.DfPlot(data_df, values='status', x='TargetOnset', c='side', title_text=title_text)
-reload(pnp); pnp.DfPlot(data_df, values='RT', x='TargetOnset', c='status', p='side', title_text=title_text)
-reload(pnp); pnp.DfPlot(data_df, values='status', x='file', c='side', title_text=title_text)
+pnp.DfPlot(data_df, values='status', x='TargetOnset', c='side', title_text=title_text)
+pnp.DfPlot(data_df, values='RT', x='TargetOnset', c='status', p='side', title_text=title_text)
+pnp.DfPlot(data_df, values='status', x='file', c='side', title_text=title_text)
 
 
 

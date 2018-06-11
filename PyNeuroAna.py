@@ -167,7 +167,7 @@ def TuningCurve(data, label, type='', ts=None, t_window=None, limit=None, stat_t
 
     :param data:     2D array, [ num_trials * num_ts ]
     :param label:    1D array or list, [ num_trials ]
-    :param type:     type of tuning curve, one of the following: 'rank'
+    :param type:     type of tuning curve, one of the following: '', 'rank'
     :param ts:       1D array of time stamps, [ num_ts ], default to 1 Hz sampling rate start from 0
     :param t_window: list, [ t_start, t_end ], if not give, use the full range
     :param limit:    1D array, boolean or index array, instructing whether to use a subset of trials
