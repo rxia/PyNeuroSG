@@ -5,8 +5,8 @@ specify GM32 array spatial layout
 # manually define the layout
 ch = range(1,33)     # channel
 r  = [5]*5+[4]*5+[3]*6+[2]*6+[1]*5+[0]*5
-c  = range(4,-1,-1)*2 + range(5,-1,-1)*2 + range(4,-1,-1)*2
-layout_GM32 = dict(zip(ch, zip(r,c)))
+c  = list(range(4, -1, -1))*2 + list(range(5, -1, -1))*2 + list(range(4, -1, -1))*2
+layout_GM32 = dict(zip(ch, zip(r, c)))
 
 
 tf_plot_layout = False

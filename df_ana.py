@@ -6,7 +6,6 @@ import warnings
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import pandas as pd
 import misc_tools as misc_tools
 import PyNeuroAna as pna
 import PyNeuroPlot as pnp
@@ -180,7 +179,7 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
                         values_by_x_err = np.array([np.abs(pna.ErrIntvBinom(x=values_by_x_single, alpha=binom_alpha)) for values_by_x_single in values_by_x]).transpose()
                     else:
                         values_by_x_err = 0
-                    plt.bar(left=x_loc, height=values_by_x_mean, yerr=values_by_x_err, width=bar_width, error_kw=dict(capsize=2) )
+                    plt.bar(x=x_loc, height=values_by_x_mean, yerr=values_by_x_err, width=bar_width, error_kw=dict(capsize=2) )
                 elif plot_type == 'box':    # if box plot
                     current_color = default_color_cycle[c_i % len(default_color_cycle)]
                     medianprops = dict(linestyle='-', linewidth=4, color=current_color)
@@ -290,9 +289,7 @@ def DfGroupby(data_df, groupby='', limit=None, tf_aggregate=False, tf_linearize=
     :param limit:        a filter on the indexes, either a boolean array or an index array
     :param tf_aggregate: True/False to add a aggregation group (not grouped) for every column
     :param tf_linearize: True/False to linearize the order of groups, ie., turn (3,0) to 4
-    :return: {'idx': idx_by_grp, 'order': ord_by_grp}
-                * idx_by_grp is {group_key, array}
-                * ord_by_grp is {group_key, order}
+    :return: {'idx': {group_key: array of trial indexes within group}, 'order': {group_key: order in plot}}
     """
 
     # convert limit to index array

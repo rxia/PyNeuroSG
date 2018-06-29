@@ -184,6 +184,8 @@ def plot_electrode_depth_profile(keyword_blk=keyword_blk, keyword_tank=keyword_t
     return return_dict
 
 """ ----- process data day by day ----- """
+plot_electrode_depth_profile(keyword_tank='Thor_S4-180303', keyword_blk='retract', tf_spectragram=True)
+
 plot_electrode_depth_profile(keyword_tank='Thor_S4-180227', keyword_blk='retract', tf_spectragram=True)
 
 plot_electrode_depth_profile(keyword_tank='Thor_U16-180224', keyword_blk='retract', tf_spectragram=True,

@@ -8,18 +8,18 @@ import dg2df  # for reading behavioral data
 import pandas as pd
 import re     # use regular expression to find file names
 import numpy as np
-from standardize_TDT_blk import select_obj_by_attr, convert_name_to_unicode
 import warnings
 
 
 def get_file_name(keyword = None,           # eg. 'd_.*_122816'
                   keyword_tank = None,      # eg. '.*GM32_U16.*161228.*'
                   tf_interactive = False, tf_verbose=False,
-                  dir_tdt_tank  = '/Volumes/Labfiles/projects/encounter/data/TDT/',
-                  dir_dg  = '/Volumes/Labfiles/projects/analysis/shaobo/data_dg',
+                  dir_tdt_tank  = '/shared/lab/projects/encounter/data/TDT/',
+                  dir_dg  = '/shared/lab/projects/analysis/shaobo/data_dg',
                   mode='both'):
     """
     funciton to get the name of data files
+
     :param keyword:         key word for tdt blocks
     :param keyword_tank:    key word for tdt tanks
     :param tf_interactive:  flag for interactively selecting file
@@ -121,15 +121,18 @@ def get_file_name(keyword = None,           # eg. 'd_.*_122816'
                 name_dgs = name_dgs_select
 
         if mode=='both':    # get intersection of name_tdt_blocks and name_dgs
-            print('the following tdt blockes are selected: {}'.format(name_tdt_blocks))
-            print('the following dg files are selected: {}'.format(name_dgs))
             name_tdt_blocks = list(np.intersect1d(name_tdt_blocks, name_dgs))
-            print('the their intersections are: {}'.format(name_tdt_blocks))
+            if tf_verbose:
+                print('the following tdt blockes are selected: {}'.format(name_tdt_blocks))
+                print('the following dg files are selected: {}'.format(name_dgs))
+                print('the their intersections are: {}'.format(name_tdt_blocks))
         elif mode=='dg':
             name_tdt_blocks = name_dgs
-            print('the following dg files are selected: {}'.format(name_dgs))
+            if tf_verbose:
+                print('the following dg files are selected: {}'.format(name_dgs))
         elif mode=='tdt':
-            print('the following tdt blosks are selected: {}'.format(name_tdt_blocks))
+            if tf_verbose:
+                print('the following tdt blosks are selected: {}'.format(name_tdt_blocks))
 
     return (name_tdt_blocks, path_tdt_tank)
 
@@ -137,8 +140,8 @@ def get_file_name(keyword = None,           # eg. 'd_.*_122816'
 
 def load_data(keyword = None,
               keyword_tank = None,
-              dir_tdt_tank  = '/Volumes/Labfiles/projects/encounter/data/TDT/',
-              dir_dg  = '/Volumes/Labfiles/projects/analysis/shaobo/data_dg',
+              dir_tdt_tank  = '/shared/lab/projects/encounter/data/TDT/',
+              dir_dg  = '/shared/lab/projects/analysis/shaobo/data_dg',
               sortname = 'PLX',
               tf_interactive = True ,
               tf_verbose = True,
@@ -245,6 +248,7 @@ def standardize_data_df(data_df, filename_common=''):
 def standardize_blk(blk):
     """
     standardize neo neuro data, add channel_index and sort code to the annotation field
+
     :param blk:    neo block object
     :return:       neo block object
     """
@@ -273,9 +277,10 @@ def standardize_blk(blk):
 def get_ts_align(blk, data_df,
                   dg_name_obsid='obsid', dg_tos_align='stimon', dg_tof_obs = 'endobs',
                   neo_name_obson=r'obsv', neo_name_obsoff=r'obs\\',
-                  tf_align_test=True, thrhld_misalign=0.002):
+                  tf_align_test=True, thrhld_misalign=0.002, tf_trial_num_correction=False):
     """
     Get onset timestamps of the alignment events (eg. StimOn), in the neo time frame
+
     :param blk:              neo block
     :param data_df:          pandas dataframe from stim dg
     :param dg_name_obsid:    in dg, the name of obs id (obs index for a row of data)
@@ -316,10 +321,61 @@ def get_ts_align(blk, data_df,
                 if dur_misalign > thrhld_misalign:
                     num_misalign = np.sum( np.abs(dur_obs_neo[id_Obsv] - dur_obs_dg) > thrhld_misalign )
                     cur_file_name =  data_df[data_df['fileindex'] == i]['filename'].tolist()[0]
-                    print(red_text( '{} misalignments, maximum misalignment time is {} ms, in file {}'.format(num_misalign, dur_misalign*1000, cur_file_name) ))
+                    warnings.warn('{} misalignments, maximum misalignment time is {} ms, in file {}'.format(num_misalign, dur_misalign*1000, cur_file_name))
             except:
                 warnings.warn('tf_align_test can not be executed')
     return blk_StimOn
+
+
+""" ========== ========== some tool functions ========== ========== """
+
+def convert_name_to_unicode(obj):
+    """
+    convert the all names to unicode name: i.g. convert b'abcde123' to 'abcde123'
+
+    used for python3, input obj could be nay neo object, like Block, Segments, .etc
+    """
+    if hasattr(obj, 'name') and isinstance(obj.name, str):    # use regular expression to replace string
+        obj.name = re.sub(r"b'([^']*)'", r'\1', obj.name)
+
+    if hasattr(obj, 'children'):
+        for subobj in obj.children:
+            convert_name_to_unicode(subobj)
+
+
+def get_chan_indexes(blk):
+    # get all channel indexes in the block
+    # use spiketrains of segments[0] to determine the indexes of channels
+    # returns a list of integers
+    try:
+        some_spiketrains = blk.segments[0].spiketrains
+        chan_indexes =  list(set( [ some_spiketrains[i].annotations['channel_index'] for i in range(len(some_spiketrains)) ] ))
+    except:
+        try:
+            some_analogsignals = blk.segments[0].analogsignals
+            chan_indexes = list(set([ some_analogsignals[i].channel_index for i in range(len(some_analogsignals))]))
+        except:
+            print('function get_chan_index() can not get any channel')
+            chan_indexes = []
+    return chan_indexes
+
+
+# get total number from channels
+def get_num_chan(chan_indexes):
+    num_chan = len(chan_indexes)
+    return num_chan
+
+
+# ----------- select_obj_by_attr ----------
+def select_obj_by_attr(list_obj, attr='channel_index', value=[]):
+    # select the obj from the list of obj if the attr matches value
+    # if value is not provided: returns a list of the attr
+    # if value is     provided: returns a list of the obj having such attributes
+    n = len(list_obj)
+    if value == []:
+        return [list_obj[i].__getattribute__(attr) for i in range(n)]
+    else:
+        return [list_obj[i] for i in range(n) if list_obj[i].__getattribute__(attr)==value ]
 
 
 def red_text(str_in):

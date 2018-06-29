@@ -18,7 +18,7 @@ mpl.style.use('ggplot')
 
 
 """ df (pandas DataFrame) related opeartions """
-from df_ana import GroupPlot, DfPlot
+# from df_ana import GroupPlot, DfPlot
 
 
 def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=None):
@@ -120,11 +120,11 @@ def ErpPlot_singlePanel(erp, ts=None, tf_inverse_color=False, cmap='coolwarm', c
     ax.set_ylim([N-0.5, -0.5])
 
 
-def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP"):
+def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
     """
     ERP (event-evoked potential) plot
 
-    :param array_erp:     a 2d numpy array ( N_chan * N_timepoints )
+    :param array_erp:     a 2d numpy array ( N_chan * N_timepoints ) or the original data object
     :param ts:            a 1d numpy array ( N_timepoints )
     :param array_layout:  electrode array layout:
 
@@ -133,7 +133,15 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP
     :param depth_linear:   a list of depth
     :return:              figure handle
     """
-
+    if type(data) is np.ndarray:
+        array_erp = data
+        ch_list = np.arange(0,array_erp.shape[0])
+    else:
+        array_erp = np.mean(data['data'],axis=0).transpose()
+        if data['signal_info'][0][1] == 'spiketrains':
+            ch_list = [int(data['signal_info'][i][0][4:6]) for i in range(len(data['signal_info']))]
+        elif data['signal_info'][0][1] == 'analogsignals':
+            ch_list = [int(data['signal_info'][i][0][5:7]) for i in range(len(data['signal_info']))]
     [N_chan, N_ts] = array_erp.shape
     if ts is None:
         ts = np.arange(N_ts)
@@ -189,9 +197,9 @@ def ErpPlot(array_erp, ts=None, array_layout=None, depth_linear=None, title="ERP
         h_fig.set_size_inches([8, 8],forward=True)
 
         for ch in range(N_chan):
-            plt.axes(h_axes[array_layout[ch + 1]])
+            plt.axes(h_axes[array_layout[ch_list[ch]]])
             plt.plot(ts, array_erp[ch, :], linewidth=2, color='dimgray')
-            plt.text(0.1, 0.8, 'C{}'.format(ch + 1), transform=plt.gca().transAxes, fontsize=10, bbox=text_props)
+            plt.text(0.1, 0.8, 'C{}'.format(ch_list[ch]), transform=plt.gca().transAxes, fontsize=10, bbox=text_props)
         plt.xlim(ts[0], ts[-1])
 
         # axis appearance
@@ -268,7 +276,7 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
         fr_2D[i_x, i_y] = np.mean( data[ data_neuro['cdtn_indx'][data_neuro['cdtn'][i]] , np.argwhere(np.logical_and(ts>=t_focus[0], ts<t_focus[1])) ])
 
     if fr_scale is None:
-        fr_scale = np.nanmax(fr_2D)*2
+        fr_scale = np.nanmax(fr_2D) / y_spacing *2
 
     if psth_overlay:
         # plt.figure()
@@ -292,7 +300,15 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
 
 
 def CreateSubplotFromGroupby(df_groupby_ord, figsize=None, tf_title=True):
-    """ todo: description """
+    """
+    creates subplots according to the structure defined in df_ana.dfGropuby
+
+    :param df_groupby_ord: dictionary returned by df_ana.dfGroupby,
+                        {'idx': {group_key: array of trial indexes within group}, 'order': {group_key: order in plot}}
+    :param figsize:   e.g (12, 9)
+    :param tf_title:  True/False to add title
+    :return:          h_fig, h_axes
+    """
 
     if len(df_groupby_ord) == 0:
         raise Exception('input dictionary can not be empty')
@@ -319,6 +335,50 @@ def CreateSubplotFromGroupby(df_groupby_ord, figsize=None, tf_title=True):
             plt.title(str(key))
 
     return h_fig, h_axes
+
+
+def PlotDataFromGroup(cdtn, data, plotfun=None):
+    """
+    """
+
+    if 'cdtn' in cdtn.keys():   # if input cdtn is data_neuro
+        cdtn = cdtn['cdtn']
+
+    figsize = [12, 9]
+    if isSingle(cdtn[0]):            # if cdtn is 1D, automatically decide row and column
+        N_cdtn = len(cdtn)
+        [n_rows, n_cols] = AutoRowCol(N_cdtn)
+        [h_fig, h_ax]= plt.subplots(n_rows, n_cols, sharex='all', sharey='all', figsize=figsize)      # creates subplots
+        h_ax = np.array(h_ax).flatten()
+        for i, cdtn_i in enumerate(cdtn):
+            plt.axes(h_ax[i])
+            if (plotfun is not None) and (data is not None):    # in each panel, plot
+                plotfun(data[i])
+            plt.title(cdtn_i)
+    elif len(cdtn[0]) == 2:            # if cdtn is 2D,  use dim10 as rows and dim1 as columns
+        [cdtn0, cdtn1] = zip( *cdtn )
+        cdtn0 = list(set(cdtn0))
+        cdtn1 = list(set(cdtn1))
+        n_rows = len(cdtn0)
+        n_cols = len(cdtn1)
+        [h_fig, h_ax] = plt.subplots(n_rows, n_cols, sharex='all', sharey='all', figsize=figsize)    # creates subplots
+        for i, cdtn_i in enumerate(cdtn):
+            r = cdtn0.index(cdtn_i[0])
+            c = cdtn1.index(cdtn_i[1])
+            plt.axes(h_ax[r, c])
+            if (plotfun is not None) and (data is not None):    # in each panel, plot
+                plotfun(data[i])
+            plt.title(cdtn_i)
+    else:                                          # if cdtn is more than 2D, raise exception
+        raise Exception('cdtn structure does not meet the requirement of PlotDataFromGroup')
+
+    try:
+        c_lim = share_clim(h_ax)
+    except:
+        warnings.warn('share clim was not successful')
+
+    return [h_fig, h_ax]
+
 
 
 def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_colorbar=False):
@@ -383,7 +443,8 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_c
     return [h_fig, h_ax]
 
 
-def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete', tf_legend=False, xlabel=None, ylabel=None):
+def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete',
+             tf_legend=False, xlabel=None, ylabel=None, legend_title=None):
     """
     funciton to plot psth with a raster panel on top of PSTH, works for both spike data and LFP data
 
@@ -406,6 +467,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
     :param tf_legend:   boolean, true/false to plot legend
     :param x_label:     string
     :param y_label:     string
+    :param legend_title:None or string
     :return:            axes of plot: [ax_psth, ax_raster]
     """
 
@@ -447,9 +509,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
     else:
         ts = np.array(ts)
 
-
     """ ----- calculate PSTH for every condition ----- """
-
     ax_psth = plt.gca()
     psth_cdtn = np.zeros([M, T])
     N_cdtn     = np.zeros(M).astype(int)
@@ -486,7 +546,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
     ax_psth.set_xlim([ts[0], ts[-1]])
     if tf_legend:
         plt.legend(cdtn_unq, labelspacing=0.1, prop={'size': 8},
-                   fancybox=True, framealpha=0.5)
+                   fancybox=True, framealpha=0.5, title=legend_title)
 
     if xlabel is not None:
         plt.xlabel(xlabel)
@@ -515,6 +575,62 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
         ax_raster = None
 
     return [ax_psth, ax_raster]
+
+
+def PsthPlotMultiPanel(data_neuro=None, index_signal=0,
+                       data2D=None, ts=None, data_df=None,
+                       limit=None, groupby_subplots='', aggregate_subplots=False, linearize_subplots=False,
+                       groupby_panel='', sk_std=None, subpanel='auto', color_style='discrete',
+                       tf_legend=False, xlabel=None, ylabel=None, figsize=(12, 9), signal_name=''):
+    """
+    plot PSTH in multiple subplots grouped by experimental conditions, a wrapper function of
+    pnp.PsthPlot, pnp.CreateSubplotFromGroupby and df_ana.DfGroupby,
+    data either provided by (data_neuro, index_signal) or (data2D, ts, data_df), the later one offers more control
+
+    :param data_neuro:   standard data_neuro structure, retured by signal_align.blk.align_to_event()
+    :param index_signal: index of signal used to select data_neuro['data'][:, :, index_signal]
+    :param data2D:       neural data of one signal/channel,  shape=[N_trials * N_ts]
+    :param ts:           1D array containing timestamps for data (length is N_ts)
+    :param data_df:      pandas data frame of trial-related information, with num_rows=N_trials
+    :param limit:        index array or boolean array, used to filter the trials that goes in the plot,
+                            e.g. np.random.rand(N_trials)>0.5 or data_df['reaction_time']<500
+    :param groupby_subplots:   column name(s) of data_df used to group data into subplots, either a str or a list of strings
+    :param aggregate_subplots: True/False to add a aggregation group (not grouped) for every column
+    :param linearize_subplots: column name of data_df used to group data within each panel
+    :param groupby_panel:      column name of data_df used to group data within each panel
+    :param sk_std:       std of gaussian smoothness kernel, applied along time axis, default to None
+    :param subpanel:     types of sub-panel on tops of PSTH, default to 'auto'
+    :param color_style:  'discrete' or 'continuous'
+    :param tf_legend:    boolean, true/false to plot legend
+    :param xlabel:       string
+    :param ylabel:       string
+    :param figsize:      e.g. (12, 9)
+    :param signal_name:  name of the signal to plot, shown in suptitle
+    :return:
+    """
+    if data_neuro is not None:
+        if data2D is None:
+            data2D = data_neuro['data'][:, :, index_signal]
+            signal_name = data_neuro['signal_info']['name'][index_signal]
+        if ts is None:
+            ts = data_neuro['ts']
+        if data_df is None:
+            data_df = data_neuro['trial_info']
+
+
+    df_grpby = df_ana.DfGroupby(data_df, groupby=groupby_subplots, limit=limit,
+                                tf_aggregate=aggregate_subplots, tf_linearize=linearize_subplots)
+    h_fig, h_axes = CreateSubplotFromGroupby(df_grpby['order'], figsize=figsize)
+    for cdtn in df_grpby['idx']:
+        plt.axes(h_axes[cdtn])
+        idx_trials = df_grpby['idx'][cdtn]
+        PsthPlot(data2D, ts=ts, cdtn=data_df[groupby_panel], limit=idx_trials,
+                 sk_std=sk_std, subpanel=subpanel, color_style=color_style,
+                 tf_legend=tf_legend, xlabel=xlabel, ylabel=ylabel, legend_title=groupby_panel,
+                 )
+        plt.title(cdtn)
+    plt.suptitle('{}, grouped by {}'.format(signal_name, groupby_subplots))
+    return h_fig, h_axes
 
 
 def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_rows=None):
@@ -575,16 +691,19 @@ def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_r
     N_cdtn_cum = np.cumsum(N_cdtn)
 
     if RasterType == 'spk':
-        [y,x] = zip(*np.argwhere(data2D>0))
-        x_ts  = ts[np.array(x)]   # x loc of raster lines
-        y     = np.array(y)       # y loc of raster lines
-        y_min = y - 0.0005*N
-        y_max = y+1 +0.0005*N
+        if np.sum(data2D > 0) > 0 :
+            [y,x] = zip(*np.argwhere(data2D>0))
+            x_ts  = ts[np.array(x)]   # x loc of raster lines
+            y     = np.array(y)       # y loc of raster lines
+            y_min = y - 0.0005*N
+            y_max = y+1 +0.0005*N
 
-        c     = np.array(colors)[ cdtn_indx_of_trial[np.array(y)] ]
+            c = np.array(colors)[ cdtn_indx_of_trial[np.array(y)] ]
 
-        # ----- major plot commmand -----
-        h_raster = plt.vlines(x_ts, y_min, y_max, colors=c, linewidth=2)
+            # ----- major plot commmand -----
+            h_raster = plt.vlines(x_ts, y_min, y_max, colors=c, linewidth=2)
+        else:
+            h_raster = plt.vlines([], [], [])
 
     elif RasterType == 'LFP':
         # -----  major plot command -----
@@ -1205,8 +1324,43 @@ def SubplotsAutoRowCol(num_panels, nrow=None, ncol=None, aspect=1.0, **kwargs):
     return h_fig, h_axes
 
 
-def DataFastSubplot(data_list, layout=None, data_type=None, gap = 0.05, tf_axis=True, tf_label=True,
-                    tf_nmlz = True, xx=None, yy=None):
+def DetermineClimCmap(clim=None, data_range=None):
+    """
+    determine clim and cmap for plotting
+    :param clim:       either string in ("basic", "diverge", "from_zero"), or two values like [1, 5], default to 'basic' if None
+    :param data_range: either two values like [1, 5] or a numpy array of the actual data
+    :return:           (clim, cmap), ready to be used in plt.pcolormesh
+    """
+    if clim is None:
+        clim = 'basic'
+
+    if isinstance(clim, str):
+        if clim == 'basic':
+            clim = (np.min(data_range), np.max(data_range))
+            cmap = 'inferno'
+        elif clim == 'diverge':
+            data_range_abs_max = np.max(np.abs(data_range))
+            clim = (-data_range_abs_max, data_range_abs_max)
+            cmap = 'coolwarm'
+        elif clim == 'from_zero':
+            clim = (0, np.max(data_range))
+            cmap = 'inferno'
+        else:
+            raise Exception('if input argument clim is a string, it has to be one of ("basic", "diverge", "from_zero")')
+
+    else:
+        assert np.array(clim).size == 2
+        cmap = 'inferno'
+
+    return clim, cmap
+
+
+def DataFastSubplot(data_list, layout=None, data_type=None, gap=0.05, tf_axis=True, subplot_label=None,
+                    tf_nmlz=False, xx=None, yy=None, axis_label=None,
+                    clim=None, cmap=None, xlabel='', ylabel=''):
+    """
+    effecient way to plot data when there are many panels: it first put every panel into a big picture before plotting
+    """
 
     N_data = len(data_list)
 
@@ -1215,14 +1369,16 @@ def DataFastSubplot(data_list, layout=None, data_type=None, gap = 0.05, tf_axis=
 
     if layout is None:             # if not give, set layout to be the number of data
         layout = N_data
-    if np.array(layout).size==1:   # if is a single number, turn to [num_row, num_col]
+    if np.array(layout).size == 1:   # if is a single number, turn to [num_row, num_col]
         ncol = int(np.ceil(np.sqrt(layout)))
         nrow = int(np.ceil(1.0*layout/ncol))
         layout = (nrow, ncol)
+    elif np.array(layout).size == 2:
+        nrow, ncol = layout
 
-    plt.axes([0.05, 0.02, 0.94, 0.90])
+    # plt.axes([0.05, 0.02, 0.94, 0.90])
 
-    if data_type == 'mesh':
+    if data_type == 'mesh' or data_type == 'spectrum':
         """ get the sizes """
         ny_mesh, nx_mesh = data_list[0].shape    # size of every panel
         nx_gap = int(np.ceil(nx_mesh * gap))     # size of gap between panels
@@ -1254,7 +1410,7 @@ def DataFastSubplot(data_list, layout=None, data_type=None, gap = 0.05, tf_axis=
 
         """ put mesh plot together into the big canvas matrix """
         def indx_in_canvas(indx, rowcol='row', startend='start'):
-            # function to compute the index on cavas
+            # function to compute the index on canvas
             if rowcol == 'row':
                 n_cell = ny_cell
                 n_shift  = ny_shift
@@ -1263,7 +1419,7 @@ def DataFastSubplot(data_list, layout=None, data_type=None, gap = 0.05, tf_axis=
                 n_cell = nx_cell
                 n_shift = nx_shift
                 n_mesh = nx_mesh
-            return indx * n_cell + n_shift + n_mesh * (startend=='end')
+            return indx * n_cell + n_shift + n_mesh * (startend=='end') if startend!='middle' else indx * n_cell + n_shift + n_mesh/2
 
         def map_value_in_cavas(values, row=0, col=0, xy='x'):
             if xy=='x':
@@ -1283,8 +1439,12 @@ def DataFastSubplot(data_list, layout=None, data_type=None, gap = 0.05, tf_axis=
             row = i // ncol    # row index of panel
             col = i %  ncol    # col index of panel
             # fill the mesh data of the panel in to the right location of canvas matrix for mesh plot
-            mesh_canvas[indx_in_canvas(row, 'row','start') : indx_in_canvas(row, 'row','end'),
-                        indx_in_canvas(col, 'col', 'start') : indx_in_canvas(col, 'col','end')] = data_list[i]
+            if data_type == 'spectrum':
+                mesh_canvas[indx_in_canvas(row, 'row','start') : indx_in_canvas(row, 'row','end'),
+                            indx_in_canvas(col, 'col', 'start') : indx_in_canvas(col, 'col','end')] = np.flipud(data_list[i])
+            else:
+                mesh_canvas[indx_in_canvas(row, 'row','start') : indx_in_canvas(row, 'row','end'),
+                            indx_in_canvas(col, 'col', 'start') : indx_in_canvas(col, 'col','end')] = data_list[i]
             # fill value 1.0 to the pixels that contains mesh data in the canvas matrix for mask
             mask_canvas[indx_in_canvas(row, 'row','start') : indx_in_canvas(row, 'row','end'),
                         indx_in_canvas(col, 'col', 'start') : indx_in_canvas(col, 'col','end')] = 1
@@ -1292,42 +1452,58 @@ def DataFastSubplot(data_list, layout=None, data_type=None, gap = 0.05, tf_axis=
         # create colormap for mask (transparent if 0.0, opaque if 1.0)
         cmap_mask = mpl.colors.LinearSegmentedColormap.from_list('cmap_mask', [(0.9, 0.9, 0.9, 1.0), (0.9, 0.9, 0.9, 0.1)], N=2)
 
+        """ determine color limit """
+        data_range = [np.nanmin(mesh_canvas), np.nanmax(mesh_canvas)]
+        clim, cmap_auto = DetermineClimCmap(clim, data_range=data_range)
+        if cmap is None:
+            cmap = cmap_auto
+
         """ plot big matrix containing all mesh plots """
         # # mesh data
-        plt.imshow(mesh_canvas, vmin=np.nanmin(mesh_canvas), vmax=np.nanmax(mesh_canvas), cmap='inferno', aspect='auto')
-        # # maks that forms the frames that seperates data panels
-        plt.imshow(mask_canvas, vmin=0, vmax=1, cmap=cmap_mask, aspect='auto')
+        if N_data==1:
+            plt.pcolormesh(xx, yy, data_list[0], vmin=clim[0], vmax=clim[1], cmap=cmap)
+            plt.colorbar()
+        else:
+            plt.imshow(mesh_canvas, vmin=clim[0], vmax=clim[1], cmap=cmap, aspect='auto')
+            # # maks that forms the frames that seperates data panels
+            plt.imshow(mask_canvas, vmin=0, vmax=1, cmap=cmap_mask, aspect='auto')
 
-        """ make plot look better """
-        # set y axis direction in the imshwow format
-        ylim =np.array(plt.gca().get_ylim())
-        plt.gca().set_ylim( ylim.max(), ylim.min() )
-        plt.axis('off')
+            """ make plot look better """
+            # set y axis direction in the imshow format
+            ylim =np.array(plt.gca().get_ylim())
+            plt.gca().set_ylim( ylim.max(), ylim.min() )
+            plt.axis('off')
 
-        """ plot panel axis and ticks """
-        if tf_axis:
-            for i in range(N_data):
-                row = i // ncol    # row index of panel
-                col = i %  ncol    # col index of panel
-                # axis line
-                plt.plot([indx_in_canvas(col, 'col', 'start'), indx_in_canvas(col, 'col', 'end') - 1],
-                         [indx_in_canvas(row, 'row', 'end') - 0.5, indx_in_canvas(row, 'row', 'end') - 0.5],
-                         'k-', alpha=0.5)
-                plt.plot([indx_in_canvas(col, 'col', 'start') -0.5, indx_in_canvas(col, 'col', 'start') -0.5],
-                         [indx_in_canvas(row, 'row', 'start') , indx_in_canvas(row, 'row', 'end') - 1],
-                         'k-', alpha=0.5)
-                # axis tick
-                plt.vlines(map_value_in_cavas(auto_tick(xx), row, col, xy='x'), indx_in_canvas(row, 'row', 'end') - 0.5,
-                           indx_in_canvas(row, 'row', 'end') - 0.5 + ny_gap / 4.0, alpha=0.5)
-                plt.hlines(map_value_in_cavas(auto_tick(yy), row, col, xy='y'), indx_in_canvas(col, 'col', 'start') - 0.5,
-                           indx_in_canvas(col, 'col', 'start') - 0.5 - nx_gap / 4.0, alpha=0.5)
+            """ plot panel axis and ticks """
+            if tf_axis:
+                for i in range(N_data):
+                    row = i // ncol    # row index of panel
+                    col = i %  ncol    # col index of panel
+                    # axis line
+                    plt.plot([indx_in_canvas(col, 'col', 'start'), indx_in_canvas(col, 'col', 'end') - 1],
+                             [indx_in_canvas(row, 'row', 'end') - 0.5, indx_in_canvas(row, 'row', 'end') - 0.5],
+                             'k-', alpha=0.5)
+                    plt.plot([indx_in_canvas(col, 'col', 'start') -0.5, indx_in_canvas(col, 'col', 'start') -0.5],
+                             [indx_in_canvas(row, 'row', 'start') , indx_in_canvas(row, 'row', 'end') - 1],
+                             'k-', alpha=0.5)
+                    # axis tick
+                    plt.vlines(map_value_in_cavas(auto_tick(xx), row, col, xy='x'), indx_in_canvas(row, 'row', 'end') - 0.5,
+                               indx_in_canvas(row, 'row', 'end') - 0.5 + ny_gap / 4.0, alpha=0.5)
+                    plt.hlines(map_value_in_cavas(auto_tick(yy), row, col, xy='y'), indx_in_canvas(col, 'col', 'start') - 0.5,
+                               indx_in_canvas(col, 'col', 'start') - 0.5 - nx_gap / 4.0, alpha=0.5)
 
-        """ plot labels """
-        if tf_label:
-            for i in range(N_data):
-                row = i // ncol    # row index of panel
-                col = i %  ncol    # col index of panel
-                plt.text(indx_in_canvas(col, 'col', 'start'), indx_in_canvas(row, 'row', 'start')-0.5, '')
+            """ plot labels """
+            if subplot_label!=None:
+                if (len(subplot_label)==2) and (len(subplot_label[0])>=1): # 2 dimension subplot layout
+                    for i in range(nrow):
+                        plt.text(-2, indx_in_canvas(i, 'row', 'middle'), subplot_label[0][i])
+                    for j in range(ncol):
+                        plt.text(indx_in_canvas(j, 'col', 'middle'), indx_in_canvas(nrow, 'row', 'start')+1, subplot_label[1][j])
+                else: # 1 dimension subplot layout
+                    for i in range(N_data):
+                        row = i // ncol    # row index of panel
+                        col = i %  ncol    # col index of panel
+                        plt.text(indx_in_canvas(col, 'col', 'start'), indx_in_canvas(row, 'row', 'start')-0.5, subplot_label[i])
 
 
 

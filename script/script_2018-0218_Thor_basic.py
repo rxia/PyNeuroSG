@@ -150,7 +150,7 @@ if signal == 'LFP':
 elif signal == 'spk':
     data_neuro=signal_align.blk_align_to_evt(blk, ts_StimOn, window_offset,
                                              type_filter='spiketrains*', name_filter='.*Code[1-9]$',
-                                             spike_bin_rate=1000)
+                                             spike_bin_rate=1000, chan_filter=[1])
 
 # combine different sortcodes
 data_neuro['data'][:,:,0] = np.sum(data_neuro['data'], axis=2)
@@ -182,6 +182,7 @@ plt.xlabel('time form stimulus onset, in sec')
 plt.ylabel('depth in mm, {} {}'.format(scale, scale_unit))
 plt.title('ERP by depth, {}'.format(filename_common))
 plt.savefig('./temp_figs/ERP_by_depth_{}.png'.format(filename_common))
+
 
 """ below is legacy code """
 

@@ -180,7 +180,7 @@ def signal_array_align_to_evt(segment, evt_align_ts, window_offset, type_filter=
     return {'data': data, 'ts': ts, 'signal_info': signal_info}
 
 
-def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', name_filter='.*', chan_filter=[],spike_bin_rate=1000):
+def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', name_filter='.*', chan_filter=[], spike_bin_rate=1000):
     """
     Function to break neo signal objects (in a block contains multiple segments) according to given timestamps and align them together
 
@@ -292,9 +292,10 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
     """
 
     N_signal = data_neuro['data'].shape[2]
-    N_signal0= len(data_neuro['signal_info'])
-    if N_signal != N_signal0:
-        raise Exception("data_neuro['data'] and data_neuro['signal_info'] show different number of signals")
+    if 'signal_info' in data_neuro.keys():
+        N_signal0= len(data_neuro['signal_info'])
+        if N_signal != N_signal0:
+            raise Exception("data_neuro['data'] and data_neuro['signal_info'] show different number of signals")
 
     if indx is None:    # if indx is not give, use name_filter, chan_filter and sortcode_filter to select
         indx = np.array([True] * N_signal)
@@ -326,9 +327,24 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
 
     data_neuro_new = dict(data_neuro)
     data_neuro_new['data'] = data_neuro['data'][:, :, indx]
-    data_neuro_new['signal_info'] = data_neuro['signal_info'][indx]
+    if 'signal_info' in data_neuro_new.keys():
+        data_neuro_new['signal_info'] = data_neuro['signal_info'][indx]
+    if 'signal_id' in data_neuro_new.keys():
+        data_neuro_new['signal_id'] = data_neuro['signal_id'][indx]
 
     return data_neuro_new
+
+
+def include_trial_info(data_neuro, data_df):
+    """
+    simple function to include data_df as data_neuro['trial_info'], included in place for data_neuro
+
+    :param data_neuro: data_neuro, generated using blk_align_to_evt
+    :param data_df:    a pandas DataFrame, every row of which contains information of a trial
+    :return:           data_neuro
+    """
+    data_neuro['trial_info'] = data_df
+    return data_neuro
 
 
 def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}):
@@ -360,7 +376,7 @@ def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}):
     # filter the results by the binary mask of fltr
     indx_fltrd = np.where(fltr)[0]
 
-    for cdtn_name in cdtn_indx.keys():
+    for cdtn_name in list(cdtn_indx.keys()):
         cdtn_indx[cdtn_name] = np.intersect1d(cdtn_indx[cdtn_name], indx_fltrd)
         if len(cdtn_indx[cdtn_name]) == 0:
             del cdtn_indx[cdtn_name]
@@ -379,20 +395,12 @@ def data3Dto2D(data3D):
     [N1, N2, N3] = data3D.shape
     return np.vstack(data3D[:,:,i] for i in range(N3))
 
+
 # ==================== Some test script  ====================
 # to test
-if 0:
-    import time
-    import signal_align; reload(signal_align); from signal_align import signal_align_to_evt
+if False:
     test_analog_signal = neo.core.AnalogSignal(np.random.rand(10000), units='mV', sampling_rate = 1000*pq.Hz)
     test_evt_align_ts  = np.random.rand(100)*20 *pq.sec
     test_window_offset = [-0.1,0.2] * pq.sec
     t = time.time(); ch=0; temp =  signal_align_to_evt(test_analog_signal, test_evt_align_ts, test_window_offset); elapsed = time.time() - t; print(elapsed)
 
-# to test signal_array_align_to_evt
-if 0:
-    import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.signal_array_align_to_evt(blk.segments[0], ts_StimOn, [-0.100, 0.500], type_filter='spiketrains.*',spike_bin_rate=1000); print(time.time()-t)
-
-# to test neuro_sort
-if 0:
-    import signal_align; reload(signal_align); t=time.time(); data_neuro=signal_align.neuro_sort(data_df, ['stim_familiarized','mask_opacity'], [], data_neuro); print(time.time()-t)

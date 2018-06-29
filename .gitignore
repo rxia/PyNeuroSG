@@ -1,5 +1,7 @@
 .idea
 .DS_Store
-*.png
 *.pyc
 /temp_figs/
+/day_notes/
+/temp_data/
+/demo_data/

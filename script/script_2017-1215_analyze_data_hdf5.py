@@ -7,7 +7,7 @@ import matplotlib as mpl    # plot
 import matplotlib.pyplot as plt
 import re                   # regular expression
 import time                 # time code execution
-import cPickle as pickle
+import pickle
 import warnings
 import h5py
 
@@ -26,7 +26,7 @@ class DataNeural(dict):
     def __init__(self, data_dict):
         for (key, value) in data_dict.items():
             self[key] = value
-temp0=DataNeural(temp)
+#temp0=DataNeural(temp)
 
 signal_info_detail = pd.read_pickle('/shared/homes/sguan/Coding_Projects/support_data/spike_wf_info_Dante.pkl')
 def set_signal_id(signal_info):
@@ -46,8 +46,8 @@ hdf_file_path = '{}/all_data_dante_{}.hdf5'.format(dir_data_save, block_type)
 hf = h5py.File(hdf_file_path, 'r')
 
 date = '161023'
-# pd.read_json(hf[date]['trial_info_json'][()])
-data_df = pd.read_hdf(hdf_file_path, '{}/trial_info'.format(date))
+data_df = pd.read_json(hf[date]['trial_info_json'][()])
+#data_df = pd.read_hdf(hdf_file_path, '{}/trial_info'.format(date))
 data_neural = dict([])
 data_neural['data'] = hf[date][signal_type]['data'][:]
 data_neural['ts'] = hf[date][signal_type]['ts'][:]
@@ -59,7 +59,8 @@ list_psth = []
 list_signal = []
 for date in list_date:
     print(date)
-    data_df = pd.read_hdf(hdf_file_path, '{}/trial_info'.format(date))
+    data_df = pd.read_json(hf[date]['trial_info_json'][()])
+    #data_df = pd.read_hdf(hdf_file_path, '{}/trial_info'.format(date))
     data_neural = dict([])
     data_neural['data'] = hf[date][signal_type]['data'][:]
     data_neural['ts'] = hf[date][signal_type]['ts'][:]
