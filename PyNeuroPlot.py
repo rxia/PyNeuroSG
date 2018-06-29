@@ -298,6 +298,7 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
         plt.plot(x_grid[[0,-1]], [0,0], 'w-', Linewidth=0.5)
         plt.plot([0,0], y_grid[[0,-1]], 'w-', Linewidth=0.5)
 
+    return fr_2D
 
 def CreateSubplotFromGroupby(df_groupby_ord, figsize=None, tf_title=True):
     """ todo: description """
