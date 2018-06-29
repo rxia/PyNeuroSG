@@ -578,13 +578,35 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
 
 
 def PsthPlotMultiPanel(data_neuro=None, index_signal=0,
-                       data2D=None, ts=None, data_df=None, signal_name='',
+                       data2D=None, ts=None, data_df=None,
                        limit=None, groupby_subplots='', aggregate_subplots=False, linearize_subplots=False,
                        groupby_panel='', sk_std=None, subpanel='auto', color_style='discrete',
-                       tf_legend=False, xlabel=None, ylabel=None, figsize=(12, 9)):
+                       tf_legend=False, xlabel=None, ylabel=None, figsize=(12, 9), signal_name=''):
     """
-    plot PSTH in multiple subplots grouped by experimental conditions, wrapper function
-    of PsthPlot, CreateSubplotFromGroupby and df_ana.DfGroupby
+    plot PSTH in multiple subplots grouped by experimental conditions, a wrapper function of
+    pnp.PsthPlot, pnp.CreateSubplotFromGroupby and df_ana.DfGroupby,
+    data either provided by (data_neuro, index_signal) or (data2D, ts, data_df), the later one offers more control
+
+    :param data_neuro:   standard data_neuro structure, retured by signal_align.blk.align_to_event()
+    :param index_signal: index of signal used to select data_neuro['data'][:, :, index_signal]
+    :param data2D:       neural data of one signal/channel,  shape=[N_trials * N_ts]
+    :param ts:           1D array containing timestamps for data (length is N_ts)
+    :param data_df:      pandas data frame of trial-related information, with num_rows=N_trials
+    :param limit:        index array or boolean array, used to filter the trials that goes in the plot,
+                            e.g. np.random.rand(N_trials)>0.5 or data_df['reaction_time']<500
+    :param groupby_subplots:   column name(s) of data_df used to group data into subplots, either a str or a list of strings
+    :param aggregate_subplots: True/False to add a aggregation group (not grouped) for every column
+    :param linearize_subplots: column name of data_df used to group data within each panel
+    :param groupby_panel:      column name of data_df used to group data within each panel
+    :param sk_std:       std of gaussian smoothness kernel, applied along time axis, default to None
+    :param subpanel:     types of sub-panel on tops of PSTH, default to 'auto'
+    :param color_style:  'discrete' or 'continuous'
+    :param tf_legend:    boolean, true/false to plot legend
+    :param xlabel:       string
+    :param ylabel:       string
+    :param figsize:      e.g. (12, 9)
+    :param signal_name:  name of the signal to plot, shown in suptitle
+    :return:
     """
     if data_neuro is not None:
         if data2D is None:
