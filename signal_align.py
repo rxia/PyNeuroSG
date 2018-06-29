@@ -335,6 +335,18 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
     return data_neuro_new
 
 
+def include_trial_info(data_neuro, data_df):
+    """
+    simple function to include data_df as data_neuro['trial_info'], included in place for data_neuro
+
+    :param data_neuro: data_neuro, generated using blk_align_to_evt
+    :param data_df:    a pandas DataFrame, every row of which contains information of a trial
+    :return:           data_neuro
+    """
+    data_neuro['trial_info'] = data_df
+    return data_neuro
+
+
 def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}):
     """
     funciton to sort a table arrording to some columns, returns the index of each condition

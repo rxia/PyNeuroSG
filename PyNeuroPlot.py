@@ -300,7 +300,15 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
 
 
 def CreateSubplotFromGroupby(df_groupby_ord, figsize=None, tf_title=True):
-    """ todo: description """
+    """
+    creates subplots according to the structure defined in df_ana.dfGropuby
+
+    :param df_groupby_ord: dictionary returned by df_ana.dfGroupby,
+                        {'idx': {group_key: array of trial indexes within group}, 'order': {group_key: order in plot}}
+    :param figsize:   e.g (12, 9)
+    :param tf_title:  True/False to add title
+    :return:          h_fig, h_axes
+    """
 
     if len(df_groupby_ord) == 0:
         raise Exception('input dictionary can not be empty')
@@ -435,7 +443,8 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_c
     return [h_fig, h_ax]
 
 
-def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete', tf_legend=False, xlabel=None, ylabel=None):
+def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete',
+             tf_legend=False, xlabel=None, ylabel=None, legend_title=None):
     """
     funciton to plot psth with a raster panel on top of PSTH, works for both spike data and LFP data
 
@@ -458,6 +467,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
     :param tf_legend:   boolean, true/false to plot legend
     :param x_label:     string
     :param y_label:     string
+    :param legend_title:None or string
     :return:            axes of plot: [ax_psth, ax_raster]
     """
 
@@ -499,9 +509,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
     else:
         ts = np.array(ts)
 
-
     """ ----- calculate PSTH for every condition ----- """
-
     ax_psth = plt.gca()
     psth_cdtn = np.zeros([M, T])
     N_cdtn     = np.zeros(M).astype(int)
@@ -538,7 +546,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
     ax_psth.set_xlim([ts[0], ts[-1]])
     if tf_legend:
         plt.legend(cdtn_unq, labelspacing=0.1, prop={'size': 8},
-                   fancybox=True, framealpha=0.5)
+                   fancybox=True, framealpha=0.5, title=legend_title)
 
     if xlabel is not None:
         plt.xlabel(xlabel)
@@ -567,6 +575,40 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
         ax_raster = None
 
     return [ax_psth, ax_raster]
+
+
+def PsthPlotMultiPanel(data_neuro=None, index_signal=0,
+                       data2D=None, ts=None, data_df=None, signal_name='',
+                       limit=None, groupby_subplots='', aggregate_subplots=False, linearize_subplots=False,
+                       groupby_panel='', sk_std=None, subpanel='auto', color_style='discrete',
+                       tf_legend=False, xlabel=None, ylabel=None, figsize=(12, 9)):
+    """
+    plot PSTH in multiple subplots grouped by experimental conditions, wrapper function
+    of PsthPlot, CreateSubplotFromGroupby and df_ana.DfGroupby
+    """
+    if data_neuro is not None:
+        if data2D is None:
+            data2D = data_neuro['data'][:, :, index_signal]
+            signal_name = data_neuro['signal_info']['name'][index_signal]
+        if ts is None:
+            ts = data_neuro['ts']
+        if data_df is None:
+            data_df = data_neuro['trial_info']
+
+
+    df_grpby = df_ana.DfGroupby(data_df, groupby=groupby_subplots, limit=limit,
+                                tf_aggregate=aggregate_subplots, tf_linearize=linearize_subplots)
+    h_fig, h_axes = CreateSubplotFromGroupby(df_grpby['order'], figsize=figsize)
+    for cdtn in df_grpby['idx']:
+        plt.axes(h_axes[cdtn])
+        idx_trials = df_grpby['idx'][cdtn]
+        PsthPlot(data2D, ts=ts, cdtn=data_df[groupby_panel], limit=idx_trials,
+                 sk_std=sk_std, subpanel=subpanel, color_style=color_style,
+                 tf_legend=tf_legend, xlabel=xlabel, ylabel=ylabel, legend_title=groupby_panel,
+                 )
+        plt.title(cdtn)
+    plt.suptitle('{}, grouped by {}'.format(signal_name, groupby_subplots))
+    return h_fig, h_axes
 
 
 def RasterPlot(data2D, ts=None, cdtn=None, colors=None, RasterType='auto', max_rows=None):
@@ -1294,6 +1336,9 @@ def DetermineClimCmap(clim=None, data_range=None):
 def DataFastSubplot(data_list, layout=None, data_type=None, gap=0.05, tf_axis=True, subplot_label=None,
                     tf_nmlz=False, xx=None, yy=None, axis_label=None,
                     clim=None, cmap=None, xlabel='', ylabel=''):
+    """
+    effecient way to plot data when there are many panels: it first put every panel into a big picture before plotting
+    """
 
     N_data = len(data_list)
 
