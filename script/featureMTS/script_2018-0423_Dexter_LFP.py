@@ -22,6 +22,7 @@ import PyNeuroAna as pna    # in this package: analysis
 import PyNeuroPlot as pnp   # in this package: plot
 import misc_tools           # in this package: misc
 
+import mne
 import data_load_DLSH       # package specific for DLSH lab data
 
 def load_data_from_h5(dir_data_save = '/shared/homes/rxia/data', block_type = [], signal_type = []):
@@ -87,34 +88,6 @@ def get_psth(data,to_sort,limit=False,time_window=False,normalize='none',time_wi
         psth_mean_smooth = psth_mean_smooth[:,(ts>time_window[0])&(ts<time_window[1])]
         ts = ts[(ts>time_window[0])&(ts<time_window[1])]
     return(psth_mean_smooth,signalID,ts,conditions)
-
-def get_spectrum(data,to_sort,limit=False,time_window=False,t_bin=0.1,date_remove=[]):
-    for i in data.keys():
-        if i not in date_remove:
-            if limit:
-                data_sorted = signal_align.neuro_sort(data[i]['trial_info'], grpby=to_sort, neuro=data[i],
-                                                      fltr=limit[i])
-            else:
-                data_sorted = signal_align.neuro_sort(data[i]['trial_info'], grpby=to_sort, neuro=data[i])
-
-        [spcg, spcg_t, spcg_f] = pna.ComputeSpectrogram(data_sorted['data'], fs=1/np.mean(np.diff(data_sorted['ts'])),
-                                                        t_ini=np.array(data[i]['ts'][0]), t_bin=0.1, t_step=None,
-                                                        t_axis=1)
-
-        pna.GroupStat(data_sorted, spcg, statfun='mean')
-        time_baseline = [-0.05, 0.05]
-        tf_baseline = True
-        N_sgnl = len(data_sorted['signal_info'])
-
-        for i_neuron in range(len(data_sorted['signal_id'])):
-            name_signal = data_sorted['signal_id'][i_neuron]
-            functionPlot = lambda x: pnp.SpectrogramPlot(x, spcg_t, spcg_f, tf_log=True, f_lim=[0, 100],
-                                                         time_baseline=[-0.05, 0.05],
-                                                         rate_interp=8)
-            pnp.SmartSubplot(data_sorted, functionPlot, spcg[:, :, i_neuron, :])
-            plt.suptitle('date {},   LFP power spectrum {}'.format(i, name_signal, fontsize=20))
-            # plt.savefig('{}/{} LFPs power spectrum by condition {}.png'.format(dir_temp_fig, filename_common, name_signal))
-            # plt.close()
 
 
 def plot_all_channels(to_plot=[], ts=[], time_window=False, titles=[], h_ax=False, subplots=(),linestyle='-',colors=False):
@@ -283,3 +256,54 @@ for i in range(1):
     tuning_all.append(np.concatenate([tuning_2_i[None,:,:,:],tuning_2_i[None,:,:,:]],axis=0))
 
 ##
+date_remove = ['171027','171030']
+fs = 1/np.mean(np.diff(data_lfp_att['171016']['ts']))
+for i in data_lfp_att.keys():
+    if i not in date_remove:
+        [spcg, spcg_t, spcg_f] = pna.ComputeSpectrogram(data_lfp_att[i]['data'], fs=fs,
+                                                        t_ini=np.array(data_lfp_att[i]['ts'][0]), t_bin=0.2, t_step=None,
+                                                        t_axis=1)
+        time_baseline = [-0.45,-0.05]
+        data_sorted_tuning = signal_align.neuro_sort(data_lfp_att[i]['trial_info'], grpby=['ProbeOrientation','ProbeColor'], neuro=data_lfp_att[i])
+        mean_spcg_tuning = np.log(pna.GroupStat(data_sorted_tuning, spcg, statfun='mean')[:,spcg_f<100,:,:])
+        spcg_baseline = np.mean(mean_spcg_tuning[:, :, :, np.logical_and(spcg_t >= time_baseline[0], spcg_t < time_baseline[1])],
+                                axis=3, keepdims=True)
+        mean_spcg_tuning = mean_spcg_tuning - spcg_baseline
+        data_sorted_task = signal_align.neuro_sort(data_lfp_att[i]['trial_info'], grpby=['FeatureType','MatchNot'], neuro=data_lfp_att[i])
+        mean_spcg_task = np.log(pna.GroupStat(data_sorted_task, spcg, statfun='mean')[:,spcg_f<100,:,:])
+        spcg_baseline = np.mean(mean_spcg_task[:, :, :, np.logical_and(spcg_t >= time_baseline[0], spcg_t < time_baseline[1])],
+                                axis=3, keepdims=True)
+        mean_spcg_task = mean_spcg_task - spcg_baseline
+
+        for i_neuron in range(len(data_lfp_att[i]['signal_id'])):
+            name_signal = data_lfp_att[i]['signal_id'][i_neuron].decode('UTF-8')
+            # functionPlot = lambda x: pnp.SpectrogramPlot(x, spcg_t, spcg_f, tf_log=True, f_lim=[0, 100],
+            #                                              time_baseline=[-0.05, 0.05],
+            #                                              rate_interp=8)
+            # pnp.SmartSubplot(data_sorted, functionPlot, spcg[:, :, i_neuron, :])
+            h_fig, h_ax = plt.subplots(2,2)
+            plt.axes(h_ax[0,0])
+            pnp.DataFastSubplot(data_list=list(mean_spcg_tuning[:, :, i_neuron, (spcg_t>0.7)&(spcg_t<1.4)]), data_type='spectrum', layout=(4, 4),
+                                clim='diverge', xx=spcg_t[(spcg_t>0.7)&(spcg_t<1.4)], yy=spcg_f[spcg_f<100])
+            plt.axes(h_ax[0,1])
+            pnp.DataFastSubplot(data_list=list(mean_spcg_task[:, :, i_neuron, :]), data_type='spectrum', layout=(2, 2),
+                                clim='diverge', xx=spcg_t, yy=spcg_f[spcg_f<100])
+            plt.axes(h_ax[1,0])
+            diff = (mean_spcg_task[2, :, i_neuron, :]-mean_spcg_task[0, :, i_neuron, :]+mean_spcg_task[3, :, i_neuron, :]-mean_spcg_task[1, :, i_neuron, :])/2
+            pnp.DataFastSubplot(data_list=[diff], data_type='spectrum', layout=(1, 1),
+                                clim='diverge', xx=spcg_t, yy=spcg_f[spcg_f<100])
+            plt.plot([0,0],[0,100],'k-')
+            plt.plot([0.3,0.3],[0,100],'k--')
+            plt.plot([0.8,0.8],[0,100],'k-')
+            plt.plot([1.3,1.3],[0,100],'k--')
+            plt.axes(h_ax[1,1])
+            diff = (mean_spcg_task[1, :, i_neuron, :]-mean_spcg_task[0, :, i_neuron, :]+mean_spcg_task[3, :, i_neuron, :]-mean_spcg_task[2, :, i_neuron, :])/2
+            pnp.DataFastSubplot(data_list=[diff], data_type='spectrum', layout=(1, 1),
+                                clim='diverge', xx=spcg_t, yy=spcg_f[spcg_f<100])
+            plt.plot([0,0],[0,100],'k-')
+            plt.plot([0.3,0.3],[0,100],'k--')
+            plt.plot([0.8,0.8],[0,100],'k-')
+            plt.plot([1.3,1.3],[0,100],'k--')
+            plt.suptitle('date {},   LFP power spectrum {}'.format(i, name_signal, fontsize=20))
+            plt.savefig('./script/featureMTS/figs/lfp_spectrum_{}.png'.format(name_signal))
+            plt.close()
