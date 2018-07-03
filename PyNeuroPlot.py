@@ -581,7 +581,7 @@ def PsthPlotMultiPanel(data_neuro=None, index_signal=0,
                        data2D=None, ts=None, data_df=None,
                        limit=None, groupby_subplots='', aggregate_subplots=False, linearize_subplots=False,
                        groupby_panel='', sk_std=None, subpanel='auto', color_style='discrete',
-                       tf_legend=False, xlabel=None, ylabel=None, figsize=(12, 9), signal_name=''):
+                       tf_legend=True, xlabel=None, ylabel=None, figsize=(12, 9), signal_name=''):
     """
     plot PSTH in multiple subplots grouped by experimental conditions, a wrapper function of
     pnp.PsthPlot, pnp.CreateSubplotFromGroupby and df_ana.DfGroupby,
