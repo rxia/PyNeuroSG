@@ -6,7 +6,6 @@ import warnings
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import pandas as pd
 import misc_tools as misc_tools
 import PyNeuroAna as pna
 import PyNeuroPlot as pnp
@@ -290,9 +289,7 @@ def DfGroupby(data_df, groupby='', limit=None, tf_aggregate=False, tf_linearize=
     :param limit:        a filter on the indexes, either a boolean array or an index array
     :param tf_aggregate: True/False to add a aggregation group (not grouped) for every column
     :param tf_linearize: True/False to linearize the order of groups, ie., turn (3,0) to 4
-    :return: {'idx': idx_by_grp, 'order': ord_by_grp}
-                * idx_by_grp is {group_key, array}
-                * ord_by_grp is {group_key, order}
+    :return: {'idx': {group_key: array of trial indexes within group}, 'order': {group_key: order in plot}}
     """
 
     # convert limit to index array

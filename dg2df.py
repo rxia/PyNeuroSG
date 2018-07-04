@@ -1,16 +1,18 @@
 # convert DLSH dg (dynamic group) to python pandas df (DataFrame)
 # Shaobo Guan, 2016-0517 TUE
 
-import os
-import sys
-# cur_path = os.path.dirname(__file__)  # get the path of this file
-# sys.path.append(os.path.join(cur_path, 'dgread'))
-
 import pandas as pd
 from scipy import stats
 import dgread
 
 def dg2df(dgfile):
+    """
+    convert DLSH stimdg file to Pandas DataFrame by using dgread module
+
+    :param dgfile: path to stimdg fle
+    :return:       Pandas DataDf
+    """
+
     data_dg = dgread.dgread(dgfile)
 
     remove_short_columns(data_dg)
@@ -21,6 +23,15 @@ def dg2df(dgfile):
 
 
 def remove_short_columns(data_dg, f_verbose=False):
+    """
+    some columns in stimdg is shorter (e.g. contain only one row) than the majority of columns,
+    but Panda DataFrame requires every column has the same length.  So we remove the short columns
+
+    :param data_dg:   stimdg object
+    :param f_verbose: if print out log
+    :return:          stimdg object with every column of the same length
+    """
+
     # ===== remove irregular columns of dg, make it ready to be converted to pandas df =====
     dg_keys = data_dg.keys()
     if 'ids' in data_dg:

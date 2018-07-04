@@ -1,0 +1,2143 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Welcome to PyNeuroSG’s documentation! &#8212; PyNeuroSG 0.1.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">PyNeuroSG 0.1.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Welcome to PyNeuroSG&#8217;s documentation!</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+<li><a class="reference internal" href="#modules">Modules</a></li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="welcome-to-pyneurosg-s-documentation">
+<h1>Welcome to PyNeuroSG&#8217;s documentation!<a class="headerlink" href="#welcome-to-pyneurosg-s-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+<div class="section" id="modules">
+<h1>Modules<a class="headerlink" href="#modules" title="Permalink to this headline">¶</a></h1>
+<div class="topic">
+<p class="topic-title first">signal_align</p>
+<span class="target" id="module-signal_align"></span><p>This is an example for reading files with neo.io, and get psth
+Shaobo GUAN, Sheinberg lab, Brown University
+2016-0501</p>
+<dl class="function">
+<dt id="signal_align.align_continuous">
+<code class="descclassname">signal_align.</code><code class="descname">align_continuous</code><span class="sig-paren">(</span><em>signal</em>, <em>t_start</em>, <em>sampling_rate</em>, <em>evt_align_ts</em>, <em>window_offset</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/signal_align.html#align_continuous"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#signal_align.align_continuous" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tool function used by signal_align_to_evt</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.blk_align_to_evt">
+<code class="descclassname">signal_align.</code><code class="descname">blk_align_to_evt</code><span class="sig-paren">(</span><em>blk</em>, <em>blk_evt_align_ts</em>, <em>window_offset</em>, <em>type_filter='.*'</em>, <em>name_filter='.*'</em>, <em>chan_filter=[]</em>, <em>spike_bin_rate=1000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/signal_align.html#blk_align_to_evt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#signal_align.blk_align_to_evt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to break neo signal objects (in a block contains multiple segments) according to given timestamps and align them together</p>
+<p>uses function signal_array_align_to_evt</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>segment</strong> &#8211; neo block object, contains multiple (N_seg) segments that contain analogsignals or spiketrain</li>
+<li><strong>evt_align_ts</strong> &#8211; list of N_seg arrays that contain timestamps to align signal with, in sec</li>
+<li><strong>window_offset</strong> &#8211; [t_start, t_stop], relative timestamps, in sec</li>
+<li><strong>type_filter</strong> &#8211; regular expression, used to select signal types, eg., &#8216;.*&#8217;, spiketrains&#8217; or &#8216;analogsignals&#8217;</li>
+<li><strong>name_filter</strong> &#8211; regular expression, used to select signal names, eg., &#8216;.*&#8217;, &#8216;.*Code[1-9]$&#8217;, &#8216;LFPs.*&#8217;</li>
+<li><strong>chan_filter</strong> &#8211; list that contains integers, used to select channels, eg. [], [0], range(1,32+1)</li>
+<li><strong>spike_bin_rate</strong> &#8211; bin rate for spikes, default to 1000</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>a dict {&#8216;data&#8217;: signal_aligned, &#8216;ts&#8217;: time_aligned, &#8216;sampling_rate&#8217;: sampling_rate}:</p>
+<ul class="simple">
+<li>data:          3D numpy array, [N_trials * N_ts_in_trial * N_signals]</li>
+<li>ts:            1D numpy array, in ts</li>
+<li>signal_info:   1D numpy array, N_signals * [(&#8216;name&#8217;, &#8216;U32&#8217;), (&#8216;type&#8217;, &#8216;U32&#8217;),</li>
+</ul>
+<p>(&#8216;sampling_rate&#8217;, float), (&#8216;channel_index&#8217;, int), (&#8216;sort_code&#8217;, int)]</p>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.data3Dto2D">
+<code class="descclassname">signal_align.</code><code class="descname">data3Dto2D</code><span class="sig-paren">(</span><em>data3D</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/signal_align.html#data3Dto2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#signal_align.data3Dto2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>data3D to data2D, move the last dimension to stack vertically</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data3D</strong> &#8211; np array: [N_trials * N_ts * N_signals]</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">np array: [(N_trials*N_signals) * N_ts ]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.data_concatenate">
+<code class="descclassname">signal_align.</code><code class="descname">data_concatenate</code><span class="sig-paren">(</span><em>list_data_neuro</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/signal_align.html#data_concatenate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#signal_align.data_concatenate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tool function for blk_align_to_evt, make sure they contains the same number of signals</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>list_data_neuro</strong> &#8211; a list of data_neuro</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">concatenated data_neuro</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.include_trial_info">
+<code class="descclassname">signal_align.</code><code class="descname">include_trial_info</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>data_df</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/signal_align.html#include_trial_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#signal_align.include_trial_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>simple function to include data_df as data_neuro[&#8216;trial_info&#8217;], included in place for data_neuro</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data_neuro</strong> &#8211; data_neuro, generated using blk_align_to_evt</li>
+<li><strong>data_df</strong> &#8211; a pandas DataFrame, every row of which contains information of a trial</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">data_neuro</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.neuro_sort">
+<code class="descclassname">signal_align.</code><code class="descname">neuro_sort</code><span class="sig-paren">(</span><em>tlbl</em>, <em>grpby=[]</em>, <em>fltr=[]</em>, <em>neuro={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/signal_align.html#neuro_sort"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#signal_align.neuro_sort" title="Permalink to this definition">¶</a></dt>
+<dd><p>funciton to sort a table arrording to some columns, returns the index of each condition</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>tlbl</strong> &#8211; trial label, information of every trial, a pandas data frame</li>
+<li><strong>grpby</strong> &#8211; group by   , list of string that specifies the columns to sort and group</li>
+<li><strong>fltr</strong> &#8211; filter     , binary array of length N_trials for keeping/discarding the trials</li>
+<li><strong>neuro</strong> &#8211; neural data, a dict, neuro[&#8216;data&#8217;] is a 3D array ( N_trials * len_window * N_signals )</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">({&#8216;grpby&#8217;: grpby, &#8216;fltr&#8217;: fltr, &#8216;cdtn&#8217;: sorted(cdtn_indx.keys()), &#8216;cdtn_indx&#8217;: cdtn_indx})</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.select_signal">
+<code class="descclassname">signal_align.</code><code class="descname">select_signal</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>indx=None</em>, <em>name_filter=None</em>, <em>chan_filter=None</em>, <em>sortcode_filter=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/signal_align.html#select_signal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#signal_align.select_signal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Select a subset of channels from data_neuro</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data_neuro</strong> &#8211; data_neuro, see function signal_array_align_to_evt() for details</li>
+<li><strong>indx</strong> &#8211; index of channels to select</li>
+<li><strong>name_filter</strong> &#8211; if indx is None; used to select signal based on data_neuro[&#8216;signal_info&#8217;][i][&#8216;name&#8217;]</li>
+<li><strong>chan_filter</strong> &#8211; if indx is None; used to select signal based on data_neuro[&#8216;signal_info&#8217;][i][&#8216;channel_index&#8217;]</li>
+<li><strong>sortcode_filter</strong> &#8211; if indx is None; used to select signal based on data_neuro[&#8216;signal_info&#8217;][i][&#8216;sort_code&#8217;]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">data_neuro, with a subset of signals</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.signal_align_to_evt">
+<code class="descclassname">signal_align.</code><code class="descname">signal_align_to_evt</code><span class="sig-paren">(</span><em>signal</em>, <em>evt_align_ts</em>, <em>window_offset</em>, <em>spike_bin_rate=1000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/signal_align.html#signal_align_to_evt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#signal_align.signal_align_to_evt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function break a single neo signal object according to given timestamps and align them together</p>
+<p>used by funciton signal_array_align_to_evt()</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>signal</strong> &#8211; neo signal object, either neo.core.analogsignal.AnalogSignal or neo.core.spiketrain.SpikeTrain</li>
+<li><strong>evt_align_ts</strong> &#8211; timestamps to align signal with, in sec</li>
+<li><strong>window_offset</strong> &#8211; [t_start, t_stop], relative timestamps, in sec</li>
+<li><strong>spike_bin_rate</strong> &#8211; bin rate for spikes, default to 1000:</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>a dict {&#8216;data&#8217;: signal_aligned, &#8216;ts&#8217;: time_aligned, &#8216;sampling_rate&#8217;: sampling_rate}</p>
+<ul class="simple">
+<li>data:          2D numpy array, [N_trials * N_ts_in_trial]</li>
+<li>ts:            1D numpy array, in ts</li>
+<li>sampling_rate: a florat number, in Hz</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="signal_align.signal_array_align_to_evt">
+<code class="descclassname">signal_align.</code><code class="descname">signal_array_align_to_evt</code><span class="sig-paren">(</span><em>segment</em>, <em>evt_align_ts</em>, <em>window_offset</em>, <em>type_filter='.*'</em>, <em>name_filter='.*'</em>, <em>chan_filter=[]</em>, <em>spike_bin_rate=1000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/signal_align.html#signal_array_align_to_evt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#signal_align.signal_array_align_to_evt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to break neo signal objects (in a segment) according to given timestamps and align them together</p>
+<p>uses function signal_align_to_evt</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>segment</strong> &#8211; neo segment object, contains analogsignals or spiketrain</li>
+<li><strong>evt_align_ts</strong> &#8211; timestamps to align signal with, in sec</li>
+<li><strong>window_offset</strong> &#8211; [t_start, t_stop], relative timestamps, in sec</li>
+<li><strong>type_filter</strong> &#8211; regular expression, used to select signal types, eg., &#8216;.*&#8217;, spiketrains&#8217; or &#8216;analogsignals&#8217;</li>
+<li><strong>name_filter</strong> &#8211; regular expression, used to select signal names, eg., &#8216;.*&#8217;, &#8216;.*Code[1-9]$&#8217;, &#8216;LFPs.*&#8217;</li>
+<li><strong>chan_filter</strong> &#8211; list that contains integers, used to select channels, eg. [], [0], range(1,32+1)</li>
+<li><strong>spike_bin_rate</strong> &#8211; bin rate for spikes, default to 1000</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>a dict {&#8216;data&#8217;: signal_aligned, &#8216;ts&#8217;: time_aligned, &#8216;sampling_rate&#8217;: sampling_rate}</p>
+<ul class="simple">
+<li>data:          3D numpy array, [N_trials * N_ts_in_trial * N_signals]</li>
+<li>ts:            1D numpy array, in ts</li>
+<li>signal_info:   1D numpy array, N_signals * [(&#8216;name&#8217;, &#8216;U32&#8217;), (&#8216;type&#8217;, &#8216;U32&#8217;),</li>
+</ul>
+<p>(&#8216;sampling_rate&#8217;, float), (&#8216;channel_index&#8217;, int), (&#8216;sort_code&#8217;, int)]</p>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="topic">
+<p class="topic-title first">PyNeuroAna</p>
+<span class="target" id="module-PyNeuroAna"></span><dl class="function">
+<dt id="PyNeuroAna.AveOverTime">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">AveOverTime</code><span class="sig-paren">(</span><em>data</em>, <em>t_range=None</em>, <em>ts=None</em>, <em>t_axis=1</em>, <em>tf_count=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#AveOverTime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.AveOverTime" title="Permalink to this definition">¶</a></dt>
+<dd><p>smooth data using a gaussian kernel</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data</strong> &#8211; a N dimensional array, default to [num_trials * num_timestamps * num_channels]</li>
+<li><strong>t_range</strong> &#8211; range of time to compute average on, e.g. [0.050, 0.400]</li>
+<li><strong>ts</strong> &#8211; timestamps, an array, which can overwrite fs;   len(ts)==data.shape[axis] should hold,</li>
+<li><strong>t_axis</strong> &#8211; axis of data along which data will be averaged</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>:param tf_count:True/False output spike count instead of firing rate
+:return:        smoothed data of the same size</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.ComputeCoherogram">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">ComputeCoherogram</code><span class="sig-paren">(</span><em>data0</em>, <em>data1</em>, <em>fs=1000.0</em>, <em>t_ini=0.0</em>, <em>t_bin=None</em>, <em>t_step=None</em>, <em>f_lim=None</em>, <em>batchsize=100</em>, <em>tf_phase=False</em>, <em>tf_shuffle=False</em>, <em>tf_vs_shuffle=False</em>, <em>data0_spcg=None</em>, <em>data1_spcg=None</em>, <em>data0_spcg_ave=None</em>, <em>data1_spcg_ave=None</em>, <em>data01_spcg=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#ComputeCoherogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.ComputeCoherogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compuate LFP-LFP coherence over sliding window, takes two [ trials * timestamps] arrays, or one [ trials * timestamps * 2] arrays</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data0</strong> &#8211; LFP data, [ trials * timestamps]; if data1 is None, data0 contains both signals [ trials * timestamps * 2]</li>
+<li><strong>data1</strong> &#8211; LFP data, [ trials * timestamps]</li>
+<li><strong>fs</strong> &#8211; sampling frequency</li>
+<li><strong>t_ini</strong> &#8211; the first timestamps</li>
+<li><strong>t_bin</strong> &#8211; duration of time bin for fft, will be used to find the nearest power of two</li>
+<li><strong>t_step</strong> &#8211; step size for moving window, default to t_bin / 8</li>
+<li><strong>tf_phase</strong> &#8211; true/false keep phase, if true, returning value cohg is complex, whose abs represents coherence, and whose angle represents phase (negative if data1 lags data0)</li>
+<li><strong>t_axis</strong> &#8211; the axis index of the time in data</li>
+<li><strong>data0_spcg</strong> &#8211; the spcg_xx, if already calculated</li>
+<li><strong>data1_spcg</strong> &#8211; the spcg_yy, if already calculated</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>[cohg, spcg_t, spcg_f]</p>
+<ul class="simple">
+<li>cohg:     power spectogram, [ frequencty * timestamps ]</li>
+<li>spcg_t:   timestamps of spectrogram</li>
+<li>spcg_t:   frequency ticks of spectrogram</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.ComputeCrossCorlg">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">ComputeCrossCorlg</code><span class="sig-paren">(</span><em>data0</em>, <em>data1</em>, <em>fs=1000.0</em>, <em>t_ini=0.0</em>, <em>t_bin=None</em>, <em>t_step=None</em>, <em>t_axis=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#ComputeCrossCorlg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.ComputeCrossCorlg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute Cross-correlogram</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.ComputeSpcgMultiPair">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">ComputeSpcgMultiPair</code><span class="sig-paren">(</span><em>data</em>, <em>ch_list0</em>, <em>ch_list1</em>, <em>fs=1000.0</em>, <em>t_ini=0.0</em>, <em>t_bin=None</em>, <em>t_step=None</em>, <em>f_lim=None</em>, <em>batchsize=100</em>, <em>tf_shuffle=False</em>, <em>tf_vs_shuffle=False</em>, <em>tf_verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#ComputeSpcgMultiPair"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.ComputeSpcgMultiPair" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute LFP spectrograms and cross-specgrograms over sliding window for all given pairs of channels,
+returns a dictionary containing all related info,
+This funciton calls the
+useful for computing coherence flexibly later using function ComputeCohgFromIntermediate()
+:param data:         LFP arrays of all channels, of shape [N_trials, N_ts]
+:param ch_list0:
+:param ch_list1:
+:param fs:
+:param t_ini:
+:param t_bin:
+:param t_step:
+:param f_lim:
+:param batchsize:
+:param tf_shuffle:
+:param tf_vs_shuffle:
+:param tf_verbose:
+:return:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.ComputeSpectrogram">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">ComputeSpectrogram</code><span class="sig-paren">(</span><em>data</em>, <em>data1=None</em>, <em>fs=1000.0</em>, <em>t_ini=0.0</em>, <em>t_bin=None</em>, <em>t_step=None</em>, <em>t_axis=1</em>, <em>batchsize=100</em>, <em>f_lim=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#ComputeSpectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.ComputeSpectrogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compuate power spectrogram in sliding windows</p>
+<p>if a single data is give, returns power spectrum density Pxx over sliding windows;
+if two data are given, returns cross spectrum Pxy over sliding windows</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> &#8211; LFP data, [ trials * timestamps * channels]
+the dimension does not matter, as long as the time axis is provided in t_axis;
+the resulting spcg will add another dimension (frequency) to the end</li>
+<li><strong>fs</strong> &#8211; sampling frequency</li>
+<li><strong>t_ini</strong> &#8211; the first timestamps</li>
+<li><strong>t_bin</strong> &#8211; duration of time bin for fft, will be used to find the nearest power of two, default to total_time/10</li>
+<li><strong>t_step</strong> &#8211; step size for moving window, default to t_bin / 8</li>
+<li><strong>t_axis</strong> &#8211; the axis index of the time in data</li>
+<li><strong>batchsize</strong> &#8211; to prevent memory overloading problem (default to 100, make smaller if memory overload occurs)</li>
+<li><strong>f_lim</strong> &#8211; frequency limit to keep, [f_min, f_max], default to None</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>[spcg, spcg_t, spcg_f]</p>
+<ul class="simple">
+<li>spcg:     power spectogram, [ trials * frequencty * channels * timestamps] or [ trials * frequencty * timestamps]</li>
+<li>spcg_t:   timestamps of spectrogram</li>
+<li>spcg_f:   frequency ticks of spectrogram</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.ComputeSpkTrnFieldCoupling">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">ComputeSpkTrnFieldCoupling</code><span class="sig-paren">(</span><em>data_LFP</em>, <em>data_spk</em>, <em>fs=1000</em>, <em>measure='PLV'</em>, <em>t_ini=0.0</em>, <em>t_bin=20</em>, <em>t_step=None</em>, <em>batchsize=100</em>, <em>tf_phase=True</em>, <em>tf_shuffle=False</em>, <em>tf_vs_shuffle=False</em>, <em>f_lim=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#ComputeSpkTrnFieldCoupling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.ComputeSpkTrnFieldCoupling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compuate spk-LFP coherence over sliding window, takes two [ trials * timestamps] arrays, or one [ trials * timestamps * 2] arrays</p>
+<p>based on paper: Vinck, M., Battaglia, F. P., Womelsdorf, T., &amp; Pennartz, C. (2012). Improved measures of phase-coupling between spikes and the Local Field Potential</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data_LFP</strong> &#8211; LFP data, [ trials * timestamps]; if data_spk is None, dataLFP contains both signals [ trials * timestamps * 2]</li>
+<li><strong>data_spk</strong> &#8211; spike data, [ trials * timestamps]</li>
+<li><strong>fs</strong> &#8211; sampling frequency</li>
+<li><strong>measure</strong> &#8211; what measures to use for spk-field coupling, &#8216;PLV&#8217; (phase lock value, 1st order) or &#8216;PPC&#8217; (pairwise phase consisntency, 2nd order)</li>
+<li><strong>t_ini</strong> &#8211; the first timestamps</li>
+<li><strong>t_bin</strong> &#8211; duration of time bin for fft, will be used to find the nearest power of two</li>
+<li><strong>t_step</strong> &#8211; step size for moving window, default to t_bin / 8</li>
+<li><strong>t_axis</strong> &#8211; the axis index of the time in data</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>:param batchsize:process a a subset of trials at a time, to prevent memory overload
+:param tf_phase: true/false keep phase, if true, returning value coupling_value is complex, whose abs represents coupling value, and whose angle represents phase (positive if spk leads LFP)
+:param f_lim:    frequency limit
+:return:         [cohg, spcg_t, spcg_f]</p>
+<blockquote>
+<div><ul class="simple">
+<li>cohg:     power spectogram, [ frequencty * timestamps ]</li>
+<li>spcg_t:   timestamps of spectrogram</li>
+<li>spcg_t:   frequency ticks of spectrogram</li>
+</ul>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.DimRedLDA">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">DimRedLDA</code><span class="sig-paren">(</span><em>X=None</em>, <em>Y=None</em>, <em>X_test=None</em>, <em>dim=2</em>, <em>lda=None</em>, <em>return_model=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#DimRedLDA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.DimRedLDA" title="Permalink to this definition">¶</a></dt>
+<dd><p>supervised dimensionality reduction using LDA</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> &#8211; data, [N*M], required if lda is not given</li>
+<li><strong>Y</strong> &#8211; labels, N,   required if lda is not given</li>
+<li><strong>X_test</strong> &#8211; testing data [N&#8217;<a href="#id1"><span class="problematic" id="id2">*</span></a>M], default to</li>
+<li><strong>dim</strong> &#8211; output dimension</li>
+<li><strong>lda</strong> &#8211; model object, if given. the function does not need X, Y to train the model</li>
+<li><strong>return_model</strong> &#8211; if true returns the trained model, otherwise, returns X_test in low D, [N&#8217;<a href="#id3"><span class="problematic" id="id4">*</span></a>dim]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the model (object) or the testing data in low D  [N&#8217;<a href="#id5"><span class="problematic" id="id6">*</span></a>dim]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.ErrIntvBinom">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">ErrIntvBinom</code><span class="sig-paren">(</span><em>k=None</em>, <em>n=None</em>, <em>alpha=0.05</em>, <em>x=None</em>, <em>tf_err=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#ErrIntvBinom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.ErrIntvBinom" title="Permalink to this definition">¶</a></dt>
+<dd><p>compute the confidence interval / error interval to estimate the probability p of binomial distribution, using grid search</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>k</strong> &#8211; int, number of samples==1</li>
+<li><strong>n</strong> &#8211; int, total number of samples</li>
+<li><strong>alpha</strong> &#8211; default to 0.05, confidence level</li>
+<li><strong>x</strong> &#8211; data array, used if k and n are not given:  k=sum(x==1), n=len(x)</li>
+<li><strong>tf_err</strong> &#8211; True/False to return a) err interval (confidence_interval - p) or b) confidence interval</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(error_low, error_hight) or (p_low, p_high)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.GP_ERP_smooth">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">GP_ERP_smooth</code><span class="sig-paren">(</span><em>lfp</em>, <em>ts=None</em>, <em>cs=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#GP_ERP_smooth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.GP_ERP_smooth" title="Permalink to this definition">¶</a></dt>
+<dd><p>obsolete function,  use gaussian process to smooth data, does not work well</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.GetNearestPow2">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">GetNearestPow2</code><span class="sig-paren">(</span><em>n</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#GetNearestPow2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.GetNearestPow2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the nearest power of 2, for FFT</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>n</strong> &#8211; input number</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">an int, power of 2 (e.g., 2,4,8,16,32...), nearest to n</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.GroupAve">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">GroupAve</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>data=None</em>, <em>axis=0</em>, <em>return_std=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#GroupAve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.GroupAve" title="Permalink to this definition">¶</a></dt>
+<dd><p>for data_neuro object, get average response using the groupby information</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data_neuro</strong> &#8211; data neuro object after signal_align.neuro_sort() function, contains &#8216;cdtn&#8217; and &#8216;cdtn_indx&#8217; which directs the grouping rule</li>
+<li><strong>data</strong> &#8211; data, if not give, set to data_neuro[&#8216;data].  It&#8217;s zero-th dimension correspond to the index of data_neuro[&#8216;cdtn_indx]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">data_groupave, e.g. array with the size of [num_cdtn * num_ts* num_chan]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.GroupStat">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">GroupStat</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>data=None</em>, <em>axis=0</em>, <em>statfun='mean'</em>, <em>**statfunargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#GroupStat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.GroupStat" title="Permalink to this definition">¶</a></dt>
+<dd><p>for data_neuro object, get average response using the groupby information</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data_neuro</strong> &#8211; data neuro object after signal_align.neuro_sort() function, contains &#8216;cdtn&#8217; and &#8216;cdtn_indx&#8217; which directs the grouping rule</li>
+<li><strong>data</strong> &#8211; data, if not give, set to data_neuro[&#8216;data].  It&#8217;s zero-th dimension correspond to the index of data_neuro[&#8216;cdtn_indx]</li>
+<li><strong>statfun</strong> &#8211; stat function to apply along axis, either strings in [&#8216;mean&#8217;, &#8216;std&#8217;, &#8216;median&#8217;] or function handels like np.min, note the function must contain axis argument</li>
+<li><strong>statfunargs</strong> &#8211; any argument for statfun, e.g. q=20 for np.percentile</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">data_groupstat, e.g. array with the size of [num_cdtn, :], all other dimentions are the same with data</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.GroupWithoutAve">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">GroupWithoutAve</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>data=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#GroupWithoutAve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.GroupWithoutAve" title="Permalink to this definition">¶</a></dt>
+<dd><p>for data_neuro object, get average response using the groupby information</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data_neuro</strong> &#8211; data neuro object after signal_align.neuro_sort() function, contains &#8216;cdtn&#8217; and &#8216;cdtn_indx&#8217; which directs the grouping rule</li>
+<li><strong>data</strong> &#8211; data, if not give, set to data_neuro[&#8216;data].  It&#8217;s zero-th dimension correspond to the index of data_neuro[&#8216;cdtn_indx]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">data_groupave, e.g. array with the size of [num_cdtn * num_ts* num_chan]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.LowDimEmbedding">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">LowDimEmbedding</code><span class="sig-paren">(</span><em>data</em>, <em>type='PCA'</em>, <em>para=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#LowDimEmbedding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.LowDimEmbedding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Low dimensional embedding of the data, using PCA or manifold leaning method</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> &#8211; N*M array, N data points of M dimensions</li>
+<li><strong>type</strong> &#8211; embedding method</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">N*2 array, 2D representation of all N data points</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.SmoothTrace">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">SmoothTrace</code><span class="sig-paren">(</span><em>data</em>, <em>sk_std=None</em>, <em>fs=1.0</em>, <em>ts=None</em>, <em>axis=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#SmoothTrace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.SmoothTrace" title="Permalink to this definition">¶</a></dt>
+<dd><p>smooth data using a gaussian kernel</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> &#8211; a N dimensional array, default to [num_trials * num_timestamps * num_channels]</li>
+<li><strong>sk_std</strong> &#8211; smooth kernel (sk) standard deviation (std), default to None, do nothing</li>
+<li><strong>fs</strong> &#8211; sampling frequency, default to 1 Hz</li>
+<li><strong>ts</strong> &#8211; timestamps, an array, which can overwrite fs;   len(ts)==data.shape[axis] should hold,</li>
+<li><strong>axis</strong> &#8211; a axis of data along which data will be smoothed</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">smoothed data of the same size</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.TuningCurve">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">TuningCurve</code><span class="sig-paren">(</span><em>data</em>, <em>label</em>, <em>type=''</em>, <em>ts=None</em>, <em>t_window=None</em>, <em>limit=None</em>, <em>stat_t='mean'</em>, <em>stat_trials='mean'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#TuningCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.TuningCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the tuning curve of a neuron&#8217;s response</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> &#8211; 2D array, [ num_trials * num_ts ]</li>
+<li><strong>label</strong> &#8211; 1D array or list, [ num_trials ]</li>
+<li><strong>type</strong> &#8211; type of tuning curve, one of the following: &#8216;&#8217;, &#8216;rank&#8217;</li>
+<li><strong>ts</strong> &#8211; 1D array of time stamps, [ num_ts ], default to 1 Hz sampling rate start from 0</li>
+<li><strong>t_window</strong> &#8211; list, [ t_start, t_end ], if not give, use the full range</li>
+<li><strong>limit</strong> &#8211; 1D array, boolean or index array, instructing whether to use a subset of trials</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">[condition, activity], they both are 1D arrays, of the same length,</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.cal_CohenD">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">cal_CohenD</code><span class="sig-paren">(</span><em>data0</em>, <em>data1=None</em>, <em>axis=None</em>, <em>type_test='auto'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#cal_CohenD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.cal_CohenD" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculate Cohen&#8217;s d statistic for measuring effect size, as a complimentary test for t-test</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data0</strong> &#8211; a group of data</li>
+<li><strong>data1</strong> &#8211; another group of data</li>
+<li><strong>axis</strong> &#8211; along which axis to compute d statistic</li>
+<li><strong>type_test</strong> &#8211; <p>&#8216;auto&#8217;, &#8216;one-sample&#8217;, &#8216;independent&#8217;, or &#8216;paired&#8217;</p>
+<p>1) &#8216;auto&#8217;: determine based on the data input:
+use &#8216;one-sample&#8217; if only data0 is give;
+use &#8216;paired&#8217; if two data are of the same size; and
+use &#8216;independent&#8217; if two data inputs are of different sizes</p>
+<ol class="arabic" start="2">
+<li>&#8216;one-sample&#8217;: compute one-sample d stat using only data0</li>
+<li>&#8216;independent&#8217;: data0 and data1 are not directly paired, e.g., two groups of people under different treatment</li>
+<li>&#8216;paired&#8217;: data0 and data1 are directly paired, e.g., the same groups of people before and after treatment</li>
+</ol>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">d statistic</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.cal_ISI">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">cal_ISI</code><span class="sig-paren">(</span><em>X</em>, <em>ts=None</em>, <em>bin=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#cal_ISI"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.cal_ISI" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate inter-spike invervals
+:param X:    2D array of spike data (binary values), [ num_trials * num_ts ]
+:param ts:   timestamps of X (1D array) or sampling interval of ts (a scalar)
+:param bin:  bin centers for histogram
+:return:     (ISI, ISI_hist, bin). ISI: 1D array of all ISIs, ISI_hist: hist of ISIs, bin: bins of ISI_hist</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.cal_STA">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">cal_STA</code><span class="sig-paren">(</span><em>X</em>, <em>Xt=None</em>, <em>ts=None</em>, <em>t_window=None</em>, <em>zero_point_zero=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#cal_STA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.cal_STA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate spike triggered average
+:param X:    2D array of data (spike or LFP), [ num_trials * num_ts ]
+:param Xt:   2D array of spike data used as triggers (binary data), [ num_trials * num_ts ]
+:param ts:   timestamps for X
+:param t_window:  window for STA
+:return:     (sta, t_sta, st), sta: 1D array of STA; t_sta: timestamps; st: spike-triggered segments, 2D array [N_spikes, N_ts]</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.center2edge">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">center2edge</code><span class="sig-paren">(</span><em>centers</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#center2edge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.center2edge" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool function to get edges from centers for histogram. e.g. [0,1,2] returns [-0.5, 0.5, 1.5, 2.5]</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>centers</strong> &#8211; centers (evenly spaced), 1D array of length N</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">edges, 1D array of lenth N+1</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.decode_over_time">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">decode_over_time</code><span class="sig-paren">(</span><em>data</em>, <em>label</em>, <em>limit_tr=None</em>, <em>limit_ch=None</em>, <em>ts=None</em>, <em>ts_win_train=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#decode_over_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.decode_over_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>decoding realted, temporary</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.fit_neural_point_process">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">fit_neural_point_process</code><span class="sig-paren">(</span><em>Y</em>, <em>Xs</em>, <em>Xs_knls</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#fit_neural_point_process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.fit_neural_point_process" title="Permalink to this definition">¶</a></dt>
+<dd><p>fit neural point process, based on Truccolo W, Eden UT, Fellows MR, Donoghue JP, Brown EN (2005) A point process framework for relating neural spiking activity to spiking history, neural ensemble and extrinsic covariate effects. J Neurophysiology, 93, 1074-1089.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>Y</strong> &#8211; Y to be predicted, binary, 2D of shape [N, T], N trials, T timestamps</li>
+<li><strong>Xs</strong> &#8211; Xs, used to predict Y, list of 2D arrays, where every array is of the same shape as Y</li>
+<li><strong>Xs_knls</strong> &#8211; kernels for Xs, a list, where Xs_kernel[i] is a 2D array correspond to Xs[i],
+Xs_kernel[i] is of shape [num_kernels, num_ts_for_kernel], every kernel works as the inpulse-response function, centered at zero</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">regression object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.gen_delta_function_with_label">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">gen_delta_function_with_label</code><span class="sig-paren">(</span><em>ts=array([-0.2</em>, <em>-0.1</em>, <em>0.</em>, <em>0.1</em>, <em>0.2</em>, <em>0.3</em>, <em>0.4</em>, <em>0.5</em>, <em>0.6</em>, <em>0.7</em>, <em>0.8</em>, <em>0.9])</em>, <em>t=array([0.])</em>, <em>y=array([1.])</em>, <em>tf_y_ctgr=False</em>, <em>tf_return_ctgr=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#gen_delta_function_with_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.gen_delta_function_with_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>generate delta function at time t and with label y for every trial on time grid ts</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ts</strong> &#8211; timestamps, grid of time, of length T</li>
+<li><strong>t</strong> &#8211; time of event onset of every trial, of length N, if the same across all trials, could be given as a scalar</li>
+<li><strong>y</strong> &#8211; labels of events, of length N: if tf_return_ctgr==True, could be any type; otherwise, must be numbers.
+if the same across trials, could be given as a scalar</li>
+<li><strong>tf_y_ctgr</strong> &#8211; True/False of y being categorical</li>
+<li><strong>tf_return_ctgr</strong> &#8211; True/False to return y cetegory lables</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>delta_fun or (delta_fun, y_ctgy)</p>
+<p>delta_fun if tf_return_ctgr==False, (delta_fun, y_ctgy) otherwise</p>
+<p>detta_fun is [N*T] if tf_y_ctgr==False, [N*T*M] if tf</p>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.gen_gamma_knl">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">gen_gamma_knl</code><span class="sig-paren">(</span><em>ts=array([-0.1</em>, <em>-0.099</em>, <em>-0.098</em>, <em>...</em>, <em>0.997</em>, <em>0.998</em>, <em>0.999])</em>, <em>k=1.0</em>, <em>theta=1.0</em>, <em>mu=None</em>, <em>sigma=None</em>, <em>normalize='max'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#gen_gamma_knl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.gen_gamma_knl" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool function generate a gamma-distribution-like kernel (1D), used as a impulse response function</p>
+<p>could be parametrized using k and theta like Gamma distribution, or use mean and sigma like gaussian distribution.
+Note that mu=k*theta, sigma=sqrt(k*theta**2)</p>
+<p>e.g.  bump = gen_gamma_bump(ts, k=2, theta=0.20) is equivalent as bump = gen_gamma_bump(ts, mu=0.4, theta=0.08);</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ts</strong> &#8211; timestamps, e.g. ts = np.arange(-0.1, 1.0, 0.001);</li>
+<li><strong>k</strong> &#8211; if parametrized as gamma: shape parameter, if 1, exp distribution, if large, becomes gaussian-like</li>
+<li><strong>theta</strong> &#8211; if parametrized as gamma: scale parameter, mean = k*theta, var = k*theta**2</li>
+<li><strong>mu</strong> &#8211; alternative parametrization: mean is mu</li>
+<li><strong>std</strong> &#8211; alternative parametrization: var is std**2</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a gamma-like bump</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.gen_knl_series">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">gen_knl_series</code><span class="sig-paren">(</span><em>ts=array([-0.1</em>, <em>-0.099</em>, <em>-0.098</em>, <em>...</em>, <em>0.997</em>, <em>0.998</em>, <em>0.999])</em>, <em>scale=0.5</em>, <em>N=5</em>, <em>spacing_factor=1.4142135623730951</em>, <em>tf_symmetry=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#gen_knl_series"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.gen_knl_series" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool function to generate a series of N gamma-like kernels distributed within the range defined by scale,
+used as the basis functions for the internal/external history term for neural point process
+test: plt.plot(pna.gen_bump_series().transpose())</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ts</strong> &#8211; timestamps, e.g. ts = np.arange(-0.1, 1.0, 0.001);</li>
+<li><strong>scale</strong> &#8211; scale of the bumps, which defines the mean of the broadest gamma bump</li>
+<li><strong>N</strong> &#8211; number of bumps</li>
+<li><strong>spacing_factor</strong> &#8211; any number &gt;=1, default to sqrt(2), if small, evenly spaces, if large, un-evenly spaced</li>
+<li><strong>tf_symmetry</strong> &#8211; True or False, make ts symmetric about zero</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">2D array of bump series, [N_bumps, N_ts]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.group_shuffle">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">group_shuffle</code><span class="sig-paren">(</span><em>indx_grps</em>, <em>n=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#group_shuffle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.group_shuffle" title="Permalink to this definition">¶</a></dt>
+<dd><p>controlled shuffle within index groups
+:param indx_grps: list of indexes, eg. [[0,1,2,3], [4,5,6,7]], will shuffle within [0,1,2,3], and within [4,5,6,7], but not between them
+:param n:         number of elements to shufflt, defaul to None, s
+:return:          shuffled index, e.g. [0,3,1,2,5,4,7,6]</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.group_shuffle_data">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">group_shuffle_data</code><span class="sig-paren">(</span><em>data</em>, <em>indx_grps=None</em>, <em>axis=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#group_shuffle_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.group_shuffle_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>controlled shuffle within index groups
+:param data:      data to be shuffled along an axis
+:param indx_grps: list of indexes, eg. [[0,1,2,3], [4,5,6,7]], will shuffle within [0,1,2,3], and within [4,5,6,7], but not between them
+:param axis:      along which to shuffle data
+:return:          shuffled data</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.index_bool2int">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">index_bool2int</code><span class="sig-paren">(</span><em>index_bool</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#index_bool2int"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.index_bool2int" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool function to transform bool index to int. e.g. turn [True, False, True] into [0, 2]</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>index_bool</strong> &#8211; bool index, like [True, False, True]</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">int index, like [0, 2]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.index_int2bool">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">index_int2bool</code><span class="sig-paren">(</span><em>index_int</em>, <em>N=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#index_int2bool"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.index_int2bool" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool function to transform int index to bool. e.g. turn into [0, 2] into [True, False, True]</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>index_int</strong> &#8211; int index, like [0, 2]</li>
+<li><strong>N</strong> &#8211; length of boolean array</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">bool index, like [True, False, True]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.lfp_cross_chan_smooth">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">lfp_cross_chan_smooth</code><span class="sig-paren">(</span><em>lfp</em>, <em>method='der'</em>, <em>lambda_dev=1</em>, <em>lambda_der=1</em>, <em>sigma_chan=0.5</em>, <em>sigma_t=0</em>, <em>tf_x0=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#lfp_cross_chan_smooth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.lfp_cross_chan_smooth" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#8212; OBSOLETE: use lfp_robust_smooth instead &#8212;
+Smooth the lfp across channels for csd estimation, to deal with varied gain across channels. either use 1) derivative-based method or 2) gaussian filter</p>
+<ol class="arabic simple">
+<li>derivative-based: Quadratic smoothing using continuous (2nd-order) derivative assumption across channels, see function quad_smooth_der for details</li>
+<li>gaussian filter: use gaussian filter to smooth lfp across channels</li>
+</ol>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>lfp</strong> &#8211; lfp signal, [num_chan, num_timestamps]</li>
+<li><strong>method</strong> &#8211; smoothing method: &#8216;der&#8217; for derivative-based method; &#8216;gaussian&#8217; for gaussian filter</li>
+<li><strong>lambda_dev</strong> &#8211; coefficient of the deviation  for the cost term, scalar or vector of the same shape as the target.  if target[i] is noisy, set lambda_dev[i] small or just zero, used for &#8216;der&#8217; method</li>
+<li><strong>lambda_der</strong> &#8211; coefficient of the derivative for the cost term.  Larger values leads to more smoothed result, used for &#8216;der&#8217; method</li>
+<li><strong>sigma_chan</strong> &#8211; std for gaussian smoothing across channels, used for &#8216;gaussian&#8217; method</li>
+<li><strong>sigma_t</strong> &#8211; std for gaussian smoothing along time axis, set to 0 if do not smooth along time</li>
+<li><strong>tf_x0</strong> &#8211; true/false using the result of previous time point as the initial point for optimization, defult to True, which speeds up computation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">lfp of the same shape, smoothed</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroAna.quad_smooth_der">
+<code class="descclassname">PyNeuroAna.</code><code class="descname">quad_smooth_der</code><span class="sig-paren">(</span><em>target</em>, <em>lambda_dev=1</em>, <em>lambda_der=0</em>, <em>add_edge=0</em>, <em>degree_der=3</em>, <em>return_CSD=False</em>, <em>x0=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#quad_smooth_der"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.quad_smooth_der" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#8212; OBSOLETE: use lfp_robust_smooth instead &#8212;
+Quadratic smoothing using continuous (2nd-order) derivative assumption, used to calculate csd from lfp with noise</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>target</strong> &#8211; target signal to smooth, 1D array (recorded lfp with noise, e.g. slightly different gain between channels)</li>
+<li><strong>lambda_dev</strong> &#8211; coefficient of the deviation  for the cost term, scalar or vector of the same shape as the target.  if target[i] is noisy, set lambda_dev[i] to be close to zero</li>
+<li><strong>lambda_der</strong> &#8211; coefficient of the derivative for the cost term.  Larger values leads to more smoothed data</li>
+<li><strong>add_edge</strong> &#8211; number of channels to add outside both edges, to prevent boundary effect during computation (will be removed in result)</li>
+<li><strong>return_CSD</strong> &#8211; true/false to return csd, affect the returned result</li>
+<li><strong>x0</strong> &#8211; initial value for optimization, default to None</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">target_smoothed, or (target smoothed, csd)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="topic">
+<p class="topic-title first">PyNeuroPlot</p>
+<span class="target" id="module-PyNeuroPlot"></span><dl class="function">
+<dt id="PyNeuroPlot.AutoRowCol">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">AutoRowCol</code><span class="sig-paren">(</span><em>N</em>, <em>nrow=None</em>, <em>ncol=None</em>, <em>aspect=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#AutoRowCol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.AutoRowCol" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool function to automatically calculate number of row and col based on total number of panels</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>N</strong> &#8211; total number of panels</li>
+<li><strong>nrow</strong> &#8211; optional, the desired number of rows, if given, fix the number of rows</li>
+<li><strong>ncol</strong> &#8211; optional, the desired number of columns, if given, fix the number of columns</li>
+<li><strong>aspect</strong> &#8211; desired aspect ratio: ncol/nrow, default to 1/1</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(nrow, ncol)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.CreateSubplotFromGroupby">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">CreateSubplotFromGroupby</code><span class="sig-paren">(</span><em>df_groupby_ord</em>, <em>figsize=None</em>, <em>tf_title=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#CreateSubplotFromGroupby"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.CreateSubplotFromGroupby" title="Permalink to this definition">¶</a></dt>
+<dd><p>creates subplots according to the structure defined in df_ana.dfGropuby</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>df_groupby_ord</strong> &#8211; dictionary returned by df_ana.dfGroupby,
+{&#8216;idx&#8217;: {group_key: array of trial indexes within group}, &#8216;order&#8217;: {group_key: order in plot}}</li>
+<li><strong>figsize</strong> &#8211; e.g (12, 9)</li>
+<li><strong>tf_title</strong> &#8211; True/False to add title</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">h_fig, h_axes</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.DataFastSubplot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">DataFastSubplot</code><span class="sig-paren">(</span><em>data_list</em>, <em>layout=None</em>, <em>data_type=None</em>, <em>gap=0.05</em>, <em>tf_axis=True</em>, <em>subplot_label=None</em>, <em>tf_nmlz=False</em>, <em>xx=None</em>, <em>yy=None</em>, <em>axis_label=None</em>, <em>clim=None</em>, <em>cmap=None</em>, <em>xlabel=''</em>, <em>ylabel=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#DataFastSubplot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.DataFastSubplot" title="Permalink to this definition">¶</a></dt>
+<dd><p>effecient way to plot data when there are many panels: it first put every panel into a big picture before plotting</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.DataNeuroSummaryPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">DataNeuroSummaryPlot</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>sk_std=None</em>, <em>signal_type='auto'</em>, <em>suptitle=''</em>, <em>xlabel=''</em>, <em>ylabel=''</em>, <em>tf_legend=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#DataNeuroSummaryPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.DataNeuroSummaryPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Summary plot for data_neuro, uses SmartSubplot and PsthPlot</p>
+<p>Use data_neuro[&#8216;cdtn&#8217;] to sort and group trials in to sub-panels, plot all signals in every sub-panel</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data_neuro</strong> &#8211; data_neuro structure, see moduel signal_align.blk_align_to_evt</li>
+<li><strong>sk_std</strong> &#8211; smoothness kernel, if None, set automatically based on data type</li>
+<li><strong>signal_type</strong> &#8211; &#8216;spk&#8217;, &#8216;LFP&#8217; or &#8216;auto&#8217;</li>
+<li><strong>suptitle</strong> &#8211; title of figure</li>
+<li><strong>xlabel</strong> &#8211; xlabel</li>
+<li><strong>ylabel</strong> &#8211; ylabel</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">figure handle</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.DetermineClimCmap">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">DetermineClimCmap</code><span class="sig-paren">(</span><em>clim=None</em>, <em>data_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#DetermineClimCmap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.DetermineClimCmap" title="Permalink to this definition">¶</a></dt>
+<dd><p>determine clim and cmap for plotting
+:param clim:       either string in (&#8220;basic&#8221;, &#8220;diverge&#8221;, &#8220;from_zero&#8221;), or two values like [1, 5], default to &#8216;basic&#8217; if None
+:param data_range: either two values like [1, 5] or a numpy array of the actual data
+:return:           (clim, cmap), ready to be used in plt.pcolormesh</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.EmbedTracePlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">EmbedTracePlot</code><span class="sig-paren">(</span><em>loc_embed</em>, <em>traces=None</em>, <em>labels=None</em>, <em>labels_interactive=None</em>, <em>color=None</em>, <em>highlight=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#EmbedTracePlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.EmbedTracePlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot trances (e.g. ERPs) in the embeded 2D space, if labels_interactive is not None, the plot is interactive</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>loc_embedding</strong> &#8211; [N*2] array, where each row stores the [x, y] of every data point in the embedded space</li>
+<li><strong>traces</strong> &#8211; if None, do not plot original</li>
+<li><strong>labels</strong> &#8211; labels of every point</li>
+<li><strong>labels_interactive</strong> &#8211; labels of every point, shown as annotation when clicked by mouse</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.ErpPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">ErpPlot</code><span class="sig-paren">(</span><em>data</em>, <em>ts=None</em>, <em>array_layout=None</em>, <em>depth_linear=None</em>, <em>title='ERP'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#ErpPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.ErpPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>ERP (event-evoked potential) plot</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>array_erp</strong> &#8211; a 2d numpy array ( N_chan * N_timepoints ) or the original data object</li>
+<li><strong>ts</strong> &#8211; a 1d numpy array ( N_timepoints )</li>
+<li><strong>array_layout</strong> &#8211; <p>electrode array layout:</p>
+<ul>
+<li>if None, assume linear layout,</li>
+<li>otherwise, use the the give array_layout in the format: {chan: (row, col)}</li>
+</ul>
+</li>
+<li><strong>depth_linear</strong> &#8211; a list of depth</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">figure handle</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.ErpPlot_singlePanel">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">ErpPlot_singlePanel</code><span class="sig-paren">(</span><em>erp</em>, <em>ts=None</em>, <em>tf_inverse_color=False</em>, <em>cmap='coolwarm'</em>, <em>c_lim_style='diverge'</em>, <em>trace_scale=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#ErpPlot_singlePanel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.ErpPlot_singlePanel" title="Permalink to this definition">¶</a></dt>
+<dd><p>ERP plot in a single panel, where trace and color plot are superimposed. ideal for ERP recorded with linear probe</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>erp</strong> &#8211; erp traces, [N_chan, N_ts]</li>
+<li><strong>ts</strong> &#8211; timestapes</li>
+<li><strong>tf_inverse_color</strong> &#8211; if inverse sign for color plot.  Useful for CSD plot since minus &#8220;sink&#8221; are commonly plot as red</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.LinemeshFlatPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">LinemeshFlatPlot</code><span class="sig-paren">(</span><em>data</em>, <em>x_grid=None</em>, <em>y_grid=None</em>, <em>axis_mesh='x'</em>, <em>N_mesh=16</em>, <em>scale_mesh=0.125</em>, <em>color='dimgrey'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#LinemeshFlatPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.LinemeshFlatPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>an alternative to pcolormesh, focuse on change along one dimension (x, or y)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> &#8211; 2D numpy array (num_y * num_x), like the imput to imshow</li>
+<li><strong>x_grid</strong> &#8211; 1D numpy array, num_x</li>
+<li><strong>y_grid</strong> &#8211; 1D numpy array, num_x</li>
+<li><strong>axis_mesh</strong> &#8211; &#8216;x&#8217;, or &#8216;y&#8217;, the change on which axis you are interested in</li>
+<li><strong>N_mesh</strong> &#8211; number of lines to plot (controls thinning)</li>
+<li><strong>scale_mesh</strong> &#8211; the scale of individual lines relative the axis limit</li>
+<li><strong>color</strong> &#8211; color of lines</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">handles of the lines</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.PlotDataFromGroup">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">PlotDataFromGroup</code><span class="sig-paren">(</span><em>cdtn</em>, <em>data</em>, <em>plotfun=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#PlotDataFromGroup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.PlotDataFromGroup" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.PsthPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">PsthPlot</code><span class="sig-paren">(</span><em>data</em>, <em>ts=None</em>, <em>cdtn=None</em>, <em>limit=None</em>, <em>sk_std=None</em>, <em>subpanel='auto'</em>, <em>color_style='discrete'</em>, <em>tf_legend=False</em>, <em>xlabel=None</em>, <em>ylabel=None</em>, <em>legend_title=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#PsthPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.PsthPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>funciton to plot psth with a raster panel on top of PSTH, works for both spike data and LFP data</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data</strong> &#8211; neuro data, np array of various size and dtpye:
+size: 2D [N_trials * N_ts] or 3D [N_trials * N_ts * N_signals]
+dtype: boolean (spike exist or not) or float (LFP continuous values)</li>
+<li><strong>ts</strong> &#8211; 1D array containing timestamps for data (length is N_ts)</li>
+<li><strong>cdtn</strong> &#8211; conditions used to group
+if data is 2D, represent the type of trials,  len(cdtn)=N_ts
+if data is 3D, represent the type of signals, len(cdtn)=N_signals</li>
+<li><strong>limit</strong> &#8211; index array to select a subset of the trials of data, i.e., data=data[limit,:]</li>
+<li><strong>sk_std</strong> &#8211; std of gaussian smoothness kernel, applied along time axis, default to None</li>
+<li><strong>subpanel</strong> &#8211; <p>types of sub-panel on tops of PSTH, default to &#8216;auto&#8217;:</p>
+<ul>
+<li>if &#8216;spk&#8217;  : data2D is boolean, where every True value represents a spike, plot line raster</li>
+<li>if &#8216;LFP&#8217;  : data2D is continuous float, plot pcolormesh</li>
+<li>if &#8216;auto&#8217; : use data format to decide which plot to use</li>
+<li>if &#8216;&#8217;     : does not create subpanel</li>
+</ul>
+</li>
+<li><strong>color_style</strong> &#8211; &#8216;discrete&#8217; or &#8216;continuous&#8217;</li>
+<li><strong>tf_legend</strong> &#8211; boolean, true/false to plot legend</li>
+<li><strong>x_label</strong> &#8211; string</li>
+<li><strong>y_label</strong> &#8211; string</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>:param legend_title:None or string
+:return:            axes of plot: [ax_psth, ax_raster]</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.PsthPlotCdtn">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">PsthPlotCdtn</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>data_df</em>, <em>i_signal=0</em>, <em>grpby=''</em>, <em>fltr=[]</em>, <em>sk_std=None</em>, <em>subpanel=''</em>, <em>tf_legend=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#PsthPlotCdtn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.PsthPlotCdtn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obsolete funciton</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.PsthPlotMultiPanel">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">PsthPlotMultiPanel</code><span class="sig-paren">(</span><em>data_neuro=None</em>, <em>index_signal=0</em>, <em>data2D=None</em>, <em>ts=None</em>, <em>data_df=None</em>, <em>limit=None</em>, <em>groupby_subplots=''</em>, <em>aggregate_subplots=False</em>, <em>linearize_subplots=False</em>, <em>groupby_panel=''</em>, <em>sk_std=None</em>, <em>subpanel='auto'</em>, <em>color_style='discrete'</em>, <em>tf_legend=True</em>, <em>xlabel=None</em>, <em>ylabel=None</em>, <em>figsize=(12</em>, <em>9)</em>, <em>signal_name=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#PsthPlotMultiPanel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.PsthPlotMultiPanel" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot PSTH in multiple subplots grouped by experimental conditions, a wrapper function of
+pnp.PsthPlot, pnp.CreateSubplotFromGroupby and df_ana.DfGroupby,
+data either provided by (data_neuro, index_signal) or (data2D, ts, data_df), the later one offers more control</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data_neuro</strong> &#8211; standard data_neuro structure, retured by signal_align.blk.align_to_event()</li>
+<li><strong>index_signal</strong> &#8211; index of signal used to select data_neuro[&#8216;data&#8217;][:, :, index_signal]</li>
+<li><strong>data2D</strong> &#8211; neural data of one signal/channel,  shape=[N_trials * N_ts]</li>
+<li><strong>ts</strong> &#8211; 1D array containing timestamps for data (length is N_ts)</li>
+<li><strong>data_df</strong> &#8211; pandas data frame of trial-related information, with num_rows=N_trials</li>
+<li><strong>limit</strong> &#8211; index array or boolean array, used to filter the trials that goes in the plot,
+e.g. np.random.rand(N_trials)&gt;0.5 or data_df[&#8216;reaction_time&#8217;]&lt;500</li>
+<li><strong>groupby_subplots</strong> &#8211; column name(s) of data_df used to group data into subplots, either a str or a list of strings</li>
+<li><strong>aggregate_subplots</strong> &#8211; True/False to add a aggregation group (not grouped) for every column</li>
+<li><strong>linearize_subplots</strong> &#8211; column name of data_df used to group data within each panel</li>
+<li><strong>groupby_panel</strong> &#8211; column name of data_df used to group data within each panel</li>
+<li><strong>sk_std</strong> &#8211; std of gaussian smoothness kernel, applied along time axis, default to None</li>
+<li><strong>subpanel</strong> &#8211; types of sub-panel on tops of PSTH, default to &#8216;auto&#8217;</li>
+<li><strong>color_style</strong> &#8211; &#8216;discrete&#8217; or &#8216;continuous&#8217;</li>
+<li><strong>tf_legend</strong> &#8211; boolean, true/false to plot legend</li>
+<li><strong>xlabel</strong> &#8211; string</li>
+<li><strong>ylabel</strong> &#8211; string</li>
+<li><strong>figsize</strong> &#8211; e.g. (12, 9)</li>
+<li><strong>signal_name</strong> &#8211; name of the signal to plot, shown in suptitle</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.RasterPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">RasterPlot</code><span class="sig-paren">(</span><em>data2D</em>, <em>ts=None</em>, <em>cdtn=None</em>, <em>colors=None</em>, <em>RasterType='auto'</em>, <em>max_rows=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#RasterPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.RasterPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Spike/LFP raster Plot, where evary row presresent one trial, sorted by cdtn</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data2D</strong> &#8211; 2D np.array of boolean/float values, [N_trial * N_ts]</li>
+<li><strong>ts</strong> &#8211; 1D np.array of timestamps, 1D np.array of length N_ts,    used as x axis for plot</li>
+<li><strong>cdtn</strong> &#8211; condition of every trial,  1D np.array of length N_trial, used to sort trials</li>
+<li><strong>colors</strong> &#8211; a list of colors for every unique condition</li>
+<li><strong>RasterType</strong> &#8211; <p>string, &#8216;spk&#8217;, &#8216;LFP&#8217; or &#8216;auto&#8217;, default to &#8216;auto&#8217;:</p>
+<ul>
+<li>if &#8216;spk&#8217;  : data2D is boolean, where every True value represents a spike, plot line raster</li>
+<li>if &#8216;LFP&#8217;  : data2D is continuous float, plot pcolormesh</li>
+<li>if &#8216;auto&#8217; : use data2D format to decide which plot to use</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">handle of raster plot</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.RfPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">RfPlot</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>indx_sgnl=0</em>, <em>data=None</em>, <em>t_focus=None</em>, <em>tf_scr_ctr=False</em>, <em>psth_overlay=True</em>, <em>t_scale=None</em>, <em>fr_scale=None</em>, <em>sk_std=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#RfPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.RfPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot RF using one single plot</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data_neuro</strong> &#8211; the data_neuro[&#8216;cdtn&#8217;] contains &#8216;x&#8217; and &#8216;y&#8217;, which represents the location of stimulus</li>
+<li><strong>indx_sgnl</strong> &#8211; index of signal, i.e. the data_neuro[&#8216;cdtn&#8217;][:,:,indx_sgnl] would be used for plotting</li>
+<li><strong>data</strong> &#8211; if not None, use the data instead of data_neuro[&#8216;data&#8217;][:,:,indx_sgnl], a 2D array of shape [N_trials, N_ts]</li>
+<li><strong>t_focus</strong> &#8211; duration of time used to plot heatmap, e.g. [0.050, 0.200]</li>
+<li><strong>tf_scr_ctr</strong> &#8211; True/False, plot [0.0] point of screen</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>:param psth_overlay:True/False overlay psth
+:param t_scale:     for psth overlay, duration of time (ts) to be mapped to unit 1 of space
+:param fr_scale:    for psth overlay, scale for firing rate
+:param sk_std:      smooth kernel standard deviation, e.g. 0.005, for 5ms
+:return:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.SignalPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">SignalPlot</code><span class="sig-paren">(</span><em>ts</em>, <em>data3D</em>, <em>sk_std=nan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#SignalPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.SignalPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>function to generate plot using data3D, (N_trial * N_ts * N_signal)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ts</strong> &#8211; timestamps (in sec)</li>
+<li><strong>data3D</strong> &#8211; data</li>
+<li><strong>sk_std</strong> &#8211; smooth kernel std (in sec); default is nan, do not smooth data</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">plot handle</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.SmartSubplot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">SmartSubplot</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>functionPlot=None</em>, <em>dataPlot=None</em>, <em>suptitle=''</em>, <em>tf_colorbar=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#SmartSubplot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.SmartSubplot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Smart subplots based on the data_neuro[&#8216;cdtn&#8217;]</p>
+<p>in each panel, plot using function &#8216;functionPlot&#8217;, on data &#8216;dataPlot&#8217;;
+if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and dim1 as columns
+:param data_neuro:    dictionary containing field &#8216;cdtn&#8217; and &#8216;cdtn_indx&#8217;, which directing the subplot layout
+:param functionPlot:  the plot function in each panel
+:param dataPlot:      the data that plot function applies on; in each panel, its first dim is sliced using data_neuro[&#8216;cdtn_indx&#8217;], if None, use data_neuro[data]
+:return:              [h_fig, h_ax]</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.SpectrogramAllPairPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">SpectrogramAllPairPlot</code><span class="sig-paren">(</span><em>data_neuro</em>, <em>indx_chan=None</em>, <em>max_trial=None</em>, <em>limit_gap=1</em>, <em>t_bin=0.2</em>, <em>t_step=None</em>, <em>f_lim=None</em>, <em>coh_lim=None</em>, <em>t_axis=1</em>, <em>batchsize=100</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#SpectrogramAllPairPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.SpectrogramAllPairPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot all LFP power specgtrogram (diagonal panels) and all pairwise coherence (off-diagonal panels)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data_neuro</strong> &#8211; standard data input</li>
+<li><strong>indx_chan</strong> &#8211; index of channels to plot (from zero)</li>
+<li><strong>max_trial</strong> &#8211; a interger, use only max_trial from all trials to speedup the calculation</li>
+<li><strong>limit_gap</strong> &#8211; the gap between channels to plot, used when indx_chan is None. e.g. if limit_gap=4, the indx_chan=[0,4,8,...]</li>
+<li><strong>t_bin</strong> &#8211; time bin size for spectrogram</li>
+<li><strong>t_step</strong> &#8211; time step size for spectrogram</li>
+<li><strong>f_lim</strong> &#8211; frequency limit for plot (ylim)</li>
+<li><strong>coh_lim</strong> &#8211; lim for coherence plot, control clim</li>
+<li><strong>t_axis</strong> &#8211; axis index of time in data_neuro[&#8216;data&#8217;]</li>
+<li><strong>batchsize</strong> &#8211; batch size for ComputeSpectrogram, used to prevent memory overloading</li>
+<li><strong>verbose</strong> &#8211; if print some intermediate results</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">[h_fig, h_ax], handles of figure and axes</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.SpectrogramPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">SpectrogramPlot</code><span class="sig-paren">(</span><em>spcg</em>, <em>spcg_t=None</em>, <em>spcg_f=None</em>, <em>limit_trial=None</em>, <em>tf_phase=False</em>, <em>tf_mesh_t=False</em>, <em>tf_mesh_f=False</em>, <em>tf_log=False</em>, <em>time_baseline=None</em>, <em>t_lim=None</em>, <em>f_lim=None</em>, <em>c_lim=None</em>, <em>c_lim_style=None</em>, <em>name_cmap=None</em>, <em>rate_interp=None</em>, <em>tf_colorbar=False</em>, <em>quiver_scale=None</em>, <em>max_quiver=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#SpectrogramPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.SpectrogramPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>plot power spectrogram or coherence-gram, input spcg could be [ N_t * N*f ] or [ N_trial * N_t * N*f ], real or complex</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>spcg</strong> &#8211; <p>2D numpy array, [ N_t * N*f ] or 3D numpy array [ N_trial * N_t * N*f ], either real or complex:</p>
+<ul>
+<li>if [ N_trial * N_t * N*f ], average over trial and get [ N_t * N*f ]</li>
+<li>if complex, plot spectrogram using its abs value, and plot quiver using the complex value</li>
+</ul>
+</li>
+<li><strong>spcg_t</strong> &#8211; tick of time, length N_t</li>
+<li><strong>spcg_f</strong> &#8211; tick of frequency, length N_f</li>
+<li><strong>limit_trial</strong> &#8211; index array to specify which trials to use</li>
+<li><strong>tf_phase</strong> &#8211; true/false, plot phase using quiver (spcg has to be complex): points down if negative phase (singal1 lags signal0 for coherence)</li>
+<li><strong>tf_mesh_t</strong> &#8211; true/false, plot LinemeshFlatPlot, focuse on t, (horizontal lines)</li>
+<li><strong>tf_mesh_f</strong> &#8211; true/false, plot LinemeshFlatPlot, focuse on f, (vertical lines)</li>
+<li><strong>tf_log</strong> &#8211; true/false, use log scale</li>
+<li><strong>c_lim_style</strong> &#8211; &#8216;basic&#8217; (min, max), &#8216;from_zero&#8217; (0, max), or &#8216;diverge&#8217; (-max, max); default to None, select automatically based on tf_log and time_baseline</li>
+<li><strong>time_baseline</strong> &#8211; baseline time period to be subtracted, eg. [-0.1, 0.05], default to None</li>
+<li><strong>name_cmap</strong> &#8211; name of color map to use, default to &#8216;inferno&#8217;, if use diverge c_map, automatically change to &#8216;coolwarm&#8217;; another suggested one is &#8216;viridis&#8217;</li>
+<li><strong>rate_interp</strong> &#8211; rate of interpolation for plotting, if None, do not interpolate, suggested value is 8</li>
+<li><strong>tf_colorbar</strong> &#8211; true/false, plot colorbar</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">figure handle</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.SpkWfPlot">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">SpkWfPlot</code><span class="sig-paren">(</span><em>seg</em>, <em>sortcode_min=1</em>, <em>sortcode_max=100</em>, <em>ncols=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#SpkWfPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.SpkWfPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot spk waveforms of a segment, one channel per axes, different sort codes are color coded</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>seg</strong> &#8211; neo blk.segment</li>
+<li><strong>sortcode_min</strong> &#8211; the min sortcode included in the plot, default to 1</li>
+<li><strong>sortcode_max</strong> &#8211; the max sortcode included in the plot, default to 1</li>
+<li><strong>ncols</strong> &#8211; number of columns in the subplot</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">figure handle</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.SubplotsAutoRowCol">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">SubplotsAutoRowCol</code><span class="sig-paren">(</span><em>num_panels</em>, <em>nrow=None</em>, <em>ncol=None</em>, <em>aspect=1.0</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#SubplotsAutoRowCol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.SubplotsAutoRowCol" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool function to create subplots using the number of panels, a wrapper of plt.subplots() and AutoRowCol()</p>
+<p>the function will automatically decide the number of rows and columns, and the returned h_axes is a linear array .</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>num_panels</strong> &#8211; total number of subplot panels</li>
+<li><strong>nrow</strong> &#8211; optional, the desired number of rows,</li>
+<li><strong>ncol</strong> &#8211; optional, the desired number of columns,</li>
+<li><strong>aspect</strong> &#8211; optional, the desired ratio: ncol/nrow, default to 1/1</li>
+<li><strong>kwargs</strong> &#8211; other arguments to pass to plt.subplots()</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">h_fig, h_axes,  where h_axes is a linear array of axes</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.add_axes_on_top">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">add_axes_on_top</code><span class="sig-paren">(</span><em>h_axes</em>, <em>r=0.25</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#add_axes_on_top"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.add_axes_on_top" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool funciton to add an axes on the top of the existing axis, used by funciton PsthPlot</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>h_axes</strong> &#8211; the curret axex handle</li>
+<li><strong>r</strong> &#8211; ratio of the height of the newly added axes</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">axis handle</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.add_sub_axes">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">add_sub_axes</code><span class="sig-paren">(</span><em>h_axes=None</em>, <em>loc='top'</em>, <em>size=0.25</em>, <em>gap=0.02</em>, <em>sub_rect=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#add_sub_axes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.add_sub_axes" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool funciton to add an axes around the existing axis</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>h_axes</strong> &#8211; the current axes handle, default to None, use the gca</li>
+<li><strong>loc</strong> &#8211; <p>location of the newly added sub-axes: one of [&#8216;top&#8217;, &#8216;bottom&#8217;, &#8216;left&#8217;, &#8216;right&#8217;, &#8216;custom&#8217;], default to &#8216;top&#8217;</p>
+<ul>
+<li>if one of [&#8216;top&#8217;, &#8216;bottom&#8217;, &#8216;left&#8217;, &#8216;right&#8217;], the size of sub axes is determined by size and gap parameter;</li>
+<li>if set to &#8216;custom&#8217;, the location and size if specifited by sub_rect parameter</li>
+</ul>
+</li>
+<li><strong>size</strong> &#8211; size of the sub-axes, with respect to the origial axes, default to 0.25</li>
+<li><strong>gap</strong> &#8211; gap between the original axes and and the newly added sub-axes</li>
+<li><strong>sub_rect</strong> &#8211; the rect of custom sub-axes, rect = [x_left, y_bottom, ]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">handle of sub axes</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.auto_tick">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">auto_tick</code><span class="sig-paren">(</span><em>data_range</em>, <em>max_tick=10</em>, <em>tf_inside=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#auto_tick"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.auto_tick" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool function that automatically calculate optimal ticks based on range and the max number of ticks
+:param data_range:   range of data, e.g. [-0.1, 0.5]
+:param max_tick:     max number of ticks, an interger, default to 10
+:param tf_inside:    True/False if only allow ticks to be inside
+:return:             list of ticks</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.cal_rc">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">cal_rc</code><span class="sig-paren">(</span><em>N</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#cal_rc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.cal_rc" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculate n_row, n_column automatically, for subplot layout, obsolete, should switch to AutoRowCol</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">[n_rows, n_cols]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.create_array_layout_subplots">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">create_array_layout_subplots</code><span class="sig-paren">(</span><em>array_layout</em>, <em>tf_linear_indx=True</em>, <em>tf_text_ch=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#create_array_layout_subplots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.create_array_layout_subplots" title="Permalink to this definition">¶</a></dt>
+<dd><p>create the subplots based on the electrode array&#8217;s spatial layout</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>array_layout</strong> &#8211; electrode array&#8217;s spatial layout, a dict, {chan: (row, column)}</li>
+<li><strong>tf_linear_indx</strong> &#8211; True/False the returned subplot axis is a 1D array, indexed in the channel orders, default to True</li>
+<li><strong>tf_text_ch</strong> &#8211; True/False show the channel index for every axes</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">[h_fig, h_axes],as the plt.subplots</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.gen_distinct_colors">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">gen_distinct_colors</code><span class="sig-paren">(</span><em>n</em>, <em>luminance=0.9</em>, <em>alpha=0.8</em>, <em>style='discrete'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#gen_distinct_colors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.gen_distinct_colors" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool funciton to generate n distinct colors for plotting</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>n</strong> &#8211; num of colors</li>
+<li><strong>luminance</strong> &#8211; num between [0,1]</li>
+<li><strong>alhpa</strong> &#8211; num between [0,1]</li>
+<li><strong>style</strong> &#8211; sting, &#8216;discrete&#8217;, or &#8216;continuous&#8217;</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">n*4 rgba color matrix</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.isSingle">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">isSingle</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#isSingle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.isSingle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether input is does not contain multiple items, works for lists and tuples</p>
+<p>e.g. 1, 3.0, &#8216;a string&#8217;, [1.0], or (&#8216;afe&#8217;) returns True, [1,2] returns false
+:param x:  list, tuple, string or number
+:return:   Ture of False</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.keep_less_than">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">keep_less_than</code><span class="sig-paren">(</span><em>list_in</em>, <em>n=6</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#keep_less_than"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.keep_less_than" title="Permalink to this definition">¶</a></dt>
+<dd><p>keep less than n element, through recursion</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>list_in</strong> &#8211; input list, 1D</li>
+<li><strong>n</strong> &#8211; criterion</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of a subset of the original list with elemetns smaller than n</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.prettyfloat">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">prettyfloat</code><span class="sig-paren">(</span><em>input</em>, <em>precision=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#prettyfloat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.prettyfloat" title="Permalink to this definition">¶</a></dt>
+<dd><p>function to cut the long float numbers for print</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="PyNeuroPlot.share_clim">
+<code class="descclassname">PyNeuroPlot.</code><code class="descname">share_clim</code><span class="sig-paren">(</span><em>h_ax</em>, <em>c_lim=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#share_clim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.share_clim" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool funciton to share clim (make sure c_lim of given axes are the same), call after plotting all images</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>h_ax</strong> &#8211; list of axes to reset clim</li>
+<li><strong>c_lim</strong> &#8211; if None, calculate automatically, otherwise, use the given clim, e.g. [-1, 5]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">c_lim</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="topic">
+<p class="topic-title first">df_ana</p>
+<span class="target" id="module-df_ana"></span><p>functions related to df (pandas DataFrames): selection, grouping, plotting</p>
+<dl class="function">
+<dt id="df_ana.DfGroupby">
+<code class="descclassname">df_ana.</code><code class="descname">DfGroupby</code><span class="sig-paren">(</span><em>data_df</em>, <em>groupby=''</em>, <em>limit=None</em>, <em>tf_aggregate=False</em>, <em>tf_linearize=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/df_ana.html#DfGroupby"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#df_ana.DfGroupby" title="Permalink to this definition">¶</a></dt>
+<dd><p>group a pandas DataFrame by &#8216;groupby&#8217;, and returns the grouped indexes and order in group</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data_df</strong> &#8211; pandas DataFrame</li>
+<li><strong>groupby</strong> &#8211; column name(s) to group the data_df, either a str or a list of strings</li>
+<li><strong>limit</strong> &#8211; a filter on the indexes, either a boolean array or an index array</li>
+<li><strong>tf_aggregate</strong> &#8211; True/False to add a aggregation group (not grouped) for every column</li>
+<li><strong>tf_linearize</strong> &#8211; True/False to linearize the order of groups, ie., turn (3,0) to 4</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">{&#8216;idx&#8217;: {group_key: array of trial indexes within group}, &#8216;order&#8217;: {group_key: order in plot}}</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="df_ana.DfPlot">
+<code class="descclassname">df_ana.</code><code class="descname">DfPlot</code><span class="sig-paren">(</span><em>df</em>, <em>values</em>, <em>x=''</em>, <em>c=''</em>, <em>p=''</em>, <em>limit=None</em>, <em>plot_type=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/df_ana.html#DfPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#df_ana.DfPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>function to plot values according to multiple levels of grouping keys: x, c, and p for Pandas DataFrame df.
+This is a wrapper of  function GroupPlot</p>
+<p>Example usage could be found in show_case/GroupPlot_DfPlot.py</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>values</strong> &#8211; name of the column containing values to plot</li>
+<li><strong>x</strong> &#8211; <p>name grouping key, plot as x axis, array of length N, default to None:</p>
+<ul>
+<li>if x is continuous, plot_type can be one of [&#8216;dot&#8217;,&#8217;line&#8217;], plot values against x</li>
+<li>elif x is discrete, plot_type can be one of [&#8216;bar&#8217;,&#8217;box&#8217;,&#8217;violin&#8217;], plot values groupped by x</li>
+</ul>
+</li>
+<li><strong>c</strong> &#8211; name of grouping key, plot as separate colors within panel, array of length N, default to None</li>
+<li><strong>p</strong> &#8211; name of grouping key, plot as separate panels, array of length N, default to None</li>
+<li><strong>limit</strong> &#8211; used to select a subset of data, boolean array of length N</li>
+<li><strong>plot_type</strong> &#8211; <p>the type of plot, one of [&#8216;dot&#8217;, &#8216;line&#8217;, &#8216;bar&#8217;, &#8216;box&#8217;, &#8216;violin&#8217;], if None, determined automatically:</p>
+<ul>
+<li>&#8216;dot&#8217;: values against x;</li>
+<li>&#8216;line&#8217;: values against x;</li>
+<li>&#8216;bar&#8217;, mean values with errbar determined by errbar;</li>
+<li>&#8216;box&#8217;: median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;</li>
+<li>&#8216;violin&#8217;: median and distribution of values</li>
+</ul>
+</li>
+<li><strong>tf_legend</strong> &#8211; True/False flag, whether plot legend</li>
+<li><strong>tf_count</strong> &#8211; Trur/False flag, whether to show count of values for plot type [&#8216;bar&#8217;, &#8216;box&#8217;, &#8216;violin&#8217;]</li>
+<li><strong>title_text</strong> &#8211; text for title</li>
+<li><strong>errbar</strong> &#8211; <p>type of error bar, only used for bar plot, one of [&#8216;std&#8217;, &#8216;se&#8217;, &#8216;binom&#8217;]:</p>
+<ul>
+<li>std:   standard deviation</li>
+<li>se:    standard error</li>
+<li>binom: binomial distribution confidence interval based on binom_alpha</li>
+</ul>
+</li>
+<li><strong>binom_alpha</strong> &#8211; alpha value for binomial distribution error bar (hpyothesis test for binary values), default = 0.05</li>
+<li><strong>errbar</strong> &#8211; <p>type of error bar, only used for bar plot, one of [&#8216;auto&#8217;, &#8216;std&#8217;, &#8216;se&#8217;, &#8216;binom&#8217;, &#8216;&#8217;], default to auto:</p>
+<ul>
+<li>&#8216;auto&#8217;:  if values are binary, use binom, otherwise, use se</li>
+<li>&#8216;std&#8217;:   standard deviation</li>
+<li>&#8216;se&#8217;:    standard error</li>
+<li>&#8216;binom&#8217;: binomial distribution confidence interval based on binom_alpha</li>
+<li>&#8216;&#8217;:      do not use error bar</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">handles of axes</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="df_ana.GroupPlot">
+<code class="descclassname">df_ana.</code><code class="descname">GroupPlot</code><span class="sig-paren">(</span><em>values</em>, <em>x=None</em>, <em>c=None</em>, <em>p=None</em>, <em>limit=None</em>, <em>plot_type=None</em>, <em>tf_legend=True</em>, <em>tf_count=True</em>, <em>values_name=''</em>, <em>x_name=''</em>, <em>c_name=''</em>, <em>p_name=''</em>, <em>title_text=''</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/df_ana.html#GroupPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#df_ana.GroupPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>function to plot values according to multiple levels of grouping keys: x, c, and p.
+The input values, x, c and p can be viewed as columns from the same table</p>
+<p>Example usage could be found in show_case/GroupPlot_DfPlot.py</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>values</strong> &#8211; values to plot, array of length N</li>
+<li><strong>x</strong> &#8211; <p>grouping key, plot as x axis, array of length N, default to None.</p>
+<ul>
+<li>if x is continuous, plot_type can be one of [&#8216;dot&#8217;,&#8217;line&#8217;], plot values against x</li>
+<li>elif x is discrete, plot_type can be one of [&#8216;bar&#8217;,&#8217;box&#8217;,&#8217;violin&#8217;], plot values groupped by x</li>
+</ul>
+</li>
+<li><strong>c</strong> &#8211; grouping key, plot as separate colors within panel, array of length N, default to None</li>
+<li><strong>p</strong> &#8211; grouping key, plot as separate panels, array of length N, default to None</li>
+<li><strong>limit</strong> &#8211; used to select a subset of data, boolean array of length N</li>
+<li><strong>plot_type</strong> &#8211; <p>the type of plot, one of [&#8216;dot&#8217;, &#8216;line&#8217;, &#8216;bar&#8217;, &#8216;box&#8217;, &#8216;violin&#8217;], if None, determined automatically:</p>
+<ul>
+<li>&#8216;dot&#8217;: values against x;</li>
+<li>&#8216;line&#8217;: values against x;</li>
+<li>&#8216;bar&#8217;, mean values with errbar determined by errbar;</li>
+<li>&#8216;box&#8217;: median as colored line, 25%~75% quantile as box, mean as cross, outliers as circles;</li>
+<li>&#8216;violin&#8217;: median and distribution of values</li>
+</ul>
+</li>
+<li><strong>tf_legend</strong> &#8211; True/False flag, whether plot legend</li>
+<li><strong>tf_count</strong> &#8211; Trur/False flag, whether to show count of values for plot type [&#8216;bar&#8217;, &#8216;box&#8217;, &#8216;violin&#8217;]</li>
+<li><strong>values_name</strong> &#8211; text on plot, for values</li>
+<li><strong>x_name</strong> &#8211; text on plot, for x</li>
+<li><strong>c_name</strong> &#8211; text on plot, for colors</li>
+<li><strong>p_name</strong> &#8211; text on plot, for panels</li>
+<li><strong>title_text</strong> &#8211; text for title</li>
+<li><strong>errbar</strong> &#8211; <p>type of error bar, only used for bar plot, one of [&#8216;auto&#8217;, &#8216;std&#8217;, &#8216;se&#8217;, &#8216;binom&#8217;, &#8216;&#8217;], default to auto:</p>
+<ul>
+<li>&#8216;auto&#8217;:  if values are binary, use binom, otherwise, use se</li>
+<li>&#8216;std&#8217;:   standard deviation</li>
+<li>&#8216;se&#8217;:    standard error</li>
+<li>&#8216;binom&#8217;: binomial distribution confidence interval based on binom_alpha</li>
+<li>&#8216;&#8217;:      do not use error bar</li>
+</ul>
+</li>
+<li><strong>binom_alpha</strong> &#8211; alpha value for binomial distribution error bar (hpyothesis test for binary values), default = 0.05</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">handles of axes</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="topic">
+<p class="topic-title first">robust_csd</p>
+<span class="target" id="module-robust_csd"></span><dl class="function">
+<dt id="robust_csd.cal_1dCSD">
+<code class="descclassname">robust_csd.</code><code class="descname">cal_1dCSD</code><span class="sig-paren">(</span><em>lfp</em>, <em>axis_ch=0</em>, <em>tf_edge=False</em>, <em>spacing=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/robust_csd.html#cal_1dCSD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#robust_csd.cal_1dCSD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use 2nd order spatial derivative (the three point formula) to approximate 1D current source density (csd)
+csd[i] = -( lfp[i-1]+lfp[i+1]-2*lfp[i] )/spacing**2</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>lfp</strong> &#8211; lfp signal , by default [N_channels, N_timestamps]</li>
+<li><strong>axis_ch</strong> &#8211; axis of the channels, equals zero by default</li>
+<li><strong>tf_edge</strong> &#8211; true/false to interpolate the two channels on the edge, affect the shape of the result</li>
+<li><strong>spacing</strong> &#8211; inter-channel distance, a scalar, affect the scale of the CSD</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">csd, [N_channels, N_timestamps]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="robust_csd.cal_robust_csd">
+<code class="descclassname">robust_csd.</code><code class="descname">cal_robust_csd</code><span class="sig-paren">(</span><em>lfp</em>, <em>lambda_dev=1</em>, <em>lambda_der=1</em>, <em>sigma_t=0</em>, <em>tf_edge=False</em>, <em>spacing=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/robust_csd.html#cal_robust_csd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#robust_csd.cal_robust_csd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Robust estimation of CSD that deals with varied gain across channels. a wrapper funciton of cal_1dCSD() and lfp_robutst_smooth().</p>
+<p>FirstSmooth-out the varied gain of LFP signals across channels and deal with missing channels;
+Then, use 2nd order spatial derivative (the three point formula) to approximate 1D current source density (csd)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>lfp</strong> &#8211; lfp signal, 2D array, with shape == [num_chan, num_timestamps]</li>
+<li><strong>lambda_dev</strong> &#8211; coefficient of the deviation term   for the cost function, scalar or vector of length = number_channels
+range between 0 and 1. if channel [i] is noisy, set lambda_dev[i] small or just zero</li>
+<li><strong>lambda_der</strong> &#8211; coefficient of the derivative for the cost term, scalar.  Larger values leads to more smoothed result.</li>
+<li><strong>sigma_t</strong> &#8211; std for gaussian smoothing along time axis, set to 0 if do not smooth along time, the unit is number of timestampes</li>
+<li><strong>tf_edge</strong> &#8211; true/false to interpolate the two channels on the edge; if false, the two edge channel are set to nan</li>
+<li><strong>spacing</strong> &#8211; inter-channel distance, a scalar, affect the scale of the CSD</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">csd [N_channels, N_timestamps]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="robust_csd.lfp_robust_smooth">
+<code class="descclassname">robust_csd.</code><code class="descname">lfp_robust_smooth</code><span class="sig-paren">(</span><em>lfp</em>, <em>lambda_dev=1</em>, <em>lambda_der=1</em>, <em>sigma_t=0</em>, <em>tf_x0_inherent=True</em>, <em>tf_grad=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/robust_csd.html#lfp_robust_smooth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#robust_csd.lfp_robust_smooth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Smooth the lfp across channels for robust CSD estimation, to deal with slightly varied gain across channels.
+The smoothing algorithm is to minimize a cost function that considers</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>the deviation from the empirical data, and (2) the smoothness of the 2nd order derivative (CSD)</li>
+</ol>
+</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>lfp</strong> &#8211; lfp signal, 2D array, with shape == [num_chan, num_timestamps]</li>
+<li><strong>lambda_dev</strong> &#8211; coefficient of the deviation term   for the cost function, scalar or vector of length = number_channels
+range between 0 and 1. if channel [i] is noisy, set lambda_dev[i] small or just zero</li>
+<li><strong>lambda_der</strong> &#8211; coefficient of the derivative for the cost term, scalar.  Larger values leads to more smoothed result.</li>
+<li><strong>sigma_t</strong> &#8211; std for gaussian smoothing along time axis, set to 0 if do not smooth along time, the unit is number of timestampes</li>
+<li><strong>tf_x0_inherent</strong> &#8211; true/false using the result of previous time point as the initial point for optimization, defult to True, which speeds up computation</li>
+<li><strong>tf_grad</strong> &#8211; true/false to use analytical form of gradient, which significantly speeds up the computation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">lfp of the same shape, smoothed</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="topic">
+<p class="topic-title first">dg2df</p>
+<span class="target" id="module-dg2df"></span><dl class="function">
+<dt id="dg2df.dg2df">
+<code class="descclassname">dg2df.</code><code class="descname">dg2df</code><span class="sig-paren">(</span><em>dgfile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dg2df.html#dg2df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dg2df.dg2df" title="Permalink to this definition">¶</a></dt>
+<dd><p>convert DLSH stimdg file to Pandas DataFrame by using dgread module</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>dgfile</strong> &#8211; path to stimdg fle</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Pandas DataDf</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="dg2df.remove_short_columns">
+<code class="descclassname">dg2df.</code><code class="descname">remove_short_columns</code><span class="sig-paren">(</span><em>data_dg</em>, <em>f_verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dg2df.html#remove_short_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dg2df.remove_short_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>some columns in stimdg is shorter (e.g. contain only one row) than the majority of columns,
+but Panda DataFrame requires every column has the same length.  So we remove the short columns</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data_dg</strong> &#8211; stimdg object</li>
+<li><strong>f_verbose</strong> &#8211; if print out log</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">stimdg object with every column of the same length</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="topic">
+<p class="topic-title first">data_load_DLSH</p>
+<span class="target" id="module-data_load_DLSH"></span><p>funciton for loading data, designed specifically for the format/naming scheme in the Sheinberg lab at Brown University</p>
+<dl class="function">
+<dt id="data_load_DLSH.convert_name_to_unicode">
+<code class="descclassname">data_load_DLSH.</code><code class="descname">convert_name_to_unicode</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_load_DLSH.html#convert_name_to_unicode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_load_DLSH.convert_name_to_unicode" title="Permalink to this definition">¶</a></dt>
+<dd><p>convert the all names to unicode name: i.g. convert b&#8217;abcde123&#8217; to &#8216;abcde123&#8217;</p>
+<p>used for python3, input obj could be nay neo object, like Block, Segments, .etc</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_load_DLSH.get_file_name">
+<code class="descclassname">data_load_DLSH.</code><code class="descname">get_file_name</code><span class="sig-paren">(</span><em>keyword=None</em>, <em>keyword_tank=None</em>, <em>tf_interactive=False</em>, <em>tf_verbose=False</em>, <em>dir_tdt_tank='/shared/lab/projects/encounter/data/TDT/'</em>, <em>dir_dg='/shared/lab/projects/analysis/shaobo/data_dg'</em>, <em>mode='both'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_load_DLSH.html#get_file_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_load_DLSH.get_file_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>funciton to get the name of data files</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>keyword</strong> &#8211; key word for tdt blocks</li>
+<li><strong>keyword_tank</strong> &#8211; key word for tdt tanks</li>
+<li><strong>tf_interactive</strong> &#8211; flag for interactively selecting file</li>
+<li><strong>tf_verbose</strong> &#8211; flag for printing stuff</li>
+<li><strong>dir_tdt_tank</strong> &#8211; root directory for tdt tanks    (neural data)</li>
+<li><strong>dir_dg</strong> &#8211; root directory for stimdg files (behavioral data)</li>
+<li><strong>mode</strong> &#8211; &#8216;tdt&#8217;, &#8216;dg&#8217;, or &#8216;both&#8217;; default to &#8216;both&#8217;</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(name_tdt_blocks, path_tdt_tank)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_load_DLSH.get_ts_align">
+<code class="descclassname">data_load_DLSH.</code><code class="descname">get_ts_align</code><span class="sig-paren">(</span><em>blk</em>, <em>data_df</em>, <em>dg_name_obsid='obsid'</em>, <em>dg_tos_align='stimon'</em>, <em>dg_tof_obs='endobs'</em>, <em>neo_name_obson='obsv'</em>, <em>neo_name_obsoff='obs\\\\'</em>, <em>tf_align_test=True</em>, <em>thrhld_misalign=0.002</em>, <em>tf_trial_num_correction=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_load_DLSH.html#get_ts_align"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_load_DLSH.get_ts_align" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get onset timestamps of the alignment events (eg. StimOn), in the neo time frame</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>blk</strong> &#8211; neo block</li>
+<li><strong>data_df</strong> &#8211; pandas dataframe from stim dg</li>
+<li><strong>dg_name_obsid</strong> &#8211; in dg, the name of obs id (obs index for a row of data)</li>
+<li><strong>dg_tos_align</strong> &#8211; in dg, the time of alignment event onset</li>
+<li><strong>dg_tof_obs</strong> &#8211; in dg, the time of alignment evetn offset</li>
+<li><strong>neo_name_obson</strong> &#8211; in neo block, the name of obs  onset event</li>
+<li><strong>neo_name_obsoff</strong> &#8211; in neo block, the name of obs offset event</li>
+<li><strong>tf_align_test</strong> &#8211; true/false flag, if doing alignment test (based on obs duration)</li>
+<li><strong>thrhld_misalign</strong> &#8211; threshold for mis-alignment warning, in sec</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a list of arrays, each array contains the time stamps of the alignment event onset of a data file</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_load_DLSH.load_data">
+<code class="descclassname">data_load_DLSH.</code><code class="descname">load_data</code><span class="sig-paren">(</span><em>keyword=None</em>, <em>keyword_tank=None</em>, <em>dir_tdt_tank='/shared/lab/projects/encounter/data/TDT/'</em>, <em>dir_dg='/shared/lab/projects/analysis/shaobo/data_dg'</em>, <em>sortname='PLX'</em>, <em>tf_interactive=True</em>, <em>tf_verbose=True</em>, <em>mode='both'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_load_DLSH.html#load_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_load_DLSH.load_data" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>keyword</strong> &#8211; key word for tdt blocks</li>
+<li><strong>keyword_tank</strong> &#8211; key word for tdt tanks</li>
+<li><strong>dir_tdt_tank</strong> &#8211; root directory for tdt tanks    (neural data)</li>
+<li><strong>dir_dg</strong> &#8211; root directory for stimdg files (behavioral data)</li>
+<li><strong>sortname</strong> &#8211; name of sort code in TDT format</li>
+<li><strong>tf_interactive</strong> &#8211; flag for interactively selecting file</li>
+<li><strong>tf_verbose</strong> &#8211; flag for print intermediate results</li>
+<li><strong>mode</strong> &#8211; &#8216;tdt&#8217;, &#8216;dg&#8217;, or &#8216;both&#8217;; default to &#8216;both&#8217;</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(blk, data_df, name_datafiles)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_load_DLSH.red_text">
+<code class="descclassname">data_load_DLSH.</code><code class="descname">red_text</code><span class="sig-paren">(</span><em>str_in</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_load_DLSH.html#red_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_load_DLSH.red_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool function to set text font color to red, using ASCII
+:param str_in:  str
+:return:        str that will print in red</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_load_DLSH.standardize_blk">
+<code class="descclassname">data_load_DLSH.</code><code class="descname">standardize_blk</code><span class="sig-paren">(</span><em>blk</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_load_DLSH.html#standardize_blk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_load_DLSH.standardize_blk" title="Permalink to this definition">¶</a></dt>
+<dd><p>standardize neo neuro data, add channel_index and sort code to the annotation field</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>blk</strong> &#8211; neo block object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">neo block object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="data_load_DLSH.standardize_data_df">
+<code class="descclassname">data_load_DLSH.</code><code class="descname">standardize_data_df</code><span class="sig-paren">(</span><em>data_df</em>, <em>filename_common=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data_load_DLSH.html#standardize_data_df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#data_load_DLSH.standardize_data_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>add colums that is necessary for later analysis
+:param data_df:            pandas dataframe, where every row represent one trial
+:param filename_common:    filemane, used to check what colums to add
+:return:                   data_df, with extra columns</p>
+</dd></dl>
+
+</div>
+<div class="topic">
+<p class="topic-title first">misc_tools</p>
+<span class="target" id="module-misc_tools"></span><p>misc toool functions</p>
+<dl class="function">
+<dt id="misc_tools.get_time_string">
+<code class="descclassname">misc_tools.</code><code class="descname">get_time_string</code><span class="sig-paren">(</span><em>microsecond=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_tools.html#get_time_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_tools.get_time_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>get the current time string, returns &#8216;%Y_%m%d_%H%M%S_%f&#8217; or &#8216;%Y_%m%d_%H%M%S&#8217;</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>microsecond</strong> &#8211; True/False to keep milisecond</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">string, &#8216;2012_0901_195930_999&#8217; or &#8216;2012_0901_195930&#8217;</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_tools.index_bool2int">
+<code class="descclassname">misc_tools.</code><code class="descname">index_bool2int</code><span class="sig-paren">(</span><em>index_bool</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_tools.html#index_bool2int"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_tools.index_bool2int" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool function to transform bool index to int. e.g. turn [True, False, True] into [0, 2]</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>index_bool</strong> &#8211; bool index, like [True, False, True]</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">int index, like [0, 2]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_tools.index_int2bool">
+<code class="descclassname">misc_tools.</code><code class="descname">index_int2bool</code><span class="sig-paren">(</span><em>index_int</em>, <em>N=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_tools.html#index_int2bool"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_tools.index_int2bool" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool function to transform int index to bool. e.g. turn into [0, 2] into [True, False, True]</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>index_int</strong> &#8211; int index, like [0, 2]</li>
+<li><strong>N</strong> &#8211; length of boolean array</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">bool index, like [True, False, True]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_tools.red_text">
+<code class="descclassname">misc_tools.</code><code class="descname">red_text</code><span class="sig-paren">(</span><em>str_in</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_tools.html#red_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_tools.red_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>tool function to set text font color to red, using ASCII</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>str_in</strong> &#8211; str</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">str that will print in red</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="misc_tools.str_common">
+<code class="descclassname">misc_tools.</code><code class="descname">str_common</code><span class="sig-paren">(</span><em>list_of_strings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/misc_tools.html#str_common"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misc_tools.str_common" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get common char of a list of string, returns a string, with mis-match positions replaced using &#8220;_&#8221;
+e.g. str_common([&#8216;abc&#8217;,&#8217;adc&#8217;]) returns &#8216;a_c&#8217;</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>list_of_strings</strong> &#8211; a list of strings</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">PyNeuroSG 0.1.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Shaobo Guan, Ruobing Xia.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.6.
+    </div>
+  </body>
+</html>

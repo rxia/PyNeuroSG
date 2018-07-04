@@ -1,0 +1,497 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>signal_align &#8212; PyNeuroSG 0.1.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PyNeuroSG 0.1.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for signal_align</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This is an example for reading files with neo.io, and get psth</span>
+<span class="sd">Shaobo GUAN, Sheinberg lab, Brown University</span>
+<span class="sd">2016-0501</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">quantities</span> <span class="k">as</span> <span class="nn">pq</span>
+<span class="kn">import</span> <span class="nn">neo</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<div class="viewcode-block" id="signal_align_to_evt"><a class="viewcode-back" href="../index.html#signal_align.signal_align_to_evt">[docs]</a><span class="k">def</span> <span class="nf">signal_align_to_evt</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">evt_align_ts</span><span class="p">,</span> <span class="n">window_offset</span><span class="p">,</span> <span class="n">spike_bin_rate</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function break a single neo signal object according to given timestamps and align them together</span>
+
+<span class="sd">    used by funciton signal_array_align_to_evt()</span>
+<span class="sd">    </span>
+<span class="sd">    :param signal:         neo signal object, either neo.core.analogsignal.AnalogSignal or neo.core.spiketrain.SpikeTrain</span>
+<span class="sd">    :param evt_align_ts:   timestamps to align signal with, in sec</span>
+<span class="sd">    :param window_offset:  [t_start, t_stop], relative timestamps, in sec</span>
+<span class="sd">    :param spike_bin_rate: bin rate for spikes, default to 1000:</span>
+<span class="sd">    :return:               a dict {&#39;data&#39;: signal_aligned, &#39;ts&#39;: time_aligned, &#39;sampling_rate&#39;: sampling_rate}</span>
+
+<span class="sd">                           * data:          2D numpy array, [N_trials * N_ts_in_trial]</span>
+<span class="sd">                           * ts:            1D numpy array, in ts</span>
+<span class="sd">                           * sampling_rate: a florat number, in Hz</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># if evt_align_ts or window_offset does not have a unit, assume it is &#39;sec&#39;</span>
+    <span class="c1"># if pq.Quantity(evt_align_ts).simplified.units == pq.Quantity(1):</span>
+    <span class="n">evt_align_ts</span> <span class="o">=</span> <span class="n">pq</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">evt_align_ts</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span><span class="p">)</span>
+    <span class="c1"># if pq.Quantity(window_offset).simplified.units == pq.Quantity(1):</span>
+    <span class="n">window_offset</span> <span class="o">=</span> <span class="n">pq</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">window_offset</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span><span class="p">)</span>
+    <span class="n">num_evts</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">evt_align_ts</span><span class="p">)</span>
+    <span class="n">time_aligned</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">t_start</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">t_start</span>
+    <span class="n">sampling_rate</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">sampling_rate</span>
+
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span> <span class="o">==</span> <span class="n">neo</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">analogsignal</span><span class="o">.</span><span class="n">AnalogSignal</span><span class="p">:</span>
+        <span class="c1"># remove units from inputs</span>
+        <span class="n">t_start</span>       <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">t_start</span><span class="o">.</span><span class="n">simplified</span><span class="p">)</span>
+        <span class="n">sampling_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">sampling_rate</span><span class="o">.</span><span class="n">simplified</span><span class="p">)</span>
+        <span class="n">evt_align_ts</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">evt_align_ts</span><span class="o">.</span><span class="n">simplified</span><span class="p">)</span>
+        <span class="n">window_offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">window_offset</span><span class="o">.</span><span class="n">simplified</span><span class="p">)</span>
+
+        <span class="c1"># align using tool function</span>
+        <span class="n">result_aligned</span> <span class="o">=</span> <span class="n">align_continuous</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">t_start</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">,</span> <span class="n">evt_align_ts</span><span class="p">,</span> <span class="n">window_offset</span><span class="p">)</span>
+
+        <span class="n">signal_aligned</span> <span class="o">=</span> <span class="n">pq</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span> <span class="n">result_aligned</span><span class="p">[</span><span class="s1">&#39;signal_aligned&#39;</span><span class="p">],</span> <span class="s1">&#39;V&#39;</span> <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span> <span class="o">==</span> <span class="n">neo</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">spiketrain</span><span class="o">.</span><span class="n">SpikeTrain</span><span class="p">:</span>
+        <span class="k">if</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># old, if return real time stamps, rather than binned counts</span>
+            <span class="n">time_aligned</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">signal_aligned</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">num_evts</span><span class="p">,</span> <span class="nb">object</span><span class="p">)</span>
+            <span class="n">signal</span><span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pq</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span><span class="p">))</span>
+            <span class="n">evt_align_ts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">evt_align_ts</span><span class="p">)</span>
+            <span class="n">ts_window</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">evt_align_ts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">window_offset</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+            <span class="n">signal_aligned</span> <span class="o">=</span> <span class="p">[</span> <span class="n">signal</span><span class="p">[(</span><span class="n">signal</span><span class="o">&gt;</span><span class="n">ts_window</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="n">signal</span><span class="o">&lt;</span><span class="n">ts_window</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="mi">1</span><span class="p">])]</span> <span class="o">-</span> <span class="n">evt_align_ts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_evts</span><span class="p">)]</span>
+
+        <span class="n">t_start</span>       <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">t_start</span><span class="o">.</span><span class="n">simplified</span><span class="p">)</span>
+        <span class="n">t_stop</span>        <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">t_stop</span> <span class="o">.</span><span class="n">simplified</span><span class="p">)</span>
+        <span class="n">sampling_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span> <span class="n">pq</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">spike_bin_rate</span><span class="p">,</span>  <span class="s1">&#39;Hz&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">simplified</span><span class="p">)</span>
+        <span class="n">evt_align_ts</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">evt_align_ts</span><span class="o">.</span><span class="n">simplified</span><span class="p">)</span>
+        <span class="n">window_offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">window_offset</span><span class="o">.</span><span class="n">simplified</span><span class="p">)</span>
+        <span class="n">signal</span>        <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">simplified</span><span class="p">)</span>
+
+        <span class="n">num_bins</span> <span class="o">=</span> <span class="p">(</span><span class="n">t_stop</span> <span class="o">*</span> <span class="n">sampling_rate</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int&#39;</span><span class="p">)</span>
+        <span class="n">spk_binned</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">((</span><span class="n">signal</span><span class="o">-</span><span class="n">t_start</span><span class="p">)</span><span class="o">*</span><span class="n">sampling_rate</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int&#39;</span><span class="p">),</span> <span class="n">minlength</span><span class="o">=</span><span class="n">num_bins</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="n">num_bins</span><span class="p">]</span>
+        <span class="n">spk_binned</span> <span class="o">=</span> <span class="n">spk_binned</span> <span class="o">*</span> <span class="n">sampling_rate</span>
+
+        <span class="n">result_aligned</span> <span class="o">=</span> <span class="n">align_continuous</span><span class="p">(</span><span class="n">spk_binned</span><span class="p">,</span> <span class="n">t_start</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">,</span> <span class="n">evt_align_ts</span><span class="p">,</span> <span class="n">window_offset</span><span class="p">)</span>
+        <span class="n">signal_aligned</span> <span class="o">=</span> <span class="n">pq</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span> <span class="n">result_aligned</span><span class="p">[</span><span class="s1">&#39;signal_aligned&#39;</span><span class="p">],</span> <span class="s1">&#39;Hz&#39;</span> <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;input for function signal_align_to_evt is not recognizable, signal type: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">signal</span><span class="p">))</span>
+
+    <span class="n">time_aligned</span>   <span class="o">=</span> <span class="n">pq</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span> <span class="n">result_aligned</span><span class="p">[</span><span class="s1">&#39;time_aligned&#39;</span><span class="p">],</span> <span class="s1">&#39;s&#39;</span> <span class="p">)</span>
+    <span class="n">sampling_rate</span>  <span class="o">=</span> <span class="n">pq</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span> <span class="n">sampling_rate</span><span class="p">,</span> <span class="s1">&#39;Hz&#39;</span> <span class="p">)</span>
+
+    <span class="n">signal_aligned</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">signal_aligned</span><span class="p">)</span>
+    <span class="n">time_aligned</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">time_aligned</span><span class="p">)</span>
+    <span class="n">sampling_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sampling_rate</span><span class="p">)</span>
+
+
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">signal_aligned</span><span class="p">,</span> <span class="s1">&#39;ts&#39;</span><span class="p">:</span> <span class="n">time_aligned</span><span class="p">,</span> <span class="s1">&#39;sampling_rate&#39;</span><span class="p">:</span> <span class="n">sampling_rate</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="signal_array_align_to_evt"><a class="viewcode-back" href="../index.html#signal_align.signal_array_align_to_evt">[docs]</a><span class="k">def</span> <span class="nf">signal_array_align_to_evt</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">evt_align_ts</span><span class="p">,</span> <span class="n">window_offset</span><span class="p">,</span> <span class="n">type_filter</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">name_filter</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">chan_filter</span><span class="o">=</span><span class="p">[],</span> <span class="n">spike_bin_rate</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to break neo signal objects (in a segment) according to given timestamps and align them together</span>
+
+<span class="sd">    uses function signal_align_to_evt</span>
+
+<span class="sd">    :param segment:        neo segment object, contains analogsignals or spiketrain</span>
+<span class="sd">    :param evt_align_ts:   timestamps to align signal with, in sec</span>
+<span class="sd">    :param window_offset:  [t_start, t_stop], relative timestamps, in sec</span>
+<span class="sd">    :param type_filter:    regular expression, used to select signal types, eg., &#39;.*&#39;, spiketrains&#39; or &#39;analogsignals&#39;</span>
+<span class="sd">    :param name_filter:    regular expression, used to select signal names, eg., &#39;.*&#39;, &#39;.*Code[1-9]$&#39;, &#39;LFPs.*&#39;</span>
+<span class="sd">    :param chan_filter:    list that contains integers, used to select channels, eg. [], [0], range(1,32+1)</span>
+<span class="sd">    :param spike_bin_rate: bin rate for spikes, default to 1000</span>
+<span class="sd">    :return:               a dict {&#39;data&#39;: signal_aligned, &#39;ts&#39;: time_aligned, &#39;sampling_rate&#39;: sampling_rate}</span>
+
+<span class="sd">                            * data:          3D numpy array, [N_trials * N_ts_in_trial * N_signals]</span>
+<span class="sd">                            * ts:            1D numpy array, in ts</span>
+<span class="sd">                            * signal_info:   1D numpy array, N_signals * [(&#39;name&#39;, &#39;U32&#39;), (&#39;type&#39;, &#39;U32&#39;),</span>
+<span class="sd">                            (&#39;sampling_rate&#39;, float), (&#39;channel_index&#39;, int), (&#39;sort_code&#39;, int)]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">signal_name</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">signal_type</span>  <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">signal_aligned</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">signal_sampling_rate</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">signal_chan</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">signal_sortcode</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">ts</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">neo_data_object_types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;spiketrains&#39;</span><span class="p">,</span> <span class="s1">&#39;analogsignals&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">neo_data_object_type</span> <span class="ow">in</span> <span class="n">neo_data_object_types</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">type_filter</span><span class="p">,</span> <span class="n">neo_data_object_type</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">neo_data_object</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">neo_data_object_type</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chan_filter</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+                <span class="n">chan_filter</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span> <span class="nb">len</span><span class="p">(</span><span class="n">neo_data_object</span><span class="p">)</span><span class="o">*</span><span class="mi">1000</span> <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">neo_data_object</span><span class="p">)):</span>
+                <span class="n">cur_name</span> <span class="o">=</span> <span class="n">neo_data_object</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+                <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">name_filter</span><span class="p">,</span> <span class="n">cur_name</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">cur_chan</span> <span class="o">=</span> <span class="n">neo_data_object</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s1">&#39;channel_index&#39;</span><span class="p">]</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">cur_chan</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">if</span> <span class="n">cur_chan</span> <span class="ow">in</span> <span class="n">chan_filter</span><span class="p">:</span>
+                        <span class="n">signal_name</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cur_name</span><span class="p">)</span>
+                        <span class="n">signal_type</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">neo_data_object_type</span><span class="p">)</span>
+                        <span class="n">cur_signal_aligned</span> <span class="o">=</span> <span class="n">signal_align_to_evt</span><span class="p">(</span><span class="n">neo_data_object</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">evt_align_ts</span><span class="p">,</span> <span class="n">window_offset</span><span class="p">,</span> <span class="n">spike_bin_rate</span><span class="p">)</span>
+                        <span class="n">signal_aligned</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">cur_signal_aligned</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="p">)</span>
+                        <span class="n">signal_sampling_rate</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">cur_signal_aligned</span><span class="p">[</span><span class="s1">&#39;sampling_rate&#39;</span><span class="p">]</span> <span class="p">)</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">cur_chan</span> <span class="o">=</span> <span class="n">neo_data_object</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s1">&#39;channel_index&#39;</span><span class="p">]</span>
+                        <span class="k">except</span><span class="p">:</span>
+                            <span class="n">cur_chan</span> <span class="o">=</span> <span class="mi">0</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">cur_sortcode</span> <span class="o">=</span> <span class="n">neo_data_object</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s1">&#39;sort_code&#39;</span><span class="p">]</span>
+                        <span class="k">except</span><span class="p">:</span>
+                            <span class="n">cur_sortcode</span> <span class="o">=</span> <span class="mi">0</span>
+                        <span class="n">signal_chan</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cur_chan</span><span class="p">)</span>
+                        <span class="n">signal_sortcode</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cur_sortcode</span><span class="p">)</span>
+    <span class="n">signal_info</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">signal_name</span><span class="p">,</span> <span class="n">signal_type</span><span class="p">,</span> <span class="n">signal_sampling_rate</span><span class="p">,</span> <span class="n">signal_chan</span><span class="p">,</span> <span class="n">signal_sortcode</span><span class="p">))</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    signal_info = np.array( signal_info, dtype=[(&#39;name&#39;, &#39;S32&#39;),</span>
+<span class="sd">                                                (&#39;type&#39;, &#39;S32&#39;),</span>
+<span class="sd">                                                (&#39;sampling_rate&#39;, float),</span>
+<span class="sd">                                                (&#39;channel_index&#39;, int),</span>
+<span class="sd">                                                (&#39;sort_code&#39;, int)])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">signal_info</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">signal_info</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;U32&#39;</span><span class="p">),</span>
+                                               <span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;U32&#39;</span><span class="p">),</span>
+                                               <span class="p">(</span><span class="s1">&#39;sampling_rate&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">),</span>
+                                               <span class="p">(</span><span class="s1">&#39;channel_index&#39;</span><span class="p">,</span> <span class="s1">&#39;int&#39;</span><span class="p">),</span>
+                                               <span class="p">(</span><span class="s1">&#39;sort_code&#39;</span><span class="p">,</span> <span class="s1">&#39;int&#39;</span><span class="p">)])</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">signal_aligned</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;no signals in the segment match the selection filter for alignment&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;WARNING of function signal_array_align_to_evt: no signals in the segment match the selection filter for alignment&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">signal_sampling_rate</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>   <span class="c1"># if sampling rate is not unique, throw warning</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;signals are of different sampling rates, can not be combined:&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;WARNING of function signal_array_align_to_evt: signals are of different sampling rates, can not be combined:&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">signal_info</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>    <span class="c1"># if sampling rate is unique</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">dstack</span><span class="p">(</span><span class="n">signal_aligned</span><span class="p">)</span>   <span class="p">)</span>
+        <span class="n">ts</span>   <span class="o">=</span> <span class="n">cur_signal_aligned</span><span class="p">[</span><span class="s1">&#39;ts&#39;</span><span class="p">]</span>
+
+    <span class="c1"># spiketrain_names = [segment.spiketrains[i].name  for  ]</span>
+    <span class="c1">#</span>
+    <span class="c1"># signal_names = [segment.analogsignals[i].name for i in range(len(segment.analogsignals))]</span>
+    <span class="c1"># print signal_names</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">data</span><span class="p">,</span> <span class="s1">&#39;ts&#39;</span><span class="p">:</span> <span class="n">ts</span><span class="p">,</span> <span class="s1">&#39;signal_info&#39;</span><span class="p">:</span> <span class="n">signal_info</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="blk_align_to_evt"><a class="viewcode-back" href="../index.html#signal_align.blk_align_to_evt">[docs]</a><span class="k">def</span> <span class="nf">blk_align_to_evt</span><span class="p">(</span><span class="n">blk</span><span class="p">,</span> <span class="n">blk_evt_align_ts</span><span class="p">,</span> <span class="n">window_offset</span><span class="p">,</span> <span class="n">type_filter</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">name_filter</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">chan_filter</span><span class="o">=</span><span class="p">[],</span> <span class="n">spike_bin_rate</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to break neo signal objects (in a block contains multiple segments) according to given timestamps and align them together</span>
+
+<span class="sd">    uses function signal_array_align_to_evt</span>
+
+<span class="sd">    :param segment:        neo block object, contains multiple (N_seg) segments that contain analogsignals or spiketrain</span>
+<span class="sd">    :param evt_align_ts:   list of N_seg arrays that contain timestamps to align signal with, in sec</span>
+<span class="sd">    :param window_offset:  [t_start, t_stop], relative timestamps, in sec</span>
+<span class="sd">    :param type_filter:    regular expression, used to select signal types, eg., &#39;.*&#39;, spiketrains&#39; or &#39;analogsignals&#39;</span>
+<span class="sd">    :param name_filter:    regular expression, used to select signal names, eg., &#39;.*&#39;, &#39;.*Code[1-9]$&#39;, &#39;LFPs.*&#39;</span>
+<span class="sd">    :param chan_filter:    list that contains integers, used to select channels, eg. [], [0], range(1,32+1)</span>
+<span class="sd">    :param spike_bin_rate: bin rate for spikes, default to 1000</span>
+<span class="sd">    :return:               a dict {&#39;data&#39;: signal_aligned, &#39;ts&#39;: time_aligned, &#39;sampling_rate&#39;: sampling_rate}:</span>
+
+<span class="sd">                            * data:          3D numpy array, [N_trials * N_ts_in_trial * N_signals]</span>
+<span class="sd">                            * ts:            1D numpy array, in ts</span>
+<span class="sd">                            * signal_info:   1D numpy array, N_signals * [(&#39;name&#39;, &#39;U32&#39;), (&#39;type&#39;, &#39;U32&#39;),</span>
+<span class="sd">                            (&#39;sampling_rate&#39;, float), (&#39;channel_index&#39;, int), (&#39;sort_code&#39;, int)]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">data_neuro_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">blk</span><span class="o">.</span><span class="n">segments</span><span class="p">)):</span>
+        <span class="n">segment</span> <span class="o">=</span> <span class="n">blk</span><span class="o">.</span><span class="n">segments</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">evt_align_ts</span> <span class="o">=</span> <span class="n">blk_evt_align_ts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">data_neuro</span> <span class="o">=</span> <span class="n">signal_array_align_to_evt</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">evt_align_ts</span><span class="p">,</span> <span class="n">window_offset</span><span class="p">,</span> <span class="n">type_filter</span><span class="o">=</span><span class="n">type_filter</span><span class="p">,</span> <span class="n">name_filter</span><span class="o">=</span><span class="n">name_filter</span><span class="p">,</span> <span class="n">chan_filter</span><span class="o">=</span><span class="n">chan_filter</span><span class="p">,</span> <span class="n">spike_bin_rate</span><span class="o">=</span><span class="n">spike_bin_rate</span><span class="p">)</span>
+        <span class="n">data_neuro_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_neuro</span><span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot; to be worked on &quot;&quot;&quot;</span>
+    <span class="n">data_neuro</span> <span class="o">=</span> <span class="n">data_concatenate</span><span class="p">(</span><span class="n">data_neuro_list</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data_neuro</span></div>
+
+
+<div class="viewcode-block" id="data_concatenate"><a class="viewcode-back" href="../index.html#signal_align.data_concatenate">[docs]</a><span class="k">def</span> <span class="nf">data_concatenate</span><span class="p">(</span><span class="n">list_data_neuro</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tool function for blk_align_to_evt, make sure they contains the same number of signals</span>
+
+<span class="sd">    :param list_data_neuro:  a list of data_neuro</span>
+<span class="sd">    :return:                 concatenated data_neuro</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">data_neuro_all</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">data_neuro</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">list_data_neuro</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>                                 <span class="c1"># if the first block, copy it</span>
+            <span class="n">data_neuro_all</span> <span class="o">=</span> <span class="n">data_neuro</span>
+        <span class="k">else</span><span class="p">:</span>                                    <span class="c1"># for next incoming blocks</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;ts&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_neuro_all</span><span class="p">[</span><span class="s1">&#39;ts&#39;</span><span class="p">]):</span>   <span class="c1"># check if ts length matches, otherwise raise error</span>
+                <span class="c1"># check if signals match, if not match, fill the missing signal with all zeros</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span> <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">],</span> <span class="n">data_neuro_all</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">]</span> <span class="p">):</span>
+                    <span class="k">for</span> <span class="n">indx_signal_new</span><span class="p">,</span> <span class="n">signal_new</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">]):</span>      <span class="c1"># if emerging signal</span>
+                        <span class="k">if</span> <span class="n">signal_new</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data_neuro_all</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">]:</span>
+                            <span class="n">data_neuro_all</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">data_neuro_all</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">],</span> <span class="n">indx_signal_new</span><span class="p">,</span> <span class="n">signal_new</span><span class="p">)</span>
+                            <span class="n">data_neuro_all</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">data_neuro_all</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">],</span> <span class="n">indx_signal_new</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">indx_signal_old</span><span class="p">,</span> <span class="n">signal_old</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data_neuro_all</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">]):</span>  <span class="c1"># if mising signal</span>
+                        <span class="k">if</span> <span class="n">signal_old</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">]:</span>
+                            <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">],</span> <span class="n">indx_signal_old</span><span class="p">,</span> <span class="n">signal_old</span><span class="p">)</span>
+                            <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">],</span> <span class="n">indx_signal_old</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                <span class="c1"># concatenate</span>
+                <span class="n">data_neuro_all</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">data_neuro_all</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">],</span> <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;function data_concatenate can not work with data of different &quot;ts&quot; length&#39;</span><span class="p">)</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;function data_concatenate can not work with data of different &quot;ts&quot; length&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_neuro_all</span></div>
+
+
+<div class="viewcode-block" id="align_continuous"><a class="viewcode-back" href="../index.html#signal_align.align_continuous">[docs]</a><span class="k">def</span> <span class="nf">align_continuous</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">t_start</span><span class="p">,</span> <span class="n">sampling_rate</span><span class="p">,</span> <span class="n">evt_align_ts</span><span class="p">,</span> <span class="n">window_offset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tool function used by signal_align_to_evt</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># tool function to align continuous signals, all inputs do not have units</span>
+    <span class="n">signal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span>  <span class="c1"># make sure it is 1D array</span>
+    <span class="n">indx_align</span> <span class="o">=</span> <span class="p">((</span> <span class="n">evt_align_ts</span> <span class="o">-</span> <span class="n">t_start</span> <span class="p">)</span> <span class="o">*</span> <span class="n">sampling_rate</span><span class="p">)</span> <span class="o">.</span><span class="n">round</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="c1"># get the offset indexes of start and stop</span>
+    <span class="n">indx_window_offset</span> <span class="o">=</span> <span class="p">(</span> <span class="n">window_offset</span> <span class="o">*</span> <span class="n">sampling_rate</span><span class="p">)</span> <span class="o">.</span><span class="n">round</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+
+    <span class="c1"># get indexes of all windows ( N_events * N_samples_per_window )</span>
+    <span class="n">indx_window</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">indx_align</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">+</span> \
+                    <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">indx_window_offset</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">indx_window_offset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># get timestamps of all frames</span>
+    <span class="n">time_aligned</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">indx_window_offset</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">indx_window_offset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="n">sampling_rate</span><span class="p">)</span>
+
+    <span class="c1"># get aligned signals, considering signal out of bound</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">signal_aligned</span> <span class="o">=</span> <span class="n">signal</span><span class="p">[</span><span class="n">indx_window</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>  <span class="c1"># if index out of range</span>
+        <span class="c1"># print warning message</span>
+        <span class="n">n_rows_out_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">indx_window</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">,</span> <span class="n">indx_window</span><span class="o">&gt;</span><span class="n">signal</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;function signal_align_to_evt() encounters </span><span class="si">{}</span><span class="s1"> events that are out of range&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_rows_out_range</span><span class="p">)</span> <span class="p">)</span>
+        <span class="c1"># clip the index into range [0, n-1], i.e., replace with the beginning/ending frame for out of range frames</span>
+        <span class="n">indx_window</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">indx_window</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">signal_aligned</span> <span class="o">=</span> <span class="n">signal</span><span class="p">[</span><span class="n">indx_window</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;signal_aligned&#39;</span><span class="p">:</span> <span class="n">signal_aligned</span><span class="p">,</span> <span class="s1">&#39;time_aligned&#39;</span><span class="p">:</span> <span class="n">time_aligned</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="select_signal"><a class="viewcode-back" href="../index.html#signal_align.select_signal">[docs]</a><span class="k">def</span> <span class="nf">select_signal</span><span class="p">(</span><span class="n">data_neuro</span><span class="p">,</span> <span class="n">indx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">chan_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sortcode_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Select a subset of channels from data_neuro</span>
+
+<span class="sd">    :param data_neuro:      data_neuro, see function signal_array_align_to_evt() for details</span>
+<span class="sd">    :param indx:            index of channels to select</span>
+<span class="sd">    :param name_filter:     if indx is None; used to select signal based on data_neuro[&#39;signal_info&#39;][i][&#39;name&#39;]</span>
+<span class="sd">    :param chan_filter:     if indx is None; used to select signal based on data_neuro[&#39;signal_info&#39;][i][&#39;channel_index&#39;]</span>
+<span class="sd">    :param sortcode_filter: if indx is None; used to select signal based on data_neuro[&#39;signal_info&#39;][i][&#39;sort_code&#39;]</span>
+<span class="sd">    :return:                data_neuro, with a subset of signals</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">N_signal</span> <span class="o">=</span> <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s1">&#39;signal_info&#39;</span> <span class="ow">in</span> <span class="n">data_neuro</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">N_signal0</span><span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">N_signal</span> <span class="o">!=</span> <span class="n">N_signal0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;data_neuro[&#39;data&#39;] and data_neuro[&#39;signal_info&#39;] show different number of signals&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">indx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>    <span class="c1"># if indx is not give, use name_filter, chan_filter and sortcode_filter to select</span>
+        <span class="n">indx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="kc">True</span><span class="p">]</span> <span class="o">*</span> <span class="n">N_signal</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name_filter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_signal</span><span class="p">):</span>
+                    <span class="n">cur_name</span> <span class="o">=</span> <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">name_filter</span><span class="p">,</span> <span class="n">cur_name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">indx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;name_filter not working properly&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">chan_filter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_signal</span><span class="p">):</span>
+                    <span class="n">cur_chan</span> <span class="o">=</span> <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;channel_index&#39;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">cur_chan</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">chan_filter</span><span class="p">:</span>
+                        <span class="n">indx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;chan_filter not working properly&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">sortcode_filter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_signal</span><span class="p">):</span>
+                    <span class="n">cur_sortcode</span> <span class="o">=</span> <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;sort_code&#39;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">cur_sortcode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sortcode_filter</span><span class="p">:</span>
+                        <span class="n">indx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;sortcode_filter not working properly&#39;</span><span class="p">)</span>
+
+    <span class="n">data_neuro_new</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">data_neuro</span><span class="p">)</span>
+    <span class="n">data_neuro_new</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][:,</span> <span class="p">:,</span> <span class="n">indx</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s1">&#39;signal_info&#39;</span> <span class="ow">in</span> <span class="n">data_neuro_new</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">data_neuro_new</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;signal_info&#39;</span><span class="p">][</span><span class="n">indx</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s1">&#39;signal_id&#39;</span> <span class="ow">in</span> <span class="n">data_neuro_new</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">data_neuro_new</span><span class="p">[</span><span class="s1">&#39;signal_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;signal_id&#39;</span><span class="p">][</span><span class="n">indx</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">data_neuro_new</span></div>
+
+
+<div class="viewcode-block" id="include_trial_info"><a class="viewcode-back" href="../index.html#signal_align.include_trial_info">[docs]</a><span class="k">def</span> <span class="nf">include_trial_info</span><span class="p">(</span><span class="n">data_neuro</span><span class="p">,</span> <span class="n">data_df</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    simple function to include data_df as data_neuro[&#39;trial_info&#39;], included in place for data_neuro</span>
+
+<span class="sd">    :param data_neuro: data_neuro, generated using blk_align_to_evt</span>
+<span class="sd">    :param data_df:    a pandas DataFrame, every row of which contains information of a trial</span>
+<span class="sd">    :return:           data_neuro</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data_neuro</span><span class="p">[</span><span class="s1">&#39;trial_info&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_df</span>
+    <span class="k">return</span> <span class="n">data_neuro</span></div>
+
+
+<div class="viewcode-block" id="neuro_sort"><a class="viewcode-back" href="../index.html#signal_align.neuro_sort">[docs]</a><span class="k">def</span> <span class="nf">neuro_sort</span><span class="p">(</span><span class="n">tlbl</span><span class="p">,</span> <span class="n">grpby</span><span class="o">=</span><span class="p">[],</span> <span class="n">fltr</span><span class="o">=</span><span class="p">[],</span> <span class="n">neuro</span><span class="o">=</span><span class="p">{}):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    funciton to sort a table arrording to some columns, returns the index of each condition</span>
+
+<span class="sd">    :param tlbl:   trial label, information of every trial, a pandas data frame</span>
+<span class="sd">    :param grpby:  group by   , list of string that specifies the columns to sort and group</span>
+<span class="sd">    :param fltr:   filter     , binary array of length N_trials for keeping/discarding the trials</span>
+<span class="sd">    :param neuro:  neural data, a dict, neuro[&#39;data&#39;] is a 3D array ( N_trials * len_window * N_signals )</span>
+<span class="sd">    :return:       ({&#39;grpby&#39;: grpby, &#39;fltr&#39;: fltr, &#39;cdtn&#39;: sorted(cdtn_indx.keys()), &#39;cdtn_indx&#39;: cdtn_indx})</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># process inputs</span>
+    <span class="k">if</span> <span class="n">grpby</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">grpby</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">fltr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fltr</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">fltr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fltr</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">grpby</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">grpby</span> <span class="o">=</span> <span class="p">[</span><span class="n">grpby</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fltr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">fltr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tlbl</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="c1"># use pandas to group</span>
+    <span class="n">cdtn_indx</span> <span class="o">=</span> <span class="n">tlbl</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">grpby</span><span class="p">)</span><span class="o">.</span><span class="n">indices</span>
+
+    <span class="c1"># filter the results by the binary mask of fltr</span>
+    <span class="n">indx_fltrd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">fltr</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">cdtn_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">cdtn_indx</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="n">cdtn_indx</span><span class="p">[</span><span class="n">cdtn_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">intersect1d</span><span class="p">(</span><span class="n">cdtn_indx</span><span class="p">[</span><span class="n">cdtn_name</span><span class="p">],</span> <span class="n">indx_fltrd</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cdtn_indx</span><span class="p">[</span><span class="n">cdtn_name</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">cdtn_indx</span><span class="p">[</span><span class="n">cdtn_name</span><span class="p">]</span>
+    <span class="n">neuro</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;grpby&#39;</span><span class="p">:</span> <span class="n">grpby</span><span class="p">,</span> <span class="s1">&#39;fltr&#39;</span><span class="p">:</span> <span class="n">fltr</span><span class="p">,</span> <span class="s1">&#39;cdtn&#39;</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">cdtn_indx</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="s1">&#39;cdtn_indx&#39;</span><span class="p">:</span> <span class="n">cdtn_indx</span><span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">neuro</span></div>
+
+
+<div class="viewcode-block" id="data3Dto2D"><a class="viewcode-back" href="../index.html#signal_align.data3Dto2D">[docs]</a><span class="k">def</span> <span class="nf">data3Dto2D</span><span class="p">(</span><span class="n">data3D</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    data3D to data2D, move the last dimension to stack vertically</span>
+
+<span class="sd">    :param data3D:  np array: [N_trials * N_ts * N_signals]</span>
+<span class="sd">    :return:        np array: [(N_trials*N_signals) * N_ts ]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="p">[</span><span class="n">N1</span><span class="p">,</span> <span class="n">N2</span><span class="p">,</span> <span class="n">N3</span><span class="p">]</span> <span class="o">=</span> <span class="n">data3D</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">data3D</span><span class="p">[:,:,</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N3</span><span class="p">))</span></div>
+
+
+<span class="c1"># ==================== Some test script  ====================</span>
+<span class="c1"># to test</span>
+<span class="k">if</span> <span class="kc">False</span><span class="p">:</span>
+    <span class="n">test_analog_signal</span> <span class="o">=</span> <span class="n">neo</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">AnalogSignal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10000</span><span class="p">),</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;mV&#39;</span><span class="p">,</span> <span class="n">sampling_rate</span> <span class="o">=</span> <span class="mi">1000</span><span class="o">*</span><span class="n">pq</span><span class="o">.</span><span class="n">Hz</span><span class="p">)</span>
+    <span class="n">test_evt_align_ts</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span><span class="o">*</span><span class="mi">20</span> <span class="o">*</span><span class="n">pq</span><span class="o">.</span><span class="n">sec</span>
+    <span class="n">test_window_offset</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.2</span><span class="p">]</span> <span class="o">*</span> <span class="n">pq</span><span class="o">.</span><span class="n">sec</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">();</span> <span class="n">ch</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">temp</span> <span class="o">=</span>  <span class="n">signal_align_to_evt</span><span class="p">(</span><span class="n">test_analog_signal</span><span class="p">,</span> <span class="n">test_evt_align_ts</span><span class="p">,</span> <span class="n">test_window_offset</span><span class="p">);</span> <span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t</span><span class="p">;</span> <span class="nb">print</span><span class="p">(</span><span class="n">elapsed</span><span class="p">)</span>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PyNeuroSG 0.1.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Shaobo Guan, Ruobing Xia.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.6.
+    </div>
+  </body>
+</html>
