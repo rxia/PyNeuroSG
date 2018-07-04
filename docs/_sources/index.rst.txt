@@ -24,26 +24,44 @@ Indices and tables
 Modules
 ==================
 
-.. automodule:: signal_align
-   :members:
+.. topic:: signal_align
 
-.. automodule:: PyNeuroAna
-   :members:
+   .. automodule:: signal_align
+      :members:
 
-.. automodule:: PyNeuroPlot
-   :members:
+.. topic:: PyNeuroAna
 
-.. automodule:: df_ana
-   :members:
+   .. automodule:: PyNeuroAna
+      :members:
 
-.. automodule:: robust_csd
-   :members:
+.. topic:: PyNeuroPlot
 
-.. automodule:: dg2df
-   :members:
+   .. automodule:: PyNeuroPlot
+      :members:
 
-.. automodule:: data_load_DLSH
-   :members:
+.. topic:: df_ana
 
-.. automodule:: misc_tools
-   :members:
+   .. automodule:: df_ana
+      :members:
+
+.. topic:: robust_csd
+
+   .. automodule:: robust_csd
+      :members:
+
+.. topic:: dg2df
+
+   .. automodule:: dg2df
+      :members:
+
+.. topic:: data_load_DLSH
+
+   .. automodule:: data_load_DLSH
+      :members:
+
+.. topic:: misc_tools
+
+   .. automodule:: misc_tools
+      :members:
+
+

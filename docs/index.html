@@ -8,7 +8,7 @@
     
     <title>Welcome to PyNeuroSG’s documentation! &#8212; PyNeuroSG 0.1.1 documentation</title>
     
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
@@ -26,16 +26,49 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-   
-  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
-
+    <link rel="search" title="Search" href="search.html" /> 
   </head>
   <body role="document">
-  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">PyNeuroSG 0.1.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Welcome to PyNeuroSG&#8217;s documentation!</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+<li><a class="reference internal" href="#modules">Modules</a></li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
 
     <div class="document">
       <div class="documentwrapper">
@@ -55,9 +88,11 @@
 <li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
 </ul>
 </div>
-<div class="section" id="module-signal_align">
-<span id="modules"></span><h1>Modules<a class="headerlink" href="#module-signal_align" title="Permalink to this headline">¶</a></h1>
-<p>This is an example for reading files with neo.io, and get psth
+<div class="section" id="modules">
+<h1>Modules<a class="headerlink" href="#modules" title="Permalink to this headline">¶</a></h1>
+<div class="topic">
+<p class="topic-title first">signal_align</p>
+<span class="target" id="module-signal_align"></span><p>This is an example for reading files with neo.io, and get psth
 Shaobo GUAN, Sheinberg lab, Brown University
 2016-0501</p>
 <dl class="function">
@@ -264,6 +299,9 @@ Shaobo GUAN, Sheinberg lab, Brown University
 </table>
 </dd></dl>
 
+</div>
+<div class="topic">
+<p class="topic-title first">PyNeuroAna</p>
 <span class="target" id="module-PyNeuroAna"></span><dl class="function">
 <dt id="PyNeuroAna.AveOverTime">
 <code class="descclassname">PyNeuroAna.</code><code class="descname">AveOverTime</code><span class="sig-paren">(</span><em>data</em>, <em>t_range=None</em>, <em>ts=None</em>, <em>t_axis=1</em>, <em>tf_count=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroAna.html#AveOverTime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroAna.AveOverTime" title="Permalink to this definition">¶</a></dt>
@@ -929,6 +967,9 @@ Quadratic smoothing using continuous (2nd-order) derivative assumption, used to 
 </table>
 </dd></dl>
 
+</div>
+<div class="topic">
+<p class="topic-title first">PyNeuroPlot</p>
 <span class="target" id="module-PyNeuroPlot"></span><dl class="function">
 <dt id="PyNeuroPlot.AutoRowCol">
 <code class="descclassname">PyNeuroPlot.</code><code class="descname">AutoRowCol</code><span class="sig-paren">(</span><em>N</em>, <em>nrow=None</em>, <em>ncol=None</em>, <em>aspect=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/PyNeuroPlot.html#AutoRowCol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyNeuroPlot.AutoRowCol" title="Permalink to this definition">¶</a></dt>
@@ -1586,6 +1627,9 @@ if cdtn is 1D, automatically decide row and column; if 2D, use dim0 as rows and 
 </table>
 </dd></dl>
 
+</div>
+<div class="topic">
+<p class="topic-title first">df_ana</p>
 <span class="target" id="module-df_ana"></span><p>functions related to df (pandas DataFrames): selection, grouping, plotting</p>
 <dl class="function">
 <dt id="df_ana.DfGroupby">
@@ -1728,6 +1772,9 @@ The input values, x, c and p can be viewed as columns from the same table</p>
 </table>
 </dd></dl>
 
+</div>
+<div class="topic">
+<p class="topic-title first">robust_csd</p>
 <span class="target" id="module-robust_csd"></span><dl class="function">
 <dt id="robust_csd.cal_1dCSD">
 <code class="descclassname">robust_csd.</code><code class="descname">cal_1dCSD</code><span class="sig-paren">(</span><em>lfp</em>, <em>axis_ch=0</em>, <em>tf_edge=False</em>, <em>spacing=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/robust_csd.html#cal_1dCSD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#robust_csd.cal_1dCSD" title="Permalink to this definition">¶</a></dt>
@@ -1812,6 +1859,9 @@ range between 0 and 1. if channel [i] is noisy, set lambda_dev[i] small or just 
 </table>
 </dd></dl>
 
+</div>
+<div class="topic">
+<p class="topic-title first">dg2df</p>
 <span class="target" id="module-dg2df"></span><dl class="function">
 <dt id="dg2df.dg2df">
 <code class="descclassname">dg2df.</code><code class="descname">dg2df</code><span class="sig-paren">(</span><em>dgfile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dg2df.html#dg2df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dg2df.dg2df" title="Permalink to this definition">¶</a></dt>
@@ -1850,6 +1900,9 @@ but Panda DataFrame requires every column has the same length.  So we remove the
 </table>
 </dd></dl>
 
+</div>
+<div class="topic">
+<p class="topic-title first">data_load_DLSH</p>
 <span class="target" id="module-data_load_DLSH"></span><p>funciton for loading data, designed specifically for the format/naming scheme in the Sheinberg lab at Brown University</p>
 <dl class="function">
 <dt id="data_load_DLSH.convert_name_to_unicode">
@@ -1971,6 +2024,9 @@ but Panda DataFrame requires every column has the same length.  So we remove the
 :return:                   data_df, with extra columns</p>
 </dd></dl>
 
+</div>
+<div class="topic">
+<p class="topic-title first">misc_tools</p>
 <span class="target" id="module-misc_tools"></span><p>misc toool functions</p>
 <dl class="function">
 <dt id="misc_tools.get_time_string">
@@ -2059,61 +2115,29 @@ e.g. str_common([&#8216;abc&#8217;,&#8217;adc&#8217;]) returns &#8216;a_c&#8217;
 </dd></dl>
 
 </div>
+</div>
 
 
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-  <h3><a href="#">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Welcome to PyNeuroSG&#8217;s documentation!</a></li>
-<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
-<li><a class="reference internal" href="#module-signal_align">Modules</a></li>
-</ul>
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="#">Documentation overview</a><ul>
-  </ul></li>
-</ul>
-</div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/index.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
-    <form class="search" action="search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
-    </form>
-</div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
-        </div>
-      </div>
       <div class="clearer"></div>
     </div>
-    <div class="footer">
-      &copy;2018, Shaobo Guan, Ruobing Xia.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
-      
-      |
-      <a href="_sources/index.rst.txt"
-          rel="nofollow">Page source</a>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">PyNeuroSG 0.1.1 documentation</a> &#187;</li> 
+      </ul>
     </div>
-
-    
-
-    
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Shaobo Guan, Ruobing Xia.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.6.
+    </div>
   </body>
 </html>
