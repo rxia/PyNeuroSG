@@ -34,4 +34,3 @@ The core data is a 3D array of shape `[number_of_trials, number_of_timestamps, n
 * For detailed usage of a particular function, just check the doc string by `help(function_of_interest)`
   
 
-  
