@@ -6,6 +6,13 @@ import datetime
 import numpy as np
 
 def get_time_string(microsecond=True):
+    """
+    get the current time string, returns '%Y_%m%d_%H%M%S_%f' or '%Y_%m%d_%H%M%S'
+
+    :param microsecond: True/False to keep milisecond
+    :return:            string, '2012_0901_195930_999' or '2012_0901_195930'
+    """
+
     if microsecond:
         str_datatime = datetime.datetime.now().strftime('%Y_%m%d_%H%M%S_%f')
     else:
@@ -17,6 +24,7 @@ def str_common(list_of_strings):
     """
     Get common char of a list of string, returns a string, with mis-match positions replaced using "_"
     e.g. str_common(['abc','adc']) returns 'a_c'
+
     :param list_of_strings: a list of strings
     :return:  a string
     """
@@ -34,6 +42,7 @@ def str_common(list_of_strings):
 def red_text(str_in):
     """
     tool function to set text font color to red, using ASCII
+
     :param str_in:  str
     :return:        str that will print in red
     """
