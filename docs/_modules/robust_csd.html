@@ -1,0 +1,237 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>robust_csd &#8212; PyNeuroSG 0.1.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for robust_csd</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy</span> <span class="k">as</span> <span class="nn">sp</span>
+<span class="kn">import</span> <span class="nn">scipy.optimize</span> <span class="k">as</span> <span class="nn">optimize</span>
+
+<div class="viewcode-block" id="cal_robust_csd"><a class="viewcode-back" href="../index.html#robust_csd.cal_robust_csd">[docs]</a><span class="k">def</span> <span class="nf">cal_robust_csd</span><span class="p">(</span><span class="n">lfp</span><span class="p">,</span> <span class="n">lambda_dev</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">lambda_der</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sigma_t</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">tf_edge</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">spacing</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Robust estimation of CSD that deals with varied gain across channels. a wrapper funciton of cal_1dCSD() and lfp_robutst_smooth().</span>
+
+<span class="sd">    FirstSmooth-out the varied gain of LFP signals across channels and deal with missing channels;</span>
+<span class="sd">    Then, use 2nd order spatial derivative (the three point formula) to approximate 1D current source density (csd)</span>
+
+<span class="sd">    :param lfp:        lfp signal, 2D array, with shape == [num_chan, num_timestamps]</span>
+<span class="sd">    :param lambda_dev: coefficient of the deviation term   for the cost function, scalar or vector of length = number_channels</span>
+<span class="sd">                            range between 0 and 1. if channel [i] is noisy, set lambda_dev[i] small or just zero</span>
+<span class="sd">    :param lambda_der: coefficient of the derivative for the cost term, scalar.  Larger values leads to more smoothed result.</span>
+<span class="sd">    :param sigma_t:    std for gaussian smoothing along time axis, set to 0 if do not smooth along time, the unit is number of timestampes</span>
+<span class="sd">    :param tf_edge:    true/false to interpolate the two channels on the edge; if false, the two edge channel are set to nan</span>
+<span class="sd">    :param spacing:    inter-channel distance, a scalar, affect the scale of the CSD</span>
+<span class="sd">    :return:        csd [N_channels, N_timestamps]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># smooth lfp using function lfp_robust_smooth()</span>
+    <span class="n">lfp_smooth</span> <span class="o">=</span> <span class="n">lfp_robust_smooth</span><span class="p">(</span><span class="n">lfp</span><span class="p">,</span> <span class="n">lambda_dev</span><span class="o">=</span><span class="n">lambda_dev</span><span class="p">,</span> <span class="n">lambda_der</span><span class="o">=</span><span class="n">lambda_der</span><span class="p">,</span> <span class="n">sigma_t</span><span class="o">=</span><span class="n">sigma_t</span><span class="p">)</span>
+    <span class="c1"># compute CSD using function cal_1dCSD()</span>
+    <span class="n">csd</span> <span class="o">=</span> <span class="n">cal_1dCSD</span><span class="p">(</span><span class="n">lfp_smooth</span><span class="p">,</span> <span class="n">axis_ch</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">tf_edge</span><span class="o">=</span><span class="n">tf_edge</span><span class="p">,</span> <span class="n">spacing</span><span class="o">=</span><span class="n">spacing</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">csd</span></div>
+
+
+
+<div class="viewcode-block" id="cal_1dCSD"><a class="viewcode-back" href="../index.html#robust_csd.cal_1dCSD">[docs]</a><span class="k">def</span> <span class="nf">cal_1dCSD</span><span class="p">(</span><span class="n">lfp</span><span class="p">,</span> <span class="n">axis_ch</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">tf_edge</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">spacing</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Use 2nd order spatial derivative (the three point formula) to approximate 1D current source density (csd)</span>
+<span class="sd">    csd[i] = -( lfp[i-1]+lfp[i+1]-2*lfp[i] )/spacing**2</span>
+
+<span class="sd">    :param lfp:     lfp signal , by default [N_channels, N_timestamps]</span>
+<span class="sd">    :param axis_ch: axis of the channels, equals zero by default</span>
+<span class="sd">    :param tf_edge: true/false to interpolate the two channels on the edge, affect the shape of the result</span>
+<span class="sd">    :param spacing: inter-channel distance, a scalar, affect the scale of the CSD</span>
+<span class="sd">    :return:        csd, [N_channels, N_timestamps]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">lfp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">axis_ch</span><span class="p">]</span>    <span class="c1"># num of channels</span>
+    <span class="n">csd</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">lfp</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis_ch</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis_ch</span><span class="p">)</span><span class="o">/</span><span class="n">spacing</span><span class="o">**</span><span class="mi">2</span>   <span class="c1"># calculate csd using the three point formula</span>
+    <span class="k">if</span> <span class="n">tf_edge</span><span class="p">:</span>    <span class="c1"># interpolate channels on the edge</span>
+        <span class="n">csd_edge_l</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">csd</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis_ch</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">csd</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis_ch</span><span class="p">)</span>
+        <span class="n">csd_edge_r</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">csd</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis_ch</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">csd</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis_ch</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">csd_edge_l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">csd</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis_ch</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">csd_edge_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">csd</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis_ch</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">csd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">csd_edge_l</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis_ch</span><span class="p">),</span> <span class="n">csd</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">csd_edge_r</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis_ch</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis_ch</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">csd</span></div>
+
+
+<div class="viewcode-block" id="lfp_robust_smooth"><a class="viewcode-back" href="../index.html#robust_csd.lfp_robust_smooth">[docs]</a><span class="k">def</span> <span class="nf">lfp_robust_smooth</span><span class="p">(</span><span class="n">lfp</span><span class="p">,</span> <span class="n">lambda_dev</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">lambda_der</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sigma_t</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">tf_x0_inherent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tf_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Smooth the lfp across channels for robust CSD estimation, to deal with slightly varied gain across channels.</span>
+<span class="sd">    The smoothing algorithm is to minimize a cost function that considers</span>
+<span class="sd">      (1) the deviation from the empirical data, and (2) the smoothness of the 2nd order derivative (CSD)</span>
+
+<span class="sd">    :param lfp:        lfp signal, 2D array, with shape == [num_chan, num_timestamps]</span>
+<span class="sd">    :param lambda_dev: coefficient of the deviation term   for the cost function, scalar or vector of length = number_channels</span>
+<span class="sd">                            range between 0 and 1. if channel [i] is noisy, set lambda_dev[i] small or just zero</span>
+<span class="sd">    :param lambda_der: coefficient of the derivative for the cost term, scalar.  Larger values leads to more smoothed result.</span>
+<span class="sd">    :param sigma_t:    std for gaussian smoothing along time axis, set to 0 if do not smooth along time, the unit is number of timestampes</span>
+<span class="sd">    :param tf_x0_inherent:    true/false using the result of previous time point as the initial point for optimization, defult to True, which speeds up computation</span>
+<span class="sd">    :param tf_grad:    true/false to use analytical form of gradient, which significantly speeds up the computation</span>
+<span class="sd">    :return:           lfp of the same shape, smoothed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="sd">&quot;&quot;&quot; get the shape of data.  N: number of channels; T: number of timestamps &quot;&quot;&quot;</span>
+    <span class="n">input_dimention</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lfp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">input_dimention</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>      <span class="c1"># if 1D, assumes it contains only 1 timestamps</span>
+        <span class="n">lfp</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">lfp</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">N</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="n">lfp</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">elif</span> <span class="n">input_dimention</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">N</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="n">lfp</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;input lfp has to be 1D or 2D array&#39;</span><span class="p">)</span>
+
+    <span class="sd">&quot;&quot;&quot; normalize data for the convenience of optimation &quot;&quot;&quot;</span>
+    <span class="n">scale_lfp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanstd</span><span class="p">(</span><span class="n">lfp</span><span class="p">)</span>  <span class="c1"># used to normalize the data, convenient for optimization</span>
+    <span class="n">lfp_nmlz</span> <span class="o">=</span> <span class="n">lfp</span><span class="o">/</span><span class="n">scale_lfp</span>    <span class="c1"># normalized lfp</span>
+
+    <span class="sd">&quot;&quot;&quot; cost function &quot;&quot;&quot;</span>
+    <span class="n">lambda_dev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lambda_dev</span><span class="p">)</span>
+    <span class="n">lambda_der</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lambda_der</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">quad_cost</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        cost function where x is the variable and y is the target to be smoothed;</span>
+<span class="sd">        penalize when 1) x devetates from y and 2) x is not smooth</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="sd">&quot;&quot;&quot; dev (deviation) term: the smoothed data has to be similar with the original target data &quot;&quot;&quot;</span>
+        <span class="n">dev</span> <span class="o">=</span> <span class="n">x</span><span class="o">-</span><span class="n">y</span>
+        <span class="sd">&quot;&quot;&quot; der (derivative) term: the smoothed data has to be smooth across neighboring channels &quot;&quot;&quot;</span>
+        <span class="c1"># the 3rd spatial derivative has to be small if 2nd derivative (csd from lfp) is smooth</span>
+        <span class="n">der</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;valid&#39;</span><span class="p">)</span>   <span class="c1"># third order derivative</span>
+        <span class="sd">&quot;&quot;&quot; tocal cost is the summation of quadratic term of dev and der &quot;&quot;&quot;</span>
+        <span class="n">cost</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">lambda_dev</span><span class="o">*</span> <span class="n">dev</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">lambda_der</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">der</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cost</span>
+
+    <span class="sd">&quot;&quot;&quot; analytical gradient of cost function &quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot; use if tf_grad=True; otherwise compute gradient numerically, which can be slow &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">tf_grad</span><span class="p">:</span>
+        <span class="c1"># construct ker_der_matrix, for calculating the gradient of the der term (enforcing smoothness)</span>
+        <span class="n">ker_der</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">ker_der_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">N</span><span class="p">,</span><span class="n">N</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="o">-</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">ker_der_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ker_der</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="o">-</span><span class="mi">2</span><span class="p">):</span>
+            <span class="n">ker_der_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ker_der</span> <span class="o">*</span> <span class="p">(</span><span class="o">+</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">ker_der_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ker_der</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+            <span class="n">ker_der_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="o">-</span><span class="mi">3</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ker_der</span> <span class="o">*</span> <span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># finish constructing the ker_der_matrix</span>
+
+        <span class="k">def</span> <span class="nf">quad_cost_grad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;  analytical form of the gradient of the cost function &quot;&quot;&quot;</span>
+            <span class="n">grad_dev</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">lambda_dev</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span>
+            <span class="n">grad_der</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">lambda_der</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">ker_der_matrix</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">grad_dev</span> <span class="o">+</span> <span class="n">grad_der</span>
+
+    <span class="sd">&quot;&quot;&quot; options for the quadratic optimization process for smoothing LFP &quot;&quot;&quot;</span>
+    <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>        <span class="c1"># initial value</span>
+    <span class="n">tol</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">)</span>          <span class="c1"># termination criterion: smaller value leads to more accurate results but slower</span>
+    <span class="n">lfp_hat</span> <span class="o">=</span> <span class="n">lfp</span> <span class="o">*</span> <span class="mi">0</span>       <span class="c1"># place holder of the smoothed data</span>
+
+    <span class="sd">&quot;&quot;&quot; optimization process &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>      <span class="c1"># for every time point</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">lfp_nmlz</span><span class="p">[:,</span><span class="n">t</span><span class="p">]</span>                                                    <span class="c1"># lfp over all channels at current time</span>
+        <span class="n">fun_cost</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">quad_cost</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>                               <span class="c1"># cost function for the current LFPs</span>
+        <span class="n">fun_grad</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">quad_cost_grad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">))</span> <span class="k">if</span> <span class="n">tf_grad</span> <span class="k">else</span> <span class="kc">None</span>   <span class="c1"># gradient function</span>
+        <span class="c1"># optimization process</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">minimize</span><span class="p">(</span><span class="n">fun_cost</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="n">fun_grad</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">)</span>
+        <span class="n">lfp_hat</span><span class="p">[:,</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span>
+        <span class="k">if</span> <span class="n">tf_x0_inherent</span><span class="p">:</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span>
+
+    <span class="sd">&quot;&quot;&quot; smooth over time using gaussian kernel &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sigma_t</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">lfp_hat</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">ndimage</span><span class="o">.</span><span class="n">gaussian_filter1d</span><span class="p">(</span><span class="n">lfp_hat</span><span class="p">,</span> <span class="n">sigma_t</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="sd">&quot;&quot;&quot; put data back to its origianl range &quot;&quot;&quot;</span>
+    <span class="n">lfp_smooth</span> <span class="o">=</span> <span class="n">lfp_hat</span> <span class="o">*</span> <span class="n">scale_lfp</span>
+
+    <span class="k">if</span> <span class="n">input_dimention</span> <span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">lfp_smooth</span> <span class="o">=</span> <span class="n">lfp_smooth</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">lfp_smooth</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Shaobo Guan, Ruobing Xia.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

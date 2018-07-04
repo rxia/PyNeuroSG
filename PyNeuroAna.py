@@ -418,7 +418,7 @@ def gen_knl_series(ts=np.arange(-0.1, 1.0, 0.001), scale=0.5, N=5, spacing_facto
 
 
 
-def gen_delta_function_with_label(ts=np.arange(-0.2, 1.0, 0.01), t=np.zeros(1), y=np.ones(1),
+def gen_delta_function_with_label(ts=np.arange(-0.2, 1.0, 0.1), t=np.zeros(1), y=np.ones(1),
                        tf_y_ctgr=False, tf_return_ctgr=False):
     """
     generate delta function at time t and with label y for every trial on time grid ts
