@@ -42,7 +42,7 @@ Modules
 .. automodule:: dg2df
    :members:
 
-.. automodule:: data_load_DSLH
+.. automodule:: data_load_DLSH
    :members:
 
 .. automodule:: misc_tools

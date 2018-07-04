@@ -27,8 +27,23 @@ Modules
 .. automodule:: signal_align
    :members:
 
+.. automodule:: PyNeuroAna
+   :members:
+
 .. automodule:: PyNeuroPlot
    :members:
 
-.. automodule:: PyNeuroAna
+.. automodule:: df_ana
+   :members:
+
+.. automodule:: robust_csd
+   :members:
+
+.. automodule:: dg2df
+   :members:
+
+.. automodule:: data_load_DLSH
+   :members:
+
+.. automodule:: misc_tools
    :members:
