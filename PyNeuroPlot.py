@@ -1,3 +1,9 @@
+"""
+module to perform data visualization,
+including PSTH, tuning curve, stats, decoding, spectrum analysis, connectivity, etc
+"""
+
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import mpl_toolkits
@@ -9,8 +15,8 @@ import re
 import warnings
 
 import misc_tools
-import signal_align
 import df_ana
+import PyNeuroData as pnd
 import PyNeuroAna as pna
 
 mpl.style.use('ggplot')
@@ -479,7 +485,7 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
     cdtn_unq = None
     if len(data.shape) == 3:     # if data is 3D [N_trials * N_ts * N_signals]
         [N,T,S] = data.shape
-        data2D = signal_align.data3Dto2D(data)   # re-organize as 2D [(N_trials* N_signals) * N_ts ]
+        data2D = pnd.data3Dto2D(data)   # re-organize as 2D [(N_trials* N_signals) * N_ts ]
         if cdtn is None:                         # condition is the tag of the last dimension (e.g. signal name)
             cdtn = np.array([[i]*N for i in range(S)]).ravel()
         elif len(cdtn) == S:
@@ -587,7 +593,7 @@ def PsthPlotMultiPanel(data_neuro=None, index_signal=0,
     pnp.PsthPlot, pnp.CreateSubplotFromGroupby and df_ana.DfGroupby,
     data either provided by (data_neuro, index_signal) or (data2D, ts, data_df), the later one offers more control
 
-    :param data_neuro:   standard data_neuro structure, retured by signal_align.blk.align_to_event()
+    :param data_neuro:   standard data_neuro structure, retured by pnd.blk.align_to_event()
     :param index_signal: index of signal used to select data_neuro['data'][:, :, index_signal]
     :param data2D:       neural data of one signal/channel,  shape=[N_trials * N_ts]
     :param ts:           1D array containing timestamps for data (length is N_ts)
@@ -734,7 +740,7 @@ def DataNeuroSummaryPlot(data_neuro, sk_std=None, signal_type='auto', suptitle='
 
     Use data_neuro['cdtn'] to sort and group trials in to sub-panels, plot all signals in every sub-panel
 
-    :param data_neuro:  data_neuro structure, see moduel signal_align.blk_align_to_evt
+    :param data_neuro:  data_neuro structure, see moduel pnd.blk_align_to_evt
     :param sk_std:      smoothness kernel, if None, set automatically based on data type
     :param signal_type: 'spk', 'LFP' or 'auto'
     :param suptitle:    title of figure
@@ -782,7 +788,7 @@ def DataNeuroSummaryPlot(data_neuro, sk_std=None, signal_type='auto', suptitle='
 def PsthPlotCdtn(data_neuro, data_df, i_signal=0, grpby='', fltr=[], sk_std=None, subpanel='', tf_legend=False):
     """ Obsolete funciton """
 
-    data_neuro = signal_align.neuro_sort(data_df, grpby=grpby, fltr=fltr, neuro=data_neuro)
+    data_neuro = pnd.neuro_sort(data_df, grpby=grpby, fltr=fltr, neuro=data_neuro)
 
     ts = data_neuro['ts']
     # plot function for every panel

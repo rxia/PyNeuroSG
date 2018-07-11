@@ -31,6 +31,6 @@ The core data is a 3D array of shape `[number_of_trials, number_of_timestamps, n
 * A getting started guide can be found at [`/demo_script/Tutorial_0_Basic_Data_Structure_data_neuro.ipynb`](/demo_script/Tutorial_0_Basic_Data_Structure_data_neuro.ipynb)
 * A small proportion of implemented functionalities is demonstrated in tutorials, which can be found in [`/demo_script`](/demo_script)
 * More usages can be found in the folder [`day_note`](/day_note) and [`script`](/script)
-* For detailed usage of a particular function, go to the source code or the [documentation page](summitkwan.github.io/PyNeuroSG/), or just check the doc string by typing `help(module_or_function_of_interest)`
+* For detailed usage of a particular function, go to the source code or the [documentation page](https://summitkwan.github.io/PyNeuroSG/), or just check the doc string by typing `help(module_or_function_of_interest)`
   
 
