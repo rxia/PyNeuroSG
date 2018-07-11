@@ -1619,7 +1619,7 @@ def isSingle(x):
     else:
         return True
 
-def share_clim(h_ax, c_lim=None):
+def share_clim(h_ax, c_lim=None, cmap=None):
     """
     tool funciton to share clim (make sure c_lim of given axes are the same), call after plotting all images
 
@@ -1639,6 +1639,8 @@ def share_clim(h_ax, c_lim=None):
         plt.axes(ax)
         if plt.gci() is not None:
             plt.clim(c_lim)
+            if cmap is not None:
+                plt.set_cmap(cmap)
     return c_lim
 
 

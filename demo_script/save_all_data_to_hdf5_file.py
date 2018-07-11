@@ -122,3 +122,5 @@ for tankname in list_name_tanks:
         SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, h5_filepath)
     except:
         warnings.warn('tank {} cannot be processed'.format(tankname))
+
+store_hdf5.ShowH5(h5_filepath=h5_filepath)
