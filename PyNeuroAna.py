@@ -1,3 +1,8 @@
+"""
+module to perform data analysis,
+including PSTH, tuning curve, stats, decoding, spectrum analysis, connectivity, etc
+"""
+
 import numpy as np
 import scipy as sp
 import pandas as pd
@@ -88,7 +93,7 @@ def GroupWithoutAve(data_neuro, data=None):
     """
     for data_neuro object, get average response using the groupby information
 
-    :param data_neuro: data neuro object after signal_align.neuro_sort() function, contains 'cdtn' and 'cdtn_indx' which directs the grouping rule
+    :param data_neuro: data neuro object after PyNeuroData.neuro_sort() function, contains 'cdtn' and 'cdtn_indx' which directs the grouping rule
     :param data:       data, if not give, set to data_neuro['data].  It's zero-th dimension correspond to the index of data_neuro['cdtn_indx]
     :return:           data_groupave, e.g. array with the size of [num_cdtn * num_ts* num_chan]
     """
@@ -106,7 +111,7 @@ def GroupStat(data_neuro, data=None, axis=0, statfun='mean', **statfunargs):
     """
     for data_neuro object, get average response using the groupby information
 
-    :param data_neuro: data neuro object after signal_align.neuro_sort() function, contains 'cdtn' and 'cdtn_indx' which directs the grouping rule
+    :param data_neuro: data neuro object after PyNeuroData.neuro_sort() function, contains 'cdtn' and 'cdtn_indx' which directs the grouping rule
     :param data:       data, if not give, set to data_neuro['data].  It's zero-th dimension correspond to the index of data_neuro['cdtn_indx]
     :param statfun:    stat function to apply along axis, either strings in ['mean', 'std', 'median'] or function handels like np.min, note the function must contain axis argument
     :param statfunargs: any argument for statfun, e.g. q=20 for np.percentile
@@ -140,7 +145,7 @@ def GroupAve(data_neuro, data=None, axis=0, return_std=False):
     """
     for data_neuro object, get average response using the groupby information
 
-    :param data_neuro: data neuro object after signal_align.neuro_sort() function, contains 'cdtn' and 'cdtn_indx' which directs the grouping rule
+    :param data_neuro: data neuro object after PyNeuroData.neuro_sort() function, contains 'cdtn' and 'cdtn_indx' which directs the grouping rule
     :param data:       data, if not give, set to data_neuro['data].  It's zero-th dimension correspond to the index of data_neuro['cdtn_indx]
     :return:           data_groupave, e.g. array with the size of [num_cdtn * num_ts* num_chan]
     """
