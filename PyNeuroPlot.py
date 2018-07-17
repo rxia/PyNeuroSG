@@ -120,7 +120,7 @@ def ErpPlot_singlePanel(erp, ts=None, tf_inverse_color=False, cmap='coolwarm', c
     ax.set_ylim([N-0.5, -0.5])
 
 
-def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
+def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP", tlim=None):
     """
     ERP (event-evoked potential) plot
 
@@ -130,7 +130,9 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
 
                           * if None, assume linear layout,
                           * otherwise, use the the give array_layout in the format: {chan: (row, col)}
-    :param depth_linear:   a list of depth
+    :param depth_linear:  a list of depth
+    :param title:         a string of title
+    :tlim:                None (by default using the full data length) or a list of two elements
     :return:              figure handle
     """
     if type(data) is np.ndarray:
@@ -173,7 +175,10 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
                 h_axes_top.set_axis_bgcolor([0.95, 0.95, 0.95])
         except:
             pass
-        plt.xlim(ts[0],ts[-1])
+        if tlim is None:
+            plt.xlim(ts[0], ts[-1])
+        else:
+            plt.xlim(tlim[0],tlim[1])
         # plt.ylim( -(N_chan+2)*offset_plot_chan, -(0-3)*offset_plot_chan,  )
         plt.title(title)
         plt.xlabel('time from event onset (s)')
@@ -183,7 +188,10 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
         plt.pcolormesh(center2edge(ts), center2edge(np.arange(N_chan)+1) , np.array(array_erp), cmap=plt.get_cmap('coolwarm'))
         color_max = np.max(np.abs(np.array(array_erp)))
         plt.clim(-color_max, color_max)
-        plt.xlim(ts[0], ts[-1])
+        if tlim is None:
+            plt.xlim(ts[0], ts[-1])
+        else:
+            plt.xlim(tlim[0],tlim[1])
         plt.ylim( center2edge(np.arange(N_chan)+1)[0], center2edge(np.arange(N_chan)+1)[-1]  )
         plt.gca().invert_yaxis()
         plt.title(title)
@@ -200,7 +208,10 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
             plt.axes(h_axes[array_layout[ch_list[ch]]])
             plt.plot(ts, array_erp[ch, :], linewidth=2, color='dimgray')
             plt.text(0.1, 0.8, 'C{}'.format(ch_list[ch]), transform=plt.gca().transAxes, fontsize=10, bbox=text_props)
-        plt.xlim(ts[0], ts[-1])
+        if tlim is None:
+            plt.xlim(ts[0], ts[-1])
+        else:
+            plt.xlim(tlim[0],tlim[1])
 
         # axis appearance
         if False:
@@ -231,7 +242,7 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
     return h_fig, h_axes
 
 
-def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
+def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tlim=None, tf_scr_ctr=False,
            psth_overlay=True, t_scale=None, fr_scale=None, sk_std=None ):
     """
     plot RF using one single plot
@@ -240,6 +251,7 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
     :param indx_sgnl:   index of signal, i.e. the data_neuro['cdtn'][:,:,indx_sgnl] would be used for plotting
     :param data:        if not None, use the data instead of data_neuro['data'][:,:,indx_sgnl], a 2D array of shape [N_trials, N_ts]
     :param t_focus:     duration of time used to plot heatmap, e.g. [0.050, 0.200]
+    :param tlim:        duration of time used to plot psth overlay, e.g. [0.050, 0.200]
     :param tf_scr_ctr:  True/False, plot [0.0] point of screen
     :param psth_overlay:True/False overlay psth
     :param t_scale:     for psth overlay, duration of time (ts) to be mapped to unit 1 of space
@@ -260,13 +272,17 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
     if t_focus is None:
         t_focus = ts[[0,-1]]
 
+    if tlim is not None:
+        data = data[:,np.logical_and(ts>=tlim[0],ts<tlim[1])]
+        ts = ts[np.logical_and(ts>=tlim[0],ts<tlim[1])]
+
     # get x and y values
     x_grid = np.unique(np.array(data_neuro['cdtn'])[:,0])
     y_grid = np.unique(np.array(data_neuro['cdtn'])[:,1])
     x_spacing = np.mean(np.diff(x_grid))
     y_spacing = np.mean(np.diff(y_grid))
     if t_scale is None:
-        t_scale = ( data_neuro['ts'][-1] - data_neuro['ts'][0] )/x_spacing*1.1
+        t_scale = ( ts[-1] - ts[0] )/x_spacing*1.1
 
     fr_2D = np.zeros([len(x_grid),len(y_grid)])
     for i, xy in enumerate(data_neuro['cdtn']):
@@ -445,7 +461,7 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_c
 
 
 def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete',
-             tf_legend=False, xlabel=None, ylabel=None, legend_title=None):
+             colors=None, linestyles=None, tf_legend=False, xlabel=None, ylabel=None, legend_title=None):
     """
     funciton to plot psth with a raster panel on top of PSTH, works for both spike data and LFP data
 
@@ -465,6 +481,8 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
                         * if 'auto' : use data format to decide which plot to use
                         * if ''     : does not create subpanel
     :param color_style: 'discrete' or 'continuous'
+    :param colors:
+    :param linestyles:
     :param tf_legend:   boolean, true/false to plot legend
     :param x_label:     string
     :param y_label:     string
@@ -532,12 +550,16 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
         for k in range(M):
             psth_cdtn[k, :] = np.convolve(psth_cdtn[k, :], smooth_kernel, 'same')
 
-    colors = gen_distinct_colors(M, luminance=0.7, alpha=0.8, style=color_style)
+    if colors is None:
+        colors = gen_distinct_colors(M, luminance=0.7, alpha=0.8, style=color_style)
 
     """ ========== plot psth ========== """
     hl_lines = []
     for k, cdtn_k in enumerate(cdtn_unq):
-        hl_line, = plt.plot(ts, psth_cdtn[k, :], c=colors[k])
+        if linestyles is None:
+            hl_line, = plt.plot(ts, psth_cdtn[k, :], c=colors[k])
+        else:
+            hl_line, = plt.plot(ts, psth_cdtn[k, :], c=colors[k], linestyle=linestyles[k])
         hl_lines.append(hl_line)
 
     textprops = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
@@ -803,9 +825,9 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
     """
     plot power spectrogram or coherence-gram, input spcg could be [ N_t * N*f ] or [ N_trial * N_t * N*f ], real or complex
 
-    :param spcg:          2D numpy array, [ N_t * N*f ] or 3D numpy array [ N_trial * N_t * N*f ], either real or complex:
+    :param spcg:          2D numpy array, [ N_f * N_t ] or 3D numpy array [ N_trial * N_f * N*t ], either real or complex:
 
-                            * if [ N_trial * N_t * N*f ], average over trial and get [ N_t * N*f ]
+                            * if [ N_trial * N_f * N*t ], average over trial and get [ N_f * N*t ]
                             * if complex, plot spectrogram using its abs value, and plot quiver using the complex value
     :param spcg_t:        tick of time, length N_t
     :param spcg_f:        tick of frequency, length N_f
