@@ -362,7 +362,7 @@ def include_trial_info(data_neuro, data_df):
     return data_neuro
 
 
-def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}):
+def neuro_sort(tlbl=None, grpby=[], fltr=[], neuro={}):
     """
     funciton to sort a table arrording to some columns, returns the index of each condition
 
@@ -374,6 +374,8 @@ def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}):
     """
 
     # process inputs
+    if (tlbl is None) and (neuro is not None) and ('trial_info' in neuro):
+        tlbl = neuro['trial_info']
     if grpby is None:
         grpby = []
     if fltr is None:

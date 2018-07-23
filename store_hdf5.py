@@ -84,7 +84,6 @@ def ShowH5(h5_filepath='', h5_groups=[]):
             for key in list(obj.keys()):      # recursion
                 show_obj(obj[key], level)
 
-
     with h5py.File(h5_filepath, 'r') as hf:
         hf_cur = hf
         for level, h5_group in enumerate(h5_groups):
