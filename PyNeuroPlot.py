@@ -1575,7 +1575,7 @@ def prettyfloat(input, precision=2):
     return output
 
 
-def gen_distinct_colors(n, luminance=0.9, alpha=0.8, style='discrete'):
+def gen_distinct_colors(n, luminance=0.9, alpha=0.8, style='discrete', cm='rainbow'):
     """
     tool funciton to generate n distinct colors for plotting
 
@@ -1583,19 +1583,19 @@ def gen_distinct_colors(n, luminance=0.9, alpha=0.8, style='discrete'):
     :param luminance:  num between [0,1]
     :param alhpa:      num between [0,1]
     :param style:      sting, 'discrete', or 'continuous'
+    :param cm:      sting, 'discrete', or 'continuous'
     :return:           n*4 rgba color matrix
     """
 
+    assert style in ('discrete', 'continuous')
+    colormap = getattr(plt.cm, cm)
     if style == 'discrete':
         magic_number = 0.618  # from the golden ratio, to make colors evely distributed
         initial_number = 0.25
-        colors_ini = plt.cm.rainbow((initial_number + np.arange(n)) * magic_number % 1)
-    elif style == 'continuous':
-        colors_ini = plt.cm.rainbow( 1.0*np.arange(n)/n )
-    else:
-        magic_number = 0.618  # from the golden ratio, to make colors evely distributed
-        initial_number = 0.25
-        colors_ini = plt.cm.rainbow((initial_number + np.arange(n)) * magic_number % 1)
+        colors_ini = colormap((initial_number + np.arange(n)) * magic_number % 1)
+    else:    # style == 'continuous':
+        colors_ini = colormap( 1.0*np.arange(n)/(n-0.5) )
+
     return colors_ini* np.array([[luminance, luminance, luminance, alpha]])
 
 

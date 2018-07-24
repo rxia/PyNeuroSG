@@ -383,7 +383,6 @@ def GroupDataNeuro(data_neuro, data_df=None, groupby='', limit=None, tf_aggregat
 
     data_neuro['grpby'] = groupby
     data_neuro['fltr'] = limit
-    print(DfGroupbyResult)
     data_neuro['cdtn'] = sorted(list(DfGroupbyResult['idx'].keys()))
     data_neuro['cdtn_indx'] = DfGroupbyResult['idx']
     data_neuro['cdtn_order'] = DfGroupbyResult['order']
