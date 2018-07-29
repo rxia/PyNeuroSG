@@ -5,10 +5,12 @@ data generating part requires neo format for neuropysiologicla data; data stroag
 """
 
 import numpy as np
-import quantities as pq
-import neo
 import warnings
 import re
+import pandas as pd
+import quantities as pq
+import neo
+
 
 """ ==================== functions to generate data_neuro, data structure ==================== """
 
@@ -219,6 +221,7 @@ def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', nam
         data_neuro_list.append(data_neuro)
         """ to be worked on """
     data_neuro = data_concatenate(data_neuro_list)
+    data_neuro['signal_info'] = pd.DataFrame(data_neuro['signal_info'])
     return data_neuro
 
 
@@ -343,9 +346,15 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
     data_neuro_new = dict(data_neuro)
     data_neuro_new['data'] = data_neuro['data'][:, :, indx]
     if 'signal_info' in data_neuro_new.keys():
-        data_neuro_new['signal_info'] = data_neuro['signal_info'][indx]
-    if 'signal_id' in data_neuro_new.keys():
-        data_neuro_new['signal_id'] = data_neuro['signal_id'][indx]
+        if isinstance(data_neuro['signal_info'], np.ndarray):
+            data_neuro_new['signal_info'] = data_neuro['signal_info'][indx]
+        else:
+            data_neuro_new['signal_info'] = data_neuro['signal_info'].iloc[indx]
+    # if 'signal_id' in data_neuro_new.keys():
+    #     if isinstance(data_neuro['signal_info'], np.ndarray):
+    #         data_neuro_new['signal_id'] = data_neuro['signal_id'][indx]
+    #     else:
+    #         data_neuro_new['signal_id'] = data_neuro['signal_id'].iloc[indx]
 
     return data_neuro_new
 
