@@ -146,9 +146,9 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP", tl
         ch_list = np.arange(0,array_erp.shape[0])
     else:
         array_erp = np.mean(data['data'],axis=0).transpose()
-        if data['signal_info'][0][1] == 'spiketrains':
+        if data['signal_info']['type'][0] == 'spiketrains':
             ch_list = [int(data['signal_info'][i][0][4:6]) for i in range(len(data['signal_info']))]
-        elif data['signal_info'][0][1] == 'analogsignals':
+        elif data['signal_info']['type'][0] == 'analogsignals':
             ch_list = [int(data['signal_info'][i][0][5:7]) for i in range(len(data['signal_info']))]
     [N_chan, N_ts] = array_erp.shape
     if ts is None:
@@ -302,7 +302,7 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tlim=None, tf_scr_c
 
     if psth_overlay:
         # plt.figure()
-        plt.title(data_neuro['signal_info'][indx_sgnl]['name'])
+        plt.title(data_neuro['signal_info']['name'][indx_sgnl])
         plt.pcolormesh( center2edge(x_grid), center2edge(y_grid), fr_2D.transpose(), cmap='inferno')
 
         for i, xy in enumerate(data_neuro['cdtn']):
@@ -1033,7 +1033,7 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, max_trial=None, limit_gap
     if indx_chan is None:
         indx_chan = range(0, N_chan, limit_gap)
     data = np.take( data_neuro['data'], indx_chan,  axis=2)
-    signal_info = data_neuro['signal_info'][indx_chan]
+    signal_info = data_neuro['signal_info'].iloc[indx_chan]
     N_plot = len(indx_chan)
 
     # use only a subset of trials to speedup the function
@@ -1041,7 +1041,7 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, max_trial=None, limit_gap
         if max_trial < data.shape[0]:
             data = np.take( data, np.random.choice(range(data.shape[0]),max_trial, replace=False),  axis=0)
 
-    fs = data_neuro['signal_info'][0][2]
+    fs = data_neuro['signal_info']['sampling_rate'][0]
     t_ini = np.array(data_neuro['ts'][0])
 
     # compute spectrogram
@@ -1061,7 +1061,7 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, max_trial=None, limit_gap
                 plt.axes(h_ax[indx_row, indx_col])
                 h_plot_pow = SpectrogramPlot(spcg_all[indx_row], spcg_t, spcg_f, tf_log=True, f_lim=f_lim, time_baseline=None,
                                     rate_interp=8)
-                plt.text(0.03, 0.85, '{}'.format(signal_info[indx_row][0]), transform=plt.gca().transAxes, bbox=text_props)
+                plt.text(0.03, 0.85, '{}'.format(signal_info['name'][indx_row]), transform=plt.gca().transAxes, bbox=text_props)
             elif indx_row<indx_col:             # coherence on off diagonal panels
                 # compute coherence
                 [cohg, _, _] = pna.ComputeCoherogram(data[:, :, indx_row], data[:, :, indx_col], fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, f_lim=f_lim,
