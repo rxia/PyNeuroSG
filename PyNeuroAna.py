@@ -57,7 +57,6 @@ def SmoothTrace(data, sk_std=None, fs=1.0, ts=None, axis=1):
     return data_smooth
 
 
-
 def AveOverTime(data, t_range=None, ts=None, t_axis=1, tf_count=False):
     """
     smooth data using a gaussian kernel
@@ -87,6 +86,33 @@ def AveOverTime(data, t_range=None, ts=None, t_axis=1, tf_count=False):
         data_ave = np.round(data_ave/fs*len(indx_in_range))
 
     return data_ave
+
+
+def SpikeCountInWindow(data, window_size=1, fs=1.0, ts=None, axis=1):
+    """
+    count the number of spikes in sliding windown
+
+    :param data:    a N dimensional array, default to [num_trials * num_timestamps * num_channels]
+    :param sk_std:  smooth kernel (sk) standard deviation (std), default to None, do nothing
+    :param fs:      sampling frequency, default to 1 Hz
+    :param ts:      timestamps, an array, which can overwrite fs;   len(ts)==data.shape[axis] should hold,
+    :param axis:    a axis of data along which data will be smoothed
+    :return:        smoothed data of the same size
+    """
+
+    if ts is None:     # use fs to determine ts
+        ts = np.arange(0, data.shape[axis])*(1.0/fs)
+    else:              # use ts to determine fs
+        fs = 1.0/np.mean(np.diff(ts))
+
+    num_ts_per_window = int(window_size*fs)
+    if num_ts_per_window % 2 == 1:
+        num_ts_per_window +=1
+
+    # convolution using fftconvolve(), whihc is faster than convolve()
+    data_smooth = np.round(sp.ndimage.convolve1d(data, np.ones(num_ts_per_window), mode='reflect', axis=axis)/fs)
+
+    return data_smooth
 
 
 def GroupWithoutAve(data_neuro, data=None):
@@ -308,6 +334,41 @@ def cal_STA(X, Xt=None, ts=None, t_window=None, zero_point_zero = False):
 
     return (sta, t_sta, st)
 
+
+def normalize_across_signals(data, axis_signal=-1, axis_t=-2, method='soft',
+                             t_window=None, ts=None, thresh_soft=5):
+    """
+    normalize neural data across channels
+
+    :param data: numpy array
+    :param axis_signal: axis of the signal
+    :param t_window: [start, stop] of the window to compute response
+    :param ts:       timestamps
+    :return:         numpy array of the same size as data
+    """
+
+    axis_but_signal = list(range(len(data.shape)))
+    axis_but_signal.pop(axis_signal)
+
+    if t_window is not None:
+        t_keep = np.flatnonzero((ts>=t_window[0]) & (ts<t_window[1]))
+        data_select_t = np.take(data, t_keep, axis=axis_t)
+    else:
+        data_select_t = data
+
+    data_response = np.mean(data_select_t, axis=tuple(axis_but_signal))
+
+    if method == 'soft':
+        data_response = data_response + thresh_soft
+
+    reshape_dim = np.ones(len(data.shape), dtype='int')
+    reshape_dim[axis_signal] = -1
+
+    data_response = np.reshape(data_response, reshape_dim)
+
+    response_every_channel = data/data_response
+
+    return response_every_channel
 
 """ ========== CSD estimation related ========== """
 # moved to file robutst_csd.py

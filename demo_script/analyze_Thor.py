@@ -103,7 +103,7 @@ yn_keep_signal = np.ones(data_group_mean.shape[2]).astype('bool')
 for i, highlight in enumerate(plot_highlight):
     plt.axes(h_axes[i])
     plt.title(highlight)
-    for c in range(len(cdtn)):
+    for c in range(len(cdtn_name)):
         plt.plot(ts, data_group_mean[c][:, yn_keep_signal].mean(axis=1),
                  color=colors[c], linestyle=linestyles[c],
                  alpha=plot_highlight[highlight]['trace'][c])
@@ -130,7 +130,7 @@ std_visual_00_noise = psth_mean_00_noise[ts_visual].mean(axis=0)
 mean_visual_70_noise = psth_mean_70_noise[ts_visual].mean(axis=0)
 std_visual_70_noise = psth_var_70_noise[ts_visual].mean(axis=0)
 
-threhold_cohen_d = 0.2
+threhold_cohen_d = 0.4
 
 cohen_d_visual = (mean_visual_00_noise - mean_baseline) \
                  / np.sqrt((std_baseline**2 + std_visual_00_noise**2)/2)
@@ -269,7 +269,7 @@ plot_highlight['70']  = {'trace': [0,0,1,0,0,1], 'compare': [0,0,1,0,0]}
 h_fig, h_axes = plt.subplots(2, 3, figsize=(12,8))
 h_axes = np.ravel(h_axes)
 
-mode_keep_signal = 'noise_delay'
+mode_keep_signal = ''
 # mode_keep_signal = 'noise_delay'
 if mode_keep_signal == 'manual':
     yn_keep_signal = keep_final_manual
@@ -281,7 +281,7 @@ else:
 for i, highlight in enumerate(plot_highlight):
     plt.axes(h_axes[i])
     plt.title(highlight)
-    for c in range(len(cdtn)):
+    for c in range(len(cdtn_name)):
         plt.plot(ts, data_group_mean[c][:, yn_keep_signal].mean(axis=1),
                  color=colors[c], linestyle=linestyles[c],
                  alpha=plot_highlight[highlight]['trace'][c])
@@ -294,12 +294,15 @@ for i, highlight in enumerate(plot_highlight):
 """========== analysis of tuning vs dynamics =========="""
 
 list_psth_group_mean = []
+t_window = [0.050, 0.300]
 # list_psth_group_std = []
 list_signal = []
 list_cdtn = []
 sk_std = 0.010
 
-for datecode in list(tree_struct_hdf5.keys())[:1]:
+t_for_fr = (ts>=0.050) & (ts<0.350)
+
+for datecode in tree_struct_hdf5.keys():
     print(datecode)
     try:
         # get data
@@ -309,6 +312,7 @@ for datecode in list(tree_struct_hdf5.keys())[:1]:
 
         # smooth trace over time
         data_neuro['data'] = pna.SmoothTrace(data_neuro['data'], ts=data_neuro['ts'], sk_std=sk_std)
+        ts = data_neuro['ts']
 
         # get mean and std
         psth_group_mean = pna.GroupStat(data_neuro)
@@ -316,29 +320,257 @@ for datecode in list(tree_struct_hdf5.keys())[:1]:
         # sort stims by rank preference
         # cdtn = pd.DataFrame(data_neuro['cdtn'], columns=['stim_familiarized', 'mask_opacity_int', 'stim_sname'])
 
-        psth_group_rank = np.reshape(psth_group_mean, [2, 3, 10, data_neuro['data'].shape[1], data_neuro['data'].shape[2]])
+        psth_group_reshape = np.reshape(psth_group_mean, [2, 3, 10, data_neuro['data'].shape[1], data_neuro['data'].shape[2]])
+
+        psth_rank = psth_group_reshape * 0
+        for i_signal in range(data_neuro['data'].shape[2]):
+            image_rank_nov = np.argsort(np.mean(psth_group_reshape[0, 0, :, :, i_signal][:, t_for_fr], axis=1))[::-1]
+            image_rank_fam = np.argsort(np.mean(psth_group_reshape[1, 0, :, :, i_signal][:, t_for_fr], axis=1))[::-1]
+            psth_rank[0, :, :, :, i_signal] = psth_group_reshape[0, :, :, :, i_signal][:, image_rank_nov, :]
+            psth_rank[1, :, :, :, i_signal] = psth_group_reshape[1, :, :, :, i_signal][:, image_rank_fam, :]
 
         # get signal info
         signal_info = data_neuro['signal_info']
         signal_info['date'] = datecode
 
-        list_psth_group_mean.append(psth_group_mean)
-        list_psth_group_std.append(psth_group_std)
+        list_psth_group_mean.append(psth_rank)
         list_signal.append(signal_info)
     except:
         print('date {} can not be processed'.format(datecode))
 
+
 ##
-""" concatenate together """
-data_group_by_image_mean = np.concatenate(list_psth_group_mean, axis=2)
-data_group_by_image_std = np.concatenate(list_psth_group_std, axis=2)
-signal_all = pd.concat(list_signal).reset_index()
-ts = data_neuro['ts']
-cdtn = data_neuro['cdtn']
 
-signal_all = set_signal_id(signal_all)
+# mode_keep_signal = ''
+mode_keep_signal = 'noise_delay'
+if mode_keep_signal == 'manual':
+    yn_keep_signal = keep_final_manual
+elif mode_keep_signal == 'noise_delay':
+    yn_keep_signal = keep_noise_delay
+else:
+    yn_keep_signal = np.ones(data_group_mean.shape[2]).astype('bool')
 
-signal_all_spk = signal_all
+psth_rank_all = np.concatenate(list_psth_group_mean, axis=-1)
+
+psth_rank_norm = pna.normalize_across_signals(psth_rank_all, ts=ts, t_window=[0.050, 0.300])
+
+
+list_c = pnp.gen_distinct_colors(10, style='continuous')
+psth_rank_mean = np.mean(psth_rank_norm[:, :, :, :, yn_keep_signal], axis=4)
+
+
+h_fig, h_axes = plt.subplots(2, 3, sharex='all', sharey='all')
+for i_r in range(2):
+    for i_c in range(3):
+        plt.axes(h_axes[i_r, i_c])
+        for i in range(10):
+            plt.plot(ts, psth_rank_mean[i_r, i_c, i, :], c=list_c[i])
+plt.xlim([-0.05, 0.5])
+
+
+h_fig, h_axes = plt.subplots(2, 3, sharex='all', sharey='all')
+for i_r in range(2):
+    for i_c in range(3):
+        plt.axes(h_axes[i_r, i_c])
+        for i in range(10):
+            displacement = 10*np.mean(psth_rank_mean[i_r, i_c, i, :][(ts>=t_window[0]) & (ts<t_window[1])])
+            plt.plot(ts, psth_rank_mean[i_r, i_c, i, :] + displacement, c=list_c[i])
+plt.xlim([-0.05, 0.5])
+plt.ylim([4, 10])
+
+
+##
+""" plot overall data with only prefered image """
+
+colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9, style='continuous', cm='rainbow'),
+                    pnp.gen_distinct_colors(3, luminance=0.7, style='continuous', cm='rainbow')])
+linestyles = ['--', '--', '--', '-', '-', '-']
+cdtn_name = ['nov, 00', 'nov, 50', 'nov, 70', 'fam, 00', 'fam, 50', 'fam, 70']
+
+plot_highlight = dict()
+plot_highlight['all'] = {'trace': [1,1,1,1,1,1], 'compare': [0,0,0,1,0]}
+plot_highlight['nov'] = {'trace': [1,1,1,0,0,0], 'compare': [0,0,0,1,0]}
+plot_highlight['fam'] = {'trace': [0,0,0,1,1,1], 'compare': [0,0,0,0,1]}
+plot_highlight['00']  = {'trace': [1,0,0,1,0,0], 'compare': [1,0,0,0,0]}
+plot_highlight['50']  = {'trace': [0,1,0,0,1,0], 'compare': [0,1,0,0,0]}
+plot_highlight['70']  = {'trace': [0,0,1,0,0,1], 'compare': [0,0,1,0,0]}
+
+h_fig, h_axes = plt.subplots(2, 3, figsize=(12,8))
+h_axes = np.ravel(h_axes)
+
+# mode_keep_signal = ''
+mode_keep_signal = 'noise_delay'
+if mode_keep_signal == 'manual':
+    yn_keep_signal = keep_final_manual
+elif mode_keep_signal == 'noise_delay':
+    yn_keep_signal = keep_noise_delay
+else:
+    yn_keep_signal = np.ones(data_group_mean.shape[2]).astype('bool')
+
+for i, highlight in enumerate(plot_highlight):
+    plt.axes(h_axes[i])
+    plt.title(highlight)
+    for c in range(len(cdtn_name)):
+        plt.plot(ts, data_group_mean[c][:, yn_keep_signal].mean(axis=1),
+                 color=colors[c], linestyle=linestyles[c],
+                 alpha=plot_highlight[highlight]['trace'][c])
+    if i==0:
+        plt.legend(cdtn_name)
+
+
+
+##
+""" ========== plot tuning curve by condition ========== """
+t_window = [0.050, 0.150]
+t_for_fr = (ts >= 0.050) & (ts < 0.300)
+
+mode_keep_signal = 'noise_delay'
+# mode_keep_signal = 'noise_delay'
+if mode_keep_signal == 'manual':
+    yn_keep_signal = keep_final_manual
+elif mode_keep_signal == 'noise_delay':
+    yn_keep_signal = keep_noise_delay
+else:
+    yn_keep_signal = np.ones(data_group_mean.shape[2]).astype('bool')
+
+tuning_curve = np.mean(psth_rank_norm[:, :, :, t_for_fr, :], axis=3)
+tuning_curve_mean = np.mean(tuning_curve[:, :, :, yn_keep_signal], axis=-1)
+tuning_curve_std  = np.std(tuning_curve[:, :, :, yn_keep_signal], axis=-1)/np.sqrt(np.sum(yn_keep_signal))
+
+colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9, style='continuous', cm='rainbow'),
+                    pnp.gen_distinct_colors(3, luminance=0.7, style='continuous', cm='rainbow')])
+linestyles = ['--', '--', '--', '-', '-', '-']
+cdtn_name = ['nov, 00', 'nov, 50', 'nov, 70', 'fam, 00', 'fam, 50', 'fam, 70']
+
+h_fig, h_axes = plt.subplots(1, 3, sharex='all', sharey='all')
+
+plt.axes(h_axes[0])
+for i_r in range(2):
+    for i_c in range(3):
+        i = i_r * 3 + i_c
+        plt.fill_between(range(10),
+                         tuning_curve_mean[i_r, i_c, :] - tuning_curve_std[i_r, i_c, :],
+                         tuning_curve_mean[i_r, i_c, :] + tuning_curve_std[i_r, i_c, :],
+                         color=colors[i], linestyle=linestyles[i], alpha=0.2)
+        plt.plot(tuning_curve_mean[i_r, i_c, :], c=colors[i], linestyle=linestyles[i], label=cdtn_name[i])
+plt.legend()
+
+plt.axes(h_axes[1])
+i_r = 0
+for i_c in range(3):
+    i = i_r * 3 + i_c
+    plt.fill_between(range(10),
+                     tuning_curve_mean[i_r, i_c, :] - tuning_curve_std[i_r, i_c, :],
+                     tuning_curve_mean[i_r, i_c, :] + tuning_curve_std[i_r, i_c, :],
+                     color=colors[i], linestyle=linestyles[i], alpha=0.2)
+    plt.plot(tuning_curve_mean[i_r, i_c, :], c=colors[i], linestyle=linestyles[i], label=cdtn_name[i])
+
+plt.axes(h_axes[2])
+i_r = 1
+for i_c in range(3):
+    i = i_r * 3 + i_c
+    plt.fill_between(range(10),
+                     tuning_curve_mean[i_r, i_c, :] - tuning_curve_std[i_r, i_c, :],
+                     tuning_curve_mean[i_r, i_c, :] + tuning_curve_std[i_r, i_c, :],
+                     color=colors[i], linestyle=linestyles[i], alpha=0.2)
+    plt.plot(tuning_curve_mean[i_r, i_c, :], c=colors[i], linestyle=linestyles[i], label=cdtn_name[i])
+
+
+# h_fig, h_axes = plt.subplots(2, 3, sharex='all', sharey='all')
+# for i_r in range(2):
+#     for i_c in range(3):
+#         plt.axes(h_axes[i_r, i_c])
+#         plt.plot(tuning_curve_mean[i_r, i_c, :])
+
+
+
+##
+""" ========== cross-trial var vs mean ========== """
+list_psth_group_mean = []
+list_psth_group_std  = []
+window_size = 0.100
+# list_psth_group_std = []
+list_signal = []
+list_cdtn = []
+sk_std = 0.030
+
+t_for_fr = (ts>=0.050) & (ts<0.350)
+
+for datecode in tree_struct_hdf5.keys():
+    print(datecode)
+    try:
+        # get data
+        data_neuro = store_hdf5.LoadFromH5(path_to_hdf5_data, [datecode, 'srv_mask', 'spk'])
+        df_ana.GroupDataNeuro(data_neuro, limit=data_neuro['trial_info']['mask_opacity_int'] < 80,
+                              groupby=['stim_familiarized', 'mask_opacity_int', 'stim_sname'])
+
+        # smooth trace over time
+        ts = data_neuro['ts']
+        data_neuro['data'] = pna.SpikeCountInWindow(data_neuro['data'], window_size, ts=ts)
+
+
+        # get mean and std
+        psth_group_mean = pna.GroupStat(data_neuro)
+        psth_group_std  = pna.GroupStat(data_neuro, statfun='std')
+
+        psth_group_reshape = np.reshape(psth_group_mean, [2, 3, 10, data_neuro['data'].shape[1], data_neuro['data'].shape[2]])
+        psth_group_reshape_std = np.reshape(psth_group_std,
+                                        [2, 3, 10, data_neuro['data'].shape[1], data_neuro['data'].shape[2]])
+
+        psth_rank = psth_group_reshape * 0
+        psth_rank_std = psth_group_reshape * 0
+        for i_signal in range(data_neuro['data'].shape[2]):
+            image_rank_nov = np.argsort(np.mean(psth_group_reshape[0, 0, :, :, i_signal][:, t_for_fr], axis=1))[::-1]
+            image_rank_fam = np.argsort(np.mean(psth_group_reshape[1, 0, :, :, i_signal][:, t_for_fr], axis=1))[::-1]
+
+            psth_rank[0, :, :, :, i_signal] = psth_group_reshape[0, :, :, :, i_signal][:, image_rank_nov, :]
+            psth_rank[1, :, :, :, i_signal] = psth_group_reshape[1, :, :, :, i_signal][:, image_rank_fam, :]
+
+            psth_rank_std[0, :, :, :, i_signal] = psth_group_reshape_std[0, :, :, :, i_signal][:, image_rank_nov, :]
+            psth_rank_std[1, :, :, :, i_signal] = psth_group_reshape_std[1, :, :, :, i_signal][:, image_rank_fam, :]
+
+        # get signal info
+        signal_info = data_neuro['signal_info']
+        signal_info['date'] = datecode
+
+        list_psth_group_mean.append(psth_rank)
+        list_psth_group_std.append(psth_rank_std)
+        list_signal.append(signal_info)
+    except:
+        print('date {} can not be processed'.format(datecode))
+
+
+##
+mode_keep_signal = ''
+# mode_keep_signal = 'noise_delay'
+if mode_keep_signal == 'manual':
+    yn_keep_signal = keep_final_manual
+elif mode_keep_signal == 'noise_delay':
+    yn_keep_signal = keep_noise_delay
+else:
+    yn_keep_signal = np.ones(data_group_mean.shape[2]).astype('bool')
+
+psth_rank_all = np.concatenate(list_psth_group_mean, axis=-1)[:, :, :, :, yn_keep_signal]
+psth_rank_all_std = np.concatenate(list_psth_group_std, axis=-1)[:, :, :, :, yn_keep_signal]
+
+
+sampling_rate = 1/np.mean(np.diff(ts))
+
+t_interest = np.flatnonzero(ts>0.100)[0]
+
+h_fig, h_axes = plt.subplots(2, 3, sharex='all', sharey='all')
+for i_r in range(2):
+    for i_c in range(3):
+        plt.axes(h_axes[i_r, i_c])
+        x = psth_rank_all[i_r, i_c, :2, t_interest, :].ravel()
+        y = psth_rank_all_std[i_r, i_c, :2, t_interest, :].ravel()**2
+        res_regress = sp.stats.linregress(x, y)
+        k, b = res_regress[:2]
+
+        plt.plot(x, y, 'o')
+        plt.plot([0, 10], [b, 10*k+b])
+        plt.title('{:.2f}'.format(k))
+
 
 
 
