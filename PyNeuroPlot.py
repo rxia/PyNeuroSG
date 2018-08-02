@@ -1697,6 +1697,14 @@ def auto_tick(data_range, max_tick=10, tf_inside=False):
     return ticks
 
 
+def plot_diagonal_line(x, y=None, **kwargs):
+    """" plot a diagonal line spans over the range of data x and data y, to compare the size of x and y """
+    if y is None:
+        y=x
+    value_min = min(np.min(x), np.min(y))
+    value_max = max(np.max(x), np.max(y))
+    plt.plot([value_min, value_max], [value_min, value_max], **kwargs)
+
 
 """ ========== ========== obsolete function ========== ========== """
 
