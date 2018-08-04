@@ -185,7 +185,8 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
                     medianprops = dict(linestyle='-', linewidth=4, color=current_color)
                     meanpointprops = dict(marker='x', markeredgecolor=current_color, markersize=10, markeredgewidth=2)
                     flierprops = dict(marker='.', markersize=5)
-                    h_box = plt.boxplot(values_by_x, positions=x_loc, widths=bar_width, showmeans=True,
+                    values_by_x_not_nan = [values[np.isfinite(values)] for values in values_by_x]
+                    h_box = plt.boxplot(values_by_x_not_nan, positions=x_loc, widths=bar_width, showmeans=True,
                                 medianprops=medianprops, meanprops=meanpointprops, flierprops=flierprops)
                     if tf_legend and (p_i==0):
                         legend_obj.append(h_box['medians'][0])

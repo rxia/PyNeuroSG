@@ -19,28 +19,64 @@ import misc_tools
 
 
 # set path to data
-path_to_hdf5_data = '../support_data/data_neuro_Thor_U16_all.hdf5'
-path_to_fig = './temp_figs'
+path_to_hdf5_data_Dante = '../support_data/data_neuro_Dante_GM32_U16_all.hdf5'
+path_to_hdf5_data_Thor = '../support_data/data_neuro_Thor_U16_all.hdf5'
+path_to_fig = './temp_figs/final_Dante_Thor'
 
+
+path_to_U_probe_loc = './script/U16_location_Dante_Thor.csv'
+
+##
+""" get U-probe location """
+# granular layer location is zero-indexed
+loc_U16 = pd.read_csv(path_to_U_probe_loc)
+loc_U16['date'] = loc_U16['date'].astype('str')
+
+def sinal_extend_loc_info(signal_all):
+    signal_extend = pd.merge(signal_all, loc_U16, 'left', on='date')
+
+    signal_extend['channel_index_U16'] = signal_extend['channel_index'] - 32*(signal_extend['animal']=='Dante')
+    signal_extend['area'] = np.where((signal_extend['animal']=='Dante') & (signal_extend['channel_index']<=32),
+                                     ['V4']*len(signal_extend), signal_extend['area'])
+
+    signal_extend['depth'] = 0
+    signal_extend['depth'] = (signal_extend['channel_index_U16']-1-signal_extend['granular']) * (signal_extend['area']=='TEd') \
+                             +(16-signal_extend['channel_index_U16']-signal_extend['granular']) * (signal_extend['area']=='TEm')
+    signal_extend['depth'] = np.where(signal_extend['area']=='V4',
+                                     np.zeros(len(signal_extend))*np.nan, signal_extend['depth'])
+
+    return signal_extend
+
+
+def load_data_of_day(datecode):
+    if datecode <= '180000':
+        animal = 'Dante'
+        path_to_hdf5_data = path_to_hdf5_data_Dante
+    else:
+        animal = 'Thor'
+        path_to_hdf5_data = path_to_hdf5_data_Thor
+    data_neuro = store_hdf5.LoadFromH5(path_to_hdf5_data, [datecode, 'srv_mask', 'spk'])
+    return data_neuro
 
 ##
 """========== get PSTH for every day =========="""
 
 # shwo data file stucture
-store_hdf5.ShowH5(path_to_hdf5_data)
 
-tree_struct_hdf5 = store_hdf5.ShowH5(path_to_hdf5_data, yn_print=False)
+tree_struct_hdf5_Dante = store_hdf5.ShowH5(path_to_hdf5_data_Dante, yn_print=False)
+tree_struct_hdf5_Thor  = store_hdf5.ShowH5(path_to_hdf5_data_Thor , yn_print=False)
+all_dates = list(tree_struct_hdf5_Dante.keys()) + list(tree_struct_hdf5_Thor.keys())
 list_psth_group_mean = []
 list_psth_group_std = []
 list_signal = []
 sk_std = 0.010
 
 """ get every day's data """
-for datecode in tree_struct_hdf5.keys():
+for datecode in all_dates:
     print(datecode)
     try:
         # get data
-        data_neuro = store_hdf5.LoadFromH5(path_to_hdf5_data, [datecode, 'srv_mask', 'spk'])
+        data_neuro = load_data_of_day(datecode)
         df_ana.GroupDataNeuro(data_neuro, limit=data_neuro['trial_info']['mask_opacity_int'] < 80,
                               groupby=['stim_familiarized', 'mask_opacity_int'])
 
@@ -78,7 +114,11 @@ def set_signal_id(signal_info):
     return signal_info
 signal_all = set_signal_id(signal_all)
 
-signal_all_spk = np. signal_all
+signal_all_spk = signal_all
+
+signal_all_spk = sinal_extend_loc_info(signal_all_spk)
+
+data_group_mean_norm = pna.normalize_across_signals(data_group_mean, ts=ts, t_window=[0.050, 0.300])
 
 ##
 """ plot overall data """
@@ -95,74 +135,155 @@ plot_highlight['00']  = {'trace': [1,0,0,1,0,0], 'compare': [1,0,0,0,0]}
 plot_highlight['50']  = {'trace': [0,1,0,0,1,0], 'compare': [0,1,0,0,0]}
 plot_highlight['70']  = {'trace': [0,0,1,0,0,1], 'compare': [0,0,1,0,0]}
 
-h_fig, h_axes = plt.subplots(2,3, figsize=(12,8))
+# yn_keep_signal = np.ones(data_group_mean.shape[2]).astype('bool')
+yn_keep_signal = signal_all_spk['area'] == 'V4'
+h_fig, h_axes = plt.subplots(2,3, figsize=(12,8), sharex='all', sharey='all')
 h_axes = np.ravel(h_axes)
-
-yn_keep_signal = np.ones(data_group_mean.shape[2]).astype('bool')
-
 for i, highlight in enumerate(plot_highlight):
     plt.axes(h_axes[i])
     plt.title(highlight)
     for c in range(len(cdtn_name)):
-        plt.plot(ts, data_group_mean[c][:, yn_keep_signal].mean(axis=1),
+        plt.plot(ts, data_group_mean_norm[c][:, yn_keep_signal].mean(axis=1),
                  color=colors[c], linestyle=linestyles[c],
                  alpha=plot_highlight[highlight]['trace'][c])
     if i==0:
         plt.legend(cdtn_name)
+plt.xlim([-0.050, 0.400])
+plt.savefig(os.path.join(path_to_fig, 'PSTH_V4_before_select.png'))
+plt.savefig(os.path.join(path_to_fig, 'PSTH_V4_before_select.pdf'))
+
+
+yn_keep_signal = (signal_all_spk['area'] != 'V4') & (signal_all_spk['valid']==1)
+h_fig, h_axes = plt.subplots(2,3, figsize=(12,8), sharex='all', sharey='all')
+h_axes = np.ravel(h_axes)
+for i, highlight in enumerate(plot_highlight):
+    plt.axes(h_axes[i])
+    plt.title(highlight)
+    for c in range(len(cdtn_name)):
+        plt.plot(ts, data_group_mean_norm[c][:, yn_keep_signal].mean(axis=1),
+                 color=colors[c], linestyle=linestyles[c],
+                 alpha=plot_highlight[highlight]['trace'][c])
+    if i==0:
+        plt.legend(cdtn_name)
+plt.xlim([-0.050, 0.400])
+plt.savefig(os.path.join(path_to_fig, 'PSTH_IT_before_select.png'))
+plt.savefig(os.path.join(path_to_fig, 'PSTH_IT_before_select.pdf'))
 
 
 ##
 """ test whether a neuron is visual or not """
 
-psth_mean_00_noise = data_group_mean[[0,3]].mean(axis=0)
-psth_var_00_noise = data_group_mean[[0,3]].mean(axis=0)
-
-psth_mean_70_noise = data_group_mean[[2,5]].mean(axis=0)
-psth_var_70_noise = data_group_mean[[2,5]].mean(axis=0)
-
 ts_baseline = np.logical_and(ts>=-0.050, ts<0.050)
-ts_visual = np.logical_and(ts>=0.050, ts<0.350)
+ts_visual = np.logical_and(ts>=0.050, ts<0.200)
+threhold_cohen_d = 0.5
 
-mean_baseline = psth_mean_00_noise[ts_baseline].mean(axis=0)
-std_baseline = psth_mean_00_noise[ts_baseline].mean(axis=0)
-mean_visual_00_noise = psth_mean_00_noise[ts_visual].mean(axis=0)
-std_visual_00_noise = psth_mean_00_noise[ts_visual].mean(axis=0)
-mean_visual_70_noise = psth_mean_70_noise[ts_visual].mean(axis=0)
-std_visual_70_noise = psth_var_70_noise[ts_visual].mean(axis=0)
+if False:    # old, not sepratation nov and fam
+    psth_mean_00_noise = data_group_mean[[0,3]].mean(axis=0)
+    psth_var_00_noise = data_group_mean[[0,3]].mean(axis=0)
 
-threhold_cohen_d = 0.4
+    psth_mean_70_noise = data_group_mean[[2,5]].mean(axis=0)
+    psth_var_70_noise = data_group_mean[[2,5]].mean(axis=0)
 
-cohen_d_visual = (mean_visual_00_noise - mean_baseline) \
-                 / np.sqrt((std_baseline**2 + std_visual_00_noise**2)/2)
+
+    mean_baseline = psth_mean_00_noise[ts_baseline].mean(axis=0)
+    std_baseline = psth_mean_00_noise[ts_baseline].mean(axis=0)
+    mean_visual_00_noise = psth_mean_00_noise[ts_visual].mean(axis=0)
+    std_visual_00_noise = psth_mean_00_noise[ts_visual].mean(axis=0)
+    mean_visual_70_noise = psth_mean_70_noise[ts_visual].mean(axis=0)
+    std_visual_70_noise = psth_var_70_noise[ts_visual].mean(axis=0)
+
+    cohen_d_visual = (mean_visual_00_noise - mean_baseline) \
+                     / np.sqrt((std_baseline**2 + std_visual_00_noise**2)/2)
+
+    keep_visual = cohen_d_visual > threhold_cohen_d
+
+    cohen_d_noise_effect = (mean_visual_00_noise - mean_visual_70_noise) \
+                           / np.sqrt((std_visual_00_noise**2 + std_visual_70_noise**2)/2)
+    keep_noise_effect = cohen_d_noise_effect > 0.2
+
+
+mean_baseline = data_group_mean.mean(axis=0)[ts_baseline].mean(axis=0)
+std_baseline  = data_group_mean.mean(axis=0)[ts_baseline].std(axis=0)
+mean_nov_00   = data_group_mean[0][ts_visual].mean(axis=0)
+std_nov_00    = data_group_mean[0][ts_visual].std(axis=0)
+mean_fam_00   = data_group_mean[3][ts_visual].mean(axis=0)
+std_fam_00    = data_group_mean[3][ts_visual].std(axis=0)
+mean_nov_70   = data_group_mean[2][ts_visual].mean(axis=0)
+std_nov_70    = data_group_mean[2][ts_visual].std(axis=0)
+mean_fam_70   = data_group_mean[5][ts_visual].mean(axis=0)
+std_fam_70    = data_group_mean[5][ts_visual].std(axis=0)
+
+cohen_d_visual_nov = (mean_nov_00 - mean_baseline) \
+                 / np.sqrt((std_nov_00 ** 2 + std_baseline ** 2) / 2)
+cohen_d_visual_fam = (mean_fam_00 - mean_baseline) \
+                 / np.sqrt((std_fam_00 ** 2 + std_baseline ** 2) / 2)
+
+cohen_d_visual = np.where(cohen_d_visual_nov > cohen_d_visual_fam, cohen_d_visual_fam, cohen_d_visual_nov)
+
 keep_visual = cohen_d_visual > threhold_cohen_d
+signal_all_spk['is_visual'] = keep_visual
 
-cohen_d_noise_effect = (mean_visual_00_noise - mean_visual_70_noise) \
-                       / np.sqrt((std_visual_00_noise**2 + std_visual_70_noise**2)/2)
-keep_noise_effect = cohen_d_noise_effect > 0.2
+is_signal_V4_valid = signal_all_spk['valid'].astype('bool') & (signal_all_spk['area']=='V4')
+is_signal_IT_valid = signal_all_spk['valid'].astype('bool') & ((signal_all_spk['area']=='TEm') | (signal_all_spk['area']=='TEd'))
+is_signal_IT_valid_Dante = is_signal_IT_valid & (signal_all_spk['animal'] == 'Dante')
+is_signal_IT_valid_Thor  = is_signal_IT_valid & (signal_all_spk['animal'] == 'Thor')
 
-plt.subplot(1,2,1)
-plt.scatter(mean_baseline, mean_visual_00_noise, c=cohen_d_visual, alpha=0.7)
-plt.scatter(mean_baseline[~keep_visual], mean_visual_00_noise[~keep_visual], c='k')
-plt.plot([0, 50], [0, 50])
+is_signal_V4_visual = is_signal_V4_valid & signal_all_spk['is_visual']
+is_signal_IT_visual = is_signal_IT_valid & signal_all_spk['is_visual']
+is_signal_IT_visual_Dante = is_signal_IT_visual & (signal_all_spk['animal'] == 'Dante')
+is_signal_IT_visual_Thor  = is_signal_IT_visual & (signal_all_spk['animal'] == 'Thor')
+
+print('number of V4 cells: {} visual / {} all'.format(np.sum(is_signal_V4_visual), np.sum(is_signal_V4_valid)))
+print('number of IT cells: {} visual / {} all'.format(np.sum(is_signal_IT_visual), np.sum(is_signal_IT_valid)))
+
+
+h_fig, h_axes = plt.subplots(1, 3, sharex='all', sharey='all', figsize=[12,4])
+h_fig.patch.set_facecolor([0.9]*3)
+
+
+plt.axes(h_axes[0])
+plt.scatter(mean_baseline[is_signal_V4_visual], mean_nov_00[is_signal_V4_visual],
+            c=[0.1]*3, s=10)
+plt.scatter(mean_baseline[is_signal_V4_valid & ~is_signal_V4_visual], mean_nov_00[is_signal_V4_valid & ~is_signal_V4_visual],
+            c=[0.5]*3, s=10)
+plt.legend(['visual', 'non-visual'])
+plt.plot([0, 50], [0, 50], color='gray', linestyle='--', alpha=0.5)
 plt.axis('equal')
 plt.xlabel('baseline')
 plt.ylabel('visual')
-plt.title('visual/all, {}/{}'.format(np.sum(keep_visual), len(keep_visual)))
+plt.title('V4: {} visual / {} all'.format(np.sum(is_signal_V4_visual), np.sum(is_signal_V4_valid)))
 
-
-plt.subplot(1,2,2)
-plt.scatter(mean_visual_00_noise, mean_visual_70_noise, c=cohen_d_noise_effect, alpha=0.7)
-plt.scatter(mean_visual_00_noise[~(keep_noise_effect & keep_visual)],
-            mean_visual_70_noise[~(keep_noise_effect & keep_visual)], c='k', alpha=0.7, )
-plt.plot([0, 50], [0, 50])
+plt.axes(h_axes[1])
+signal_cur = is_signal_IT_visual & (signal_all_spk['animal']=='Dante')
+plt.scatter(mean_baseline[signal_cur], mean_nov_00[signal_cur],
+            c=[0.1] * 3, s=10)
+signal_cur = is_signal_IT_valid &  ~is_signal_IT_visual & (signal_all_spk['animal']=='Dante')
+plt.scatter(mean_baseline[signal_cur], mean_nov_00[signal_cur],
+            c=[0.5] * 3, s=10)
+plt.plot([0, 50], [0, 50], color='gray', linestyle='--', alpha=0.5)
 plt.axis('equal')
-plt.xlabel('no noise')
-plt.ylabel('70 noise')
-plt.title('visual/all, {}/{}'.format(np.sum(keep_visual & keep_noise_effect), len(keep_visual)))
+plt.xlabel('baseline')
+plt.ylabel('visual')
+plt.title('Dante IT: {} visual / {} all'.format(np.sum(is_signal_IT_visual_Dante), np.sum(is_signal_IT_valid_Dante)))
 
-keep_final = (keep_visual & keep_noise_effect)
 
-if True:
+plt.axes(h_axes[2])
+signal_cur = is_signal_IT_visual & (signal_all_spk['animal']=='Thor')
+plt.scatter(mean_baseline[signal_cur], mean_nov_00[signal_cur],
+            c=[0.1] * 3, s=10)
+signal_cur = is_signal_IT_valid &  ~is_signal_IT_visual & (signal_all_spk['animal']=='Thor')
+plt.scatter(mean_baseline[signal_cur], mean_nov_00[signal_cur],
+            c=[0.5] * 3, s=10)
+plt.plot([0, 50], [0, 50], color='gray', linestyle='--', alpha=0.5)
+plt.axis('equal')
+plt.xlabel('baseline')
+plt.ylabel('visual')
+plt.title('Dante IT: {} visual / {} all'.format(np.sum(is_signal_IT_visual_Thor), np.sum(is_signal_IT_valid_Thor)))
+
+plt.savefig(os.path.join(path_to_fig, 'PSTH_visual_criterion.png'))
+plt.savefig(os.path.join(path_to_fig, 'PSTH_visual_criterion.pdf'))
+
+if False:
     path_to_U_probe_manual_selection = './script/Thor_signal_manual_select.csv'
     keep_final_manual = pd.read_csv(path_to_U_probe_manual_selection)
     keep_final_manual = keep_final_manual['good_noise_effect'] == '1'
@@ -202,55 +323,173 @@ if False:
 
 
 ##
-""" read file of U-probe location """
-path_to_U_probe_loc_Thor = './script/Thor_U16_location.csv'
+""" ========== distribution noise effect (neural response latency) ========== """
+time_focus = np.logical_and(ts>=0.050, ts<0.250)
 
-# granular layer location is zero-indexed
-loc_U16 = pd.read_csv(path_to_U_probe_loc_Thor)
-loc_U16['date'] = loc_U16['date'].astype('str')
+# method_mean_latency = 'weighted_sum'
+method_mean_latency = 'weighted_sum_minus_baseline'
+# method_mean_latency = 'peak_find'
 
-signal_extend = pd.merge(signal_all, loc_U16, 'left', on='date')
+if method_mean_latency == 'weighted_sum':
+    mean_latency = np.sum(data_group_mean[:, time_focus, :] * ts[None, time_focus, None], axis=1)\
+           / np.sum(data_group_mean[:, time_focus, :], axis=1)
+    var_latency = np.sum(data_group_mean[:, time_focus, :] * ts[None, time_focus, None]**2, axis=1) \
+                   / np.sum(data_group_mean[:, time_focus, :], axis=1) \
+                  - mean_latency **2
+    std_latency = np.sqrt(var_latency)
+elif method_mean_latency == 'weighted_sum_minus_baseline':
+    data_baseline = np.mean(data_group_mean[:, (ts>-0.050) & (ts<0.050), :], axis=(0,1), keepdims=True)
+    data_peak = np.max(data_group_mean[:, time_focus, :], axis=1, keepdims=True)
+    data_half_peak = data_peak*0.60 + data_baseline*0.40
+    time_peak = (data_group_mean > data_half_peak) & time_focus[None, :, None]
+    mean_latency = np.sum(data_group_mean * time_peak * ts[None, :, None], axis=1) \
+           / np.sum(data_group_mean * time_peak, axis=1)
+    std_latency = np.sum(time_peak, axis=1)/2 * np.mean(np.diff(ts))
+    var_latency = std_latency**2
+    # var_latency = np.sum(data_group_mean * time_peak * ts[None, time_focus, None]**2, axis=1) * data_above_half_peak \
+    #                / np.sum(data_group_mean[:, time_focus, :] + data_above_half_peak, axis=1) \
+    #               - mean_latency **2
+    # std_latency = np.sqrt(var_latency)
+elif method_mean_latency == 'peak_find':
+    data_group_mean_smooth = pna.SmoothTrace(data_group_mean, sk_std=0.010, ts=ts)
+    mean_latency = ts[time_focus][np.argmax(data_group_mean_smooth[:,time_focus,:], axis=1)]
 
-signal_extend['depth'] = 0
-signal_extend['depth'] = (signal_extend['channel_index']-1-signal_extend['granular']) * (signal_extend['area']=='TEd') \
-                         +(16-signal_extend['channel_index']-signal_extend['granular']) * (signal_extend['area']=='TEm')
+fam_or_nov = 'fam'
+# fam_or_nov = 'nov'
+if fam_or_nov == 'nov':
+    cond_compare = [0, 2]
+elif fam_or_nov == 'fam':
+    cond_compare = [3, 5]
 
-
-##
-""" ========== distribution of neural latency ========== """
-time_focus = np.logical_and(ts>=0.05, ts<0.250)
-indx_cdtn = 3
-
-latency_method = 'mean'
-
-mean_latency = np.sum(data_group_mean[:, time_focus, :] * ts[None, time_focus, None], axis=1)\
-       / np.sum(data_group_mean[:, time_focus, :], axis=1)
-var_latency = np.sum(data_group_mean[:, time_focus, :] * ts[None, time_focus, None]**2, axis=1) \
-               / np.sum(data_group_mean[:, time_focus, :], axis=1) \
-              - mean_latency **2
-std_latency = np.sqrt(var_latency)
-
-cond_compare = [3, 5]
 effect_size = (mean_latency[cond_compare[1], :] - mean_latency[cond_compare[0], :]) \
               / np.sqrt((var_latency[cond_compare[0]] + var_latency[cond_compare[1]])/2)
-threhold_cohen_d = 0.4
+
+threhold_cohen_d = 0.5
 
 keep_noise_delay = effect_size > threhold_cohen_d
 
+h_fig, h_axes = plt.subplots(1, 3, sharex='all', sharey='all', figsize=[12,4])
+h_fig.patch.set_facecolor([0.9]*3)
+
+plt.suptitle('mean neural latency, {}'.format(fam_or_nov))
+
+
+def plot_delay_effect(keep_signal_cur, title):
+    plt.scatter(mean_latency[cond_compare[0], keep_signal_cur],
+                mean_latency[cond_compare[1], keep_signal_cur], c=[0.2]*3, s=5, label='significant delay')
+    plt.scatter(mean_latency[cond_compare[0], ~keep_noise_delay & keep_signal_cur],
+                mean_latency[cond_compare[1], ~keep_noise_delay & keep_signal_cur], c=[0.5]*3, s=5, label='no delay')
+    plt.plot([0.05, 0.25], [0.05, 0.25], color='gray', linestyle='--', alpha=0.5)
+    plt.xlabel('lat, no noise')
+    plt.ylabel('lat, 70 noise')
+    plt.title('{}, {}/{}'.format(title, np.sum(keep_noise_delay & keep_signal_cur), sum(keep_signal_cur)))
+
+plt.axes(h_axes[0])
+keep_signal_cur = (signal_all_spk['area']=='V4') & keep_visual
+plot_delay_effect(keep_signal_cur, 'V4')
+plt.legend()
+
+plt.axes(h_axes[1])
+keep_signal_cur = (signal_all_spk['area']!='V4') & (signal_all_spk['animal']=='Dante') & (signal_all_spk['valid']==1) & keep_visual
+plot_delay_effect(keep_signal_cur, 'IT, Dante')
+
+plt.axes(h_axes[2])
+keep_signal_cur = (signal_all_spk['area']!='V4') & (signal_all_spk['animal']=='Thor') & (signal_all_spk['valid']==1) & keep_visual
+plot_delay_effect(keep_signal_cur, 'IT, Thor')
+
+plt.xlim([0.05, 0.25])
+plt.ylim([0.05, 0.25])
+for ax in h_axes:
+    ax.set_aspect('equal')
+
+plt.savefig(os.path.join(path_to_fig, 'effect_delay_distr_{}.png'.format(fam_or_nov)))
+plt.savefig(os.path.join(path_to_fig, 'effect_delay_distr_{}.pdf'.format(fam_or_nov)))
+
+
+signal_all_spk['delay_effect'] = (mean_latency[cond_compare[1], :] - mean_latency[cond_compare[0], :])
+
+
 plt.figure()
-plt.scatter(mean_latency[3, :], mean_latency[5, :])
-plt.scatter(mean_latency[3, ~keep_noise_delay], mean_latency[5, ~keep_noise_delay], c='k')
-pnp.plot_diagonal_line(mean_latency[3, :])
-plt.xlabel('fam, no noise')
-plt.ylabel('fam, 70 noise')
-plt.suptitle('mean latency, valid = {}/{}'.format(np.sum(keep_noise_delay), len(keep_noise_delay)))
+plt.suptitle(fam_or_nov)
+df_ana.DfPlot(signal_all_spk, 'delay_effect', x='depth', plot_type='box',
+              limit=(keep_visual & (signal_all_spk['valid']==1)
+                     & (signal_all_spk['depth']>=-7) & (signal_all_spk['depth']<=7)))
+plt.axhline(0, color='gray', linestyle='--', alpha=0.5)
+plt.axvline(7, color='gray', linestyle='--', alpha=0.5)
+plt.ylim([-0.025, 0.100])
+
+plt.savefig(os.path.join(path_to_fig, 'effect_delay_laminar_{}.png'.format(fam_or_nov)))
+plt.savefig(os.path.join(path_to_fig, 'effect_delay_laminar_{}.pdf'.format(fam_or_nov)))
 
 
-signal_extend['delay_effect'] = effect_size
 
-df_ana.DfPlot(signal_extend, 'delay_effect', x='depth', p='area', plot_type='box',
-              limit=(signal_extend['depth']==signal_extend['depth']) & (keep_visual==True)
-                    & (signal_extend['depth']>-8) & (signal_extend['depth']<8))
+
+##
+""" ========== distribution familiarity effect (familiarity suppression) ========== """
+time_early = np.logical_and(ts>=0.050, ts<0.150)
+time_late  = np.logical_and(ts>=0.150, ts<0.300)
+
+cur_noise = '70'
+if cur_noise == '00':
+    cond_compare = (3, 0)
+elif cur_noise == '50':
+    cond_compare = (4, 1)
+elif cur_noise == '70':
+    cond_compare = (5, 2)
+else:
+    raise Exception('cur noise not valid')
+
+method_supression_effect = 'reduction_ratio'
+
+if method_supression_effect == 'reduction_ratio':
+    fr_early = np.mean(data_group_mean_norm[:, time_early, :], axis=1)
+    fr_late  = np.mean(data_group_mean_norm[:, time_late,  :], axis=1)
+    fam_diff_early = fr_early[cond_compare[0], :] - fr_early[cond_compare[1], :]
+    fam_diff_late  = fr_late[cond_compare[0], :] -  fr_late[cond_compare[1], :]
+
+def plot_fam_effect(signal_select):
+    pnp.scatter_hist(fam_diff_early[signal_select], fam_diff_late[signal_select],
+                     kwargs_scatter={'s': 5, 'color': 'k', 'alpha': 0.9},
+                     kwargs_hist={'bins': np.arange(-1.2, 1.21, 0.10), 'color': 'k', 'alpha': 0.5})
+    plt.axvline(0, color='gray', linestyle='--', alpha=0.5)
+    plt.axhline(0, color='gray', linestyle='--', alpha=0.5)
+    plt.xlabel('fam-nov, early')
+    plt.ylabel('fam-nov, late')
+
+
+h_fig, h_axes = plt.subplots(1, 3, sharex='all', sharey='all', figsize=[12,4])
+plt.axes(h_axes[0])
+plot_fam_effect(signal_all_spk['area']=='V4')
+plt.text(0.05, 0.9, 'V4', transform=plt.gca().transAxes)
+plt.axes(h_axes[1])
+plot_fam_effect((signal_all_spk['area']!='V4') & (signal_all_spk['valid']==True) & (signal_all_spk['animal']=='Dante'))
+plt.text(0.05, 0.9, 'IT Dante', transform=plt.gca().transAxes)
+plt.axes(h_axes[2])
+plot_fam_effect((signal_all_spk['area']!='V4') & (signal_all_spk['valid']==True) & (signal_all_spk['animal']=='Thor'))
+plt.text(0.05, 0.9, 'IT Thor', transform=plt.gca().transAxes)
+
+plt.xlim(-1.0, 1.0)
+plt.ylim(-1.0, 1.0)
+
+plt.savefig(os.path.join(path_to_fig, 'effect_fam_inhi_dist_{}.png'.format(cur_noise)))
+plt.savefig(os.path.join(path_to_fig, 'effect_fam_inhi_dist_{}.pdf'.format(cur_noise)))
+
+
+signal_all_spk['fam_effect'] = fam_diff_late
+
+plt.figure()
+df_ana.DfPlot(signal_all_spk, 'fam_effect', x='depth', plot_type='box',
+              limit=(keep_visual & (signal_all_spk['valid']==1)
+                     & (signal_all_spk['depth']>=-7) & (signal_all_spk['depth']<=7)))
+
+plt.axhline(0, color='gray', linestyle='--', alpha=0.5)
+plt.axvline(7, color='gray', linestyle='--', alpha=0.5)
+plt.ylim([-0.9, 0.25])
+
+plt.savefig(os.path.join(path_to_fig, 'effect_fam_inhi_laminar_{}.png'.format(cur_noise)))
+plt.savefig(os.path.join(path_to_fig, 'effect_fam_inhi_laminar_{}.pdf'.format(cur_noise)))
+
+
 
 
 ##
@@ -268,18 +507,56 @@ plot_highlight['00']  = {'trace': [1,0,0,1,0,0], 'compare': [1,0,0,0,0]}
 plot_highlight['50']  = {'trace': [0,1,0,0,1,0], 'compare': [0,1,0,0,0]}
 plot_highlight['70']  = {'trace': [0,0,1,0,0,1], 'compare': [0,0,1,0,0]}
 
-h_fig, h_axes = plt.subplots(2, 3, figsize=(12,8))
-h_axes = np.ravel(h_axes)
+# mode_keep_signal = ''
+# # mode_keep_signal = 'noise_delay'
+# if mode_keep_signal == 'manual':
+#     yn_keep_signal = keep_final_manual
+# elif mode_keep_signal == 'noise_delay':
+#     yn_keep_signal = keep_noise_delay
+# else:
+#     yn_keep_signal = np.ones(data_group_mean.shape[2]).astype('bool')
 
-mode_keep_signal = ''
-# mode_keep_signal = 'noise_delay'
-if mode_keep_signal == 'manual':
-    yn_keep_signal = keep_final_manual
-elif mode_keep_signal == 'noise_delay':
-    yn_keep_signal = keep_noise_delay
+
+# keep_mode = 'V4'
+# keep_mode = 'IT'
+# keep_mode = 'IT_Dante'
+# keep_mode = 'IT_Thor'
+# keep_mode = 'IT_Gr'
+# keep_mode = 'IT_sGr'
+# keep_mode = 'IT_iGr'
+
+
+if keep_mode=='V4':
+    yn_keep_signal = (signal_all_spk['area'] == 'V4') \
+                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1)
+elif keep_mode=='IT':
+    yn_keep_signal = ((signal_all_spk['area'] == 'TEd') | (signal_all_spk['area'] == 'TEm'))  \
+                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1)
+elif keep_mode=='IT_Dante':
+    yn_keep_signal = ((signal_all_spk['area'] == 'TEd') | (signal_all_spk['area'] == 'TEm'))  \
+                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1) \
+                     & (signal_all_spk['animal']=='Dante')
+elif keep_mode=='IT_Thor':
+    yn_keep_signal = ((signal_all_spk['area'] == 'TEd') | (signal_all_spk['area'] == 'TEm'))  \
+                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1) \
+                     & (signal_all_spk['animal']=='Thor')
+elif keep_mode=='IT_Gr':
+    yn_keep_signal = ((signal_all_spk['area'] == 'TEd') | (signal_all_spk['area'] == 'TEm'))  \
+                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1) \
+                     & (signal_all_spk['depth']>=-2) & (signal_all_spk['depth']<=2)
+elif keep_mode=='IT_sGr':
+    yn_keep_signal = ((signal_all_spk['area'] == 'TEd') | (signal_all_spk['area'] == 'TEm'))  \
+                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1) \
+                     & (signal_all_spk['depth']>3)
+elif keep_mode=='IT_iGr':
+    yn_keep_signal = ((signal_all_spk['area'] == 'TEd') | (signal_all_spk['area'] == 'TEm'))  \
+                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1) \
+                     & (signal_all_spk['depth']<-3)
 else:
-    yn_keep_signal = np.ones(data_group_mean.shape[2]).astype('bool')
+    raise Exception('keep mode not correct')
 
+h_fig, h_axes = plt.subplots(2, 3, figsize=(12,8), sharex='all', sharey='all')
+h_axes = np.ravel(h_axes)
 for i, highlight in enumerate(plot_highlight):
     plt.axes(h_axes[i])
     plt.title(highlight)
@@ -289,7 +566,9 @@ for i, highlight in enumerate(plot_highlight):
                  alpha=plot_highlight[highlight]['trace'][c])
     if i==0:
         plt.legend(cdtn_name)
-
+plt.xlim([-0.050, 0.400])
+plt.savefig(os.path.join(path_to_fig, 'PSTH_{}.png'.format(keep_mode)))
+plt.savefig(os.path.join(path_to_fig, 'PSTH_{}.pdf'.format(keep_mode)))
 
 
 ##
@@ -304,11 +583,11 @@ sk_std = 0.010
 
 t_for_fr = (ts>=0.050) & (ts<0.350)
 
-for datecode in tree_struct_hdf5.keys():
+for datecode in all_dates:
     print(datecode)
     try:
         # get data
-        data_neuro = store_hdf5.LoadFromH5(path_to_hdf5_data, [datecode, 'srv_mask', 'spk'])
+        data_neuro = load_data_of_day(datecode)
         df_ana.GroupDataNeuro(data_neuro, limit=data_neuro['trial_info']['mask_opacity_int'] < 80,
                               groupby=['stim_familiarized', 'mask_opacity_int', 'stim_sname'])
 
