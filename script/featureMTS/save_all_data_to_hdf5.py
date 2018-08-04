@@ -24,13 +24,13 @@ dir_dg = '/shared/lab/projects/analysis/ruobing/data_dg'
 
 # ----- tank names to use
 list_name_tanks = os.listdir(dir_tdt_tank)
-# keyword_tank = '.*Dexter.*GM32'
 keyword_tank = '.*Thor.*GM32'
+# keyword_tank = '.*Dexter.*GM32'
 list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keyword_tank, name_tank) is not None]
 list_name_tanks = sorted(list_name_tanks)
 
 # ----- filename (blockname) to use
-block_type = 'featureMTS'
+block_type = 'movies'
 
 if block_type == 'featureMTS':
     t_plot = [-0.600, 1.600]
@@ -38,7 +38,9 @@ elif block_type == 'image':
     t_plot = [-0.500, 0.800]
 elif block_type == 'spot':
     t_plot = [-0.300, 0.500]
-block_name_filter = 'h_.*{}.*'.format(block_type)
+elif block_type == 'movies':
+    t_plot = [-0.300, 0.500]
+block_name_filter = '.*_.*{}.*'.format(block_type)
 
 h5_filepath = '{}/all_data_thor_{}.hdf5'.format(dir_data_save, block_type)
 
@@ -73,7 +75,7 @@ def LoadDataOneDay(tankname, block_name_filter=block_name_filter):
 
     data_neuro_spk = pnd.blk_align_to_evt(blk, ts_StimOn, t_plot,
                                           type_filter='spiketrains.*', name_filter='.*Code[1-9]$',
-                                          spike_bin_rate=data_neuro_lfp['signal_info'][0]['sampling_rate'])
+                                          spike_bin_rate=data_neuro_lfp['signal_info']['sampling_rate'][0])
 
     pnd.include_trial_info(data_neuro_lfp, data_df=data_df)
     pnd.include_trial_info(data_neuro_spk, data_df=data_df)
