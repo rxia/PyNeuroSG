@@ -93,7 +93,7 @@ def SpikeCountInWindow(data, window_size=1, fs=1.0, ts=None, axis=1):
     count the number of spikes in sliding windown
 
     :param data:    a N dimensional array, default to [num_trials * num_timestamps * num_channels]
-    :param sk_std:  smooth kernel (sk) standard deviation (std), default to None, do nothing
+    :param window_size:  length of time window to count spikes
     :param fs:      sampling frequency, default to 1 Hz
     :param ts:      timestamps, an array, which can overwrite fs;   len(ts)==data.shape[axis] should hold,
     :param axis:    a axis of data along which data will be smoothed
@@ -113,6 +113,32 @@ def SpikeCountInWindow(data, window_size=1, fs=1.0, ts=None, axis=1):
     data_smooth = np.round(sp.ndimage.convolve1d(data, np.ones(num_ts_per_window), mode='reflect', axis=axis)/fs)
 
     return data_smooth
+
+
+def SpikeCountCumulative(data, fs=1.0, ts=None, t_start=0, axis=1):
+    """
+    count the number of spikes in cumulatively from a starting point
+
+    :param data:    a N dimensional array, default to [num_trials * num_timestamps * num_channels]
+    :param fs:      sampling frequency, default to 1 Hz
+    :param ts:      timestamps, an array, which can overwrite fs;   len(ts)==data.shape[axis] should hold,
+    :param t_start: the starting time to count spikes
+    :param axis:    a axis of data along which data will be smoothed
+    :return:        smoothed data of the same size
+    """
+
+    if ts is None:     # use fs to determine ts
+        ts = np.arange(0, data.shape[axis])*(1.0/fs)
+    else:              # use ts to determine fs
+        fs = 1.0/np.mean(np.diff(ts))
+
+    data_bin = np.array(data > 0, dtype='float')
+
+    i_t_start = np.flatnonzero(ts >= t_start)[0]
+    data_bin[:, :i_t_start, :] = 0
+    data_cum = np.cumsum(data_bin, axis=axis)
+
+    return data_cum
 
 
 def GroupWithoutAve(data_neuro, data=None):
