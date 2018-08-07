@@ -78,7 +78,7 @@ def set_signal_id(signal_info):
     return signal_info
 signal_all = set_signal_id(signal_all)
 
-signal_all_spk = signal_all
+signal_all_spk = np. signal_all
 
 ##
 """ plot overall data """
@@ -237,6 +237,7 @@ threhold_cohen_d = 0.4
 
 keep_noise_delay = effect_size > threhold_cohen_d
 
+plt.figure()
 plt.scatter(mean_latency[3, :], mean_latency[5, :])
 plt.scatter(mean_latency[3, ~keep_noise_delay], mean_latency[5, ~keep_noise_delay], c='k')
 pnp.plot_diagonal_line(mean_latency[3, :])
@@ -248,7 +249,8 @@ plt.suptitle('mean latency, valid = {}/{}'.format(np.sum(keep_noise_delay), len(
 signal_extend['delay_effect'] = effect_size
 
 df_ana.DfPlot(signal_extend, 'delay_effect', x='depth', p='area', plot_type='box',
-              limit=(signal_extend['depth']==signal_extend['depth']) & keep_visual==True)
+              limit=(signal_extend['depth']==signal_extend['depth']) & (keep_visual==True)
+                    & (signal_extend['depth']>-8) & (signal_extend['depth']<8))
 
 
 ##
@@ -381,6 +383,9 @@ plt.ylim([4, 10])
 
 ##
 """ plot overall data with only prefered image """
+_, _, num_image, num_ts, num_signal = psth_rank_norm.shape
+
+data_group_mean_preferred_image = np.reshape(np.mean(psth_rank_norm[:,:,:3], axis=2), [6, num_ts, num_signal])
 
 colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9, style='continuous', cm='rainbow'),
                     pnp.gen_distinct_colors(3, luminance=0.7, style='continuous', cm='rainbow')])
@@ -411,7 +416,7 @@ for i, highlight in enumerate(plot_highlight):
     plt.axes(h_axes[i])
     plt.title(highlight)
     for c in range(len(cdtn_name)):
-        plt.plot(ts, data_group_mean[c][:, yn_keep_signal].mean(axis=1),
+        plt.plot(ts, data_group_mean_preferred_image[c][:, yn_keep_signal].mean(axis=1),
                  color=colors[c], linestyle=linestyles[c],
                  alpha=plot_highlight[highlight]['trace'][c])
     if i==0:
@@ -541,8 +546,8 @@ for datecode in tree_struct_hdf5.keys():
 
 
 ##
-mode_keep_signal = ''
-# mode_keep_signal = 'noise_delay'
+# mode_keep_signal = ''
+mode_keep_signal = 'noise_delay'
 if mode_keep_signal == 'manual':
     yn_keep_signal = keep_final_manual
 elif mode_keep_signal == 'noise_delay':
@@ -570,9 +575,6 @@ for i_r in range(2):
         plt.plot(x, y, 'o')
         plt.plot([0, 10], [b, 10*k+b])
         plt.title('{:.2f}'.format(k))
-
-
-
 
 
 ##

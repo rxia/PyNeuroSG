@@ -1191,7 +1191,7 @@ def add_axes_on_top(h_axes, r=0.25):
     return h_axes_top
 
 
-def add_sub_axes(h_axes=None, loc='top', size=0.25, gap=0.02, sub_rect = None):
+def add_sub_axes(h_axes=None, loc='top', size=0.25, gap=0.02, sub_rect=None):
     """
     tool funciton to add an axes around the existing axis
 
@@ -1258,8 +1258,45 @@ def add_sub_axes(h_axes=None, loc='top', size=0.25, gap=0.02, sub_rect = None):
     return h_subaxes
 
 
+def scatter_hist(x, y, h_axes=None, kwargs_scatter=None, kwargs_hist=None):
+    """
+    scatter hist plot
 
+    :param x:       data x
+    :param y:       data y
+    :param h_axes:  main axis, default to plt.gca()
+    :param kwargs_scatter: dict, key-word arguments passed for scatter plot
+    :param kwargs_hist:    dict, key-word arguments passed for hist plot
+    :return:        axes handles, (h_main, h_top, h_right)
+    """
 
+    if h_axes is None:
+        h_main = plt.gca()
+    else:
+        h_main = h_axes
+
+    if kwargs_scatter is None:
+        kwargs_scatter = dict()
+
+    if kwargs_hist is None:
+        kwargs_hist = dict()
+
+    h_top = add_sub_axes(h_main, 'top')
+    h_right = add_sub_axes(h_main, 'right')
+    box_top = h_top.get_position()
+    box_main = h_main.get_position()
+    h_top.set_position([box_top.x0, box_top.y0, box_main.width, box_top.height])
+
+    plt.axes(h_top)
+    plt.hist(x, **kwargs_hist)
+
+    plt.axes(h_right)
+    plt.hist(y, orientation='horizontal', **kwargs_hist)
+
+    plt.axes(h_main)
+    plt.scatter(x, y, **kwargs_scatter)
+
+    return h_main, h_top, h_right
 
 
 def create_array_layout_subplots(array_layout, tf_linear_indx=True, tf_text_ch=False):
@@ -1701,8 +1738,8 @@ def plot_diagonal_line(x, y=None, **kwargs):
     """" plot a diagonal line spans over the range of data x and data y, to compare the size of x and y """
     if y is None:
         y=x
-    value_min = min(np.min(x), np.min(y))
-    value_max = max(np.max(x), np.max(y))
+    value_min = min(np.nanmin(x), np.nanmin(y))
+    value_max = max(np.nanmax(x), np.nanmax(y))
     plt.plot([value_min, value_max], [value_min, value_max], **kwargs)
 
 
