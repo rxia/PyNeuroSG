@@ -382,8 +382,10 @@ def signal_filter(keep_mode=None, signal_all_spk=signal_all_spk):
 
     return yn_keep_signal
 
+
 ##
-""" ========== distribution noise effect (neural response latency) ========== """
+""" ========== distribution noise effect (neural response delay) ========== """
+
 time_focus = np.logical_and(ts>=0.050, ts<0.250)
 
 # method_mean_latency = 'weighted_sum'
@@ -487,9 +489,9 @@ plt.savefig(os.path.join(path_to_fig, 'effect_delay_laminar_{}.pdf'.format(fam_o
 ##
 """ ========== distribution familiarity effect (familiarity suppression) ========== """
 time_early = np.logical_and(ts>=0.050, ts<0.140)
-time_late  = np.logical_and(ts>=0.170, ts<0.300)
+time_late  = np.logical_and(ts>=0.200, ts<0.300)
 
-cur_noise = '70'
+cur_noise = '00'
 if cur_noise == '00':
     cond_compare = (3, 0)
 elif cur_noise == '50':
@@ -943,6 +945,68 @@ plt.savefig(os.path.join(path_to_fig, 'fano_over_time_{}_{}.png'.format(count_mo
 plt.savefig(os.path.join(path_to_fig, 'fano_over_time_{}_{}.pdf'.format(count_mode, keep_mode)))
 
 
+
+
+
+##
+""" ========== decoding ========== """
+# count_mode = 'cum'
+count_mode = 'slide'
+
+list_psth_group_mean_by_img_noise = []
+list_psth_group_std_by_img_noise  = []
+
+window_size = 0.1
+t_start = 0.0
+
+ts_sample_guide = np.arange(-0.050, 0.551, 0.010)
+def get_i_ts_sample(ts_sample, ts):
+    return np.array([np.flatnonzero(ts>t)[0] for t in ts_sample_guide])
+
+ts[get_i_ts_sample(ts_sample_guide, ts)]
+
+list_signal = []
+list_cdtn = []
+
+for datecode in all_dates:
+    print(datecode)
+    try:
+        # get data
+        data_neuro = load_data_of_day(datecode)
+        df_ana.GroupDataNeuro(data_neuro, limit=data_neuro['trial_info']['mask_opacity_int'] < 80,
+                              groupby=['stim_familiarized', 'mask_opacity_int', 'stim_sname', 'mask_orientation'])
+
+        # smooth trace over time
+        ts = data_neuro['ts']
+
+        if count_mode == 'cum':
+            data_neuro['data'] = pna.SpikeCountCumulative(data_neuro['data'], ts=ts, t_start=t_start)
+        elif count_mode == 'slide':
+            data_neuro['data'] = pna.SpikeCountInWindow(data_neuro['data'], window_size, ts=ts)
+        else:
+            raise Exception('count_mode no valid')
+
+        # get mean and std
+        psth_group_mean = pna.GroupStat(data_neuro)
+        psth_group_std  = pna.GroupStat(data_neuro, statfun='std')
+
+        psth_group_reshape = np.reshape(psth_group_mean, [2, 3, 20, data_neuro['data'].shape[1], data_neuro['data'].shape[2]])
+        psth_group_reshape_std = np.reshape(psth_group_std,
+                                        [2, 3, 20, data_neuro['data'].shape[1], data_neuro['data'].shape[2]])
+
+        # get signal info
+        signal_info = data_neuro['signal_info']
+        signal_info['date'] = datecode
+
+        list_psth_group_mean_by_img_noise.append(psth_group_reshape)
+        list_psth_group_std_by_img_noise.append(psth_group_reshape_std)
+        list_signal.append(signal_info)
+    except:
+        print('date {} can not be processed'.format(datecode))
+
+
+sc_mean_all = np.concatenate(list_psth_group_mean_by_img_noise, axis=-1)
+sc_std_all = np.concatenate(list_psth_group_std_by_img_noise, axis=-1)
 
 
 
