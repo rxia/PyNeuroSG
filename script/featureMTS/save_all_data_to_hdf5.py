@@ -30,7 +30,7 @@ list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keywor
 list_name_tanks = sorted(list_name_tanks)
 
 # ----- filename (blockname) to use
-block_type = 'movies'
+block_type = 'featureMTS'
 
 if block_type == 'featureMTS':
     t_plot = [-0.600, 1.600]
@@ -39,7 +39,7 @@ elif block_type == 'image':
 elif block_type == 'spot':
     t_plot = [-0.300, 0.500]
 elif block_type == 'movies':
-    t_plot = [-0.300, 0.500]
+    t_plot = [-0.300, 2.300]
 block_name_filter = '.*_.*{}.*'.format(block_type)
 
 h5_filepath = '{}/all_data_thor_{}.hdf5'.format(dir_data_save, block_type)
