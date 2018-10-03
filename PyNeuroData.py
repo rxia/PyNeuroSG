@@ -321,7 +321,7 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
         try:
             if name_filter is not None:
                 for i in range(N_signal):
-                    cur_name = data_neuro['signal_info'][i]['name']
+                    cur_name = list(data_neuro['signal_info']['name'])[i]
                     if re.match(name_filter, cur_name) is None:
                         indx[i] = False
         except:
@@ -329,7 +329,7 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
         try:
             if chan_filter is not None:
                 for i in range(N_signal):
-                    cur_chan = data_neuro['signal_info'][i]['channel_index']
+                    cur_chan = list(data_neuro['signal_info']['channel_index'])[i]
                     if cur_chan not in chan_filter:
                         indx[i] = False
         except:
@@ -337,7 +337,7 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
         try:
             if sortcode_filter is not None:
                 for i in range(N_signal):
-                    cur_sortcode = data_neuro['signal_info'][i]['sort_code']
+                    cur_sortcode = list(data_neuro['signal_info']['sort_code'])[i]
                     if cur_sortcode not in sortcode_filter:
                         indx[i] = False
         except:

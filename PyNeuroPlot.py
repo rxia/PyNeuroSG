@@ -146,10 +146,7 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP", tl
         ch_list = np.arange(0,array_erp.shape[0])
     else:
         array_erp = np.mean(data['data'],axis=0).transpose()
-        if data['signal_info']['type'][0] == 'spiketrains':
-            ch_list = [int(data['signal_info'][i][0][4:6]) for i in range(len(data['signal_info']))]
-        elif data['signal_info']['type'][0] == 'analogsignals':
-            ch_list = [int(data['signal_info'][i][0][5:7]) for i in range(len(data['signal_info']))]
+        ch_list = list(data['signal_info']['channel_index'])
     [N_chan, N_ts] = array_erp.shape
     if ts is None:
         ts = np.arange(N_ts)

@@ -30,9 +30,9 @@ list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keywor
 list_name_tanks = sorted(list_name_tanks)
 
 # ----- filename (blockname) to use
-block_type = 'featureMTS'
+block_type = 'feature_reverse'
 
-if block_type == 'featureMTS':
+if block_type == 'featureMTS' or block_type == 'feature_reverse':
     t_plot = [-0.600, 1.600]
 elif block_type == 'image':
     t_plot = [-0.500, 0.800]
@@ -91,7 +91,15 @@ def SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, h5_filepath=h5_fil
 
 for tankname in list_name_tanks:
     try:
-        [date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay(tankname)
+        [date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay(tankname,block_name_filter)
         SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, h5_filepath)
     except:
         warnings.warn('tank {} cannot be processed'.format(tankname))
+
+
+## Single days
+[date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay('Thor_GM32-180915','.*_.*featureMTS.*')
+SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, '/shared/homes/rxia/data/all_data_thor_featureMTS.hdf5')
+
+[date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay('Thor_GM32-180911','.*_.*feature_reverse.*')
+SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, '/shared/homes/rxia/data/all_data_thor_feature_reverse.hdf5')
