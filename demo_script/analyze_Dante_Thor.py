@@ -9,6 +9,7 @@ import pandas as pd
 import h5py
 import matplotlib as mlp
 import matplotlib.pyplot as plt
+import pickle
 
 import PyNeuroData as pnd
 import PyNeuroAna  as pna
@@ -158,7 +159,13 @@ for i, highlight in enumerate(plot_highlight):
     plt.axes(h_axes[i])
     plt.title(highlight)
     for c in range(len(cdtn_name)):
-        plt.plot(ts, data_group_mean_norm[c][:, yn_keep_signal].mean(axis=1),
+        trace_N = np.sum(yn_keep_signal)
+        trace_mean = data_group_mean_norm[c][:, yn_keep_signal].mean(axis=1)
+        trace_se = data_group_mean_norm[c][:, yn_keep_signal].std(axis=1)/np.sqrt(trace_N)
+        plt.fill_between(ts, trace_mean-2*trace_se, trace_mean+2*trace_se,
+                 color=colors[c], linestyle=linestyles[c],
+                 alpha=plot_highlight[highlight]['trace'][c]*0.25)
+        plt.plot(ts, trace_mean,
                  color=colors[c], linestyle=linestyles[c],
                  alpha=plot_highlight[highlight]['trace'][c])
     if i==0:
@@ -175,7 +182,13 @@ for i, highlight in enumerate(plot_highlight):
     plt.axes(h_axes[i])
     plt.title(highlight)
     for c in range(len(cdtn_name)):
-        plt.plot(ts, data_group_mean_norm[c][:, yn_keep_signal].mean(axis=1),
+        trace_N = np.sum(yn_keep_signal)
+        trace_mean = data_group_mean_norm[c][:, yn_keep_signal].mean(axis=1)
+        trace_se = data_group_mean_norm[c][:, yn_keep_signal].std(axis=1)/np.sqrt(trace_N)
+        plt.fill_between(ts, trace_mean-2*trace_se, trace_mean+2*trace_se,
+                 color=colors[c], linestyle=linestyles[c],
+                 alpha=plot_highlight[highlight]['trace'][c]*0.25)
+        plt.plot(ts, trace_mean,
                  color=colors[c], linestyle=linestyles[c],
                  alpha=plot_highlight[highlight]['trace'][c])
     if i==0:
@@ -264,8 +277,8 @@ plt.scatter(mean_baseline[is_signal_V4_valid & ~is_signal_V4_visual], mean_nov_0
 plt.legend(['visual', 'non-visual'])
 plt.plot([0, 50], [0, 50], color='gray', linestyle='--', alpha=0.5)
 plt.axis('equal')
-plt.xlabel('baseline')
-plt.ylabel('visual')
+plt.xlabel('baseline firing rate (spk/s)')
+plt.ylabel('visual response firing rate (spk/s)')
 plt.title('V4: {} visual / {} all'.format(np.sum(is_signal_V4_visual), np.sum(is_signal_V4_valid)))
 
 plt.axes(h_axes[1])
@@ -277,9 +290,9 @@ plt.scatter(mean_baseline[signal_cur], mean_nov_00[signal_cur],
             c=[0.5] * 3, s=10)
 plt.plot([0, 50], [0, 50], color='gray', linestyle='--', alpha=0.5)
 plt.axis('equal')
-plt.xlabel('baseline')
-plt.ylabel('visual')
-plt.title('Dante IT: {} visual / {} all'.format(np.sum(is_signal_IT_visual_Dante), np.sum(is_signal_IT_valid_Dante)))
+plt.xlabel('baseline firing rate (spk/s)')
+plt.ylabel('visual response firing rate (spk/s)')
+plt.title('IT from DT: {} visual / {} all'.format(np.sum(is_signal_IT_visual_Dante), np.sum(is_signal_IT_valid_Dante)))
 
 
 plt.axes(h_axes[2])
@@ -291,12 +304,12 @@ plt.scatter(mean_baseline[signal_cur], mean_nov_00[signal_cur],
             c=[0.5] * 3, s=10)
 plt.plot([0, 50], [0, 50], color='gray', linestyle='--', alpha=0.5)
 plt.axis('equal')
-plt.xlabel('baseline')
-plt.ylabel('visual')
-plt.title('Dante IT: {} visual / {} all'.format(np.sum(is_signal_IT_visual_Thor), np.sum(is_signal_IT_valid_Thor)))
+plt.xlabel('baseline firing rate (spk/s)')
+plt.ylabel('visual response firing rate (spk/s)')
+plt.title('IT from TR: {} visual / {} all'.format(np.sum(is_signal_IT_visual_Thor), np.sum(is_signal_IT_valid_Thor)))
 
-plt.savefig(os.path.join(path_to_fig, 'PSTH_visual_criterion.png'))
-plt.savefig(os.path.join(path_to_fig, 'PSTH_visual_criterion.pdf'))
+plt.savefig(os.path.join(path_to_fig, 'visual_criterion.png'))
+plt.savefig(os.path.join(path_to_fig, 'visual_criterion.pdf'))
 
 if False:
     path_to_U_probe_manual_selection = './script/Thor_signal_manual_select.csv'
@@ -577,15 +590,6 @@ plot_highlight['00']  = {'trace': [1,0,0,1,0,0], 'compare': [1,0,0,0,0]}
 plot_highlight['50']  = {'trace': [0,1,0,0,1,0], 'compare': [0,1,0,0,0]}
 plot_highlight['70']  = {'trace': [0,0,1,0,0,1], 'compare': [0,0,1,0,0]}
 
-# mode_keep_signal = ''
-# # mode_keep_signal = 'noise_delay'
-# if mode_keep_signal == 'manual':
-#     yn_keep_signal = keep_final_manual
-# elif mode_keep_signal == 'noise_delay':
-#     yn_keep_signal = keep_noise_delay
-# else:
-#     yn_keep_signal = np.ones(data_group_mean.shape[2]).astype('bool')
-
 
 keep_mode = 'V4'
 # keep_mode = 'IT'
@@ -596,34 +600,7 @@ keep_mode = 'V4'
 # keep_mode = 'IT_iGr'
 
 
-if keep_mode=='V4':
-    yn_keep_signal = (signal_all_spk['area'] == 'V4') \
-                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1)
-elif keep_mode=='IT':
-    yn_keep_signal = ((signal_all_spk['area'] == 'TEd') | (signal_all_spk['area'] == 'TEm'))  \
-                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1)
-elif keep_mode=='IT_Dante':
-    yn_keep_signal = ((signal_all_spk['area'] == 'TEd') | (signal_all_spk['area'] == 'TEm'))  \
-                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1) \
-                     & (signal_all_spk['animal']=='Dante')
-elif keep_mode=='IT_Thor':
-    yn_keep_signal = ((signal_all_spk['area'] == 'TEd') | (signal_all_spk['area'] == 'TEm'))  \
-                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1) \
-                     & (signal_all_spk['animal']=='Thor')
-elif keep_mode=='IT_Gr':
-    yn_keep_signal = ((signal_all_spk['area'] == 'TEd') | (signal_all_spk['area'] == 'TEm'))  \
-                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1) \
-                     & (signal_all_spk['depth']>=-2) & (signal_all_spk['depth']<=2)
-elif keep_mode=='IT_sGr':
-    yn_keep_signal = ((signal_all_spk['area'] == 'TEd') | (signal_all_spk['area'] == 'TEm'))  \
-                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1) \
-                     & (signal_all_spk['depth']>3)
-elif keep_mode=='IT_iGr':
-    yn_keep_signal = ((signal_all_spk['area'] == 'TEd') | (signal_all_spk['area'] == 'TEm'))  \
-                     & (signal_all_spk['valid']==1) & (signal_all_spk['is_visual']==1) \
-                     & (signal_all_spk['depth']<-3)
-else:
-    raise Exception('keep mode not correct')
+yn_keep_signal = signal_filter(keep_mode)
 
 h_fig, h_axes = plt.subplots(2, 3, figsize=(12,8), sharex='all', sharey='all')
 h_axes = np.ravel(h_axes)
@@ -631,7 +608,13 @@ for i, highlight in enumerate(plot_highlight):
     plt.axes(h_axes[i])
     plt.title(highlight)
     for c in range(len(cdtn_name)):
-        plt.plot(ts, data_group_mean_norm[c][:, yn_keep_signal].mean(axis=1),
+        trace_N = np.sum(yn_keep_signal)
+        trace_mean = data_group_mean_norm[c][:, yn_keep_signal].mean(axis=1)
+        trace_se = data_group_mean_norm[c][:, yn_keep_signal].std(axis=1)/np.sqrt(trace_N)
+        plt.fill_between(ts, trace_mean-2*trace_se, trace_mean+2*trace_se,
+                 color=colors[c], linestyle=linestyles[c],
+                 alpha=plot_highlight[highlight]['trace'][c]*0.25)
+        plt.plot(ts, trace_mean,
                  color=colors[c], linestyle=linestyles[c],
                  alpha=plot_highlight[highlight]['trace'][c])
     if i==0:
@@ -949,12 +932,12 @@ plt.savefig(os.path.join(path_to_fig, 'fano_over_time_{}_{}.pdf'.format(count_mo
 
 
 ##
-""" ========== decoding ========== """
+""" ========== single neuron informaiton: explained variance ========== """
+
 # count_mode = 'cum'
 count_mode = 'slide'
 
-list_psth_group_mean_by_img_noise = []
-list_psth_group_std_by_img_noise  = []
+list_residules  = []
 
 window_size = 0.1
 t_start = 0.0
@@ -963,7 +946,6 @@ ts_sample_guide = np.arange(-0.050, 0.551, 0.010)
 def get_i_ts_sample(ts_sample, ts):
     return np.array([np.flatnonzero(ts>t)[0] for t in ts_sample_guide])
 
-ts[get_i_ts_sample(ts_sample_guide, ts)]
 
 list_signal = []
 list_cdtn = []
@@ -973,10 +955,8 @@ for datecode in all_dates:
     try:
         # get data
         data_neuro = load_data_of_day(datecode)
-        df_ana.GroupDataNeuro(data_neuro, limit=data_neuro['trial_info']['mask_opacity_int'] < 80,
-                              groupby=['stim_familiarized', 'mask_opacity_int', 'stim_sname', 'mask_orientation'])
 
-        # smooth trace over time
+        # work on time
         ts = data_neuro['ts']
 
         if count_mode == 'cum':
@@ -986,28 +966,136 @@ for datecode in all_dates:
         else:
             raise Exception('count_mode no valid')
 
-        # get mean and std
-        psth_group_mean = pna.GroupStat(data_neuro)
-        psth_group_std  = pna.GroupStat(data_neuro, statfun='std')
+        i_ts_sample = get_i_ts_sample(ts_sample_guide, ts)
+        data_neuro['ts'] = ts[i_ts_sample]
+        data_neuro['data'] = data_neuro['data'][:, i_ts_sample, :]
 
-        psth_group_reshape = np.reshape(psth_group_mean, [2, 3, 20, data_neuro['data'].shape[1], data_neuro['data'].shape[2]])
+        # var overall
+        df_ana.GroupDataNeuro(data_neuro, limit=data_neuro['trial_info']['mask_opacity_int'] < 80,
+                              groupby=['stim_familiarized', 'mask_opacity_int'])
+        psth_group_std = pna.GroupStat(data_neuro, statfun='std')
         psth_group_reshape_std = np.reshape(psth_group_std,
-                                        [2, 3, 20, data_neuro['data'].shape[1], data_neuro['data'].shape[2]])
+                                            [6, data_neuro['data'].shape[1], data_neuro['data'].shape[2]])
+
+        residule_overall = psth_group_reshape_std
+
+        # var after image
+        df_ana.GroupDataNeuro(data_neuro, limit=data_neuro['trial_info']['mask_opacity_int'] < 80,
+                              groupby=['stim_familiarized', 'mask_opacity_int', 'stim_sname'])
+        psth_group_std  = pna.GroupStat(data_neuro, statfun='std')
+        psth_group_reshape_std = np.reshape(psth_group_std,
+                                        [6, 10, data_neuro['data'].shape[1], data_neuro['data'].shape[2]])
+
+        residule_after_image = np.mean(psth_group_reshape_std, axis=1)
+
+        # var after image
+        df_ana.GroupDataNeuro(data_neuro, limit=data_neuro['trial_info']['mask_opacity_int'] < 80,
+                              groupby=['stim_familiarized', 'mask_opacity_int', 'mask_orientation'])
+        psth_group_std  = pna.GroupStat(data_neuro, statfun='std')
+        psth_group_reshape_std = np.reshape(psth_group_std,
+                                        [6, 2, data_neuro['data'].shape[1], data_neuro['data'].shape[2]])
+
+        residule_after_noise = np.mean(psth_group_reshape_std, axis=1)
+
+        residules = np.stack((residule_overall, residule_after_image, residule_after_noise), axis=1)
 
         # get signal info
         signal_info = data_neuro['signal_info']
         signal_info['date'] = datecode
 
-        list_psth_group_mean_by_img_noise.append(psth_group_reshape)
-        list_psth_group_std_by_img_noise.append(psth_group_reshape_std)
-        list_signal.append(signal_info)
+        list_residules.append(residules)
+
     except:
         print('date {} can not be processed'.format(datecode))
 
 
-sc_mean_all = np.concatenate(list_psth_group_mean_by_img_noise, axis=-1)
-sc_std_all = np.concatenate(list_psth_group_std_by_img_noise, axis=-1)
+if count_mode == 'slide':
+    residules_all_slide = np.concatenate(list_residules, axis=-1)
+    residules_all = residules_all_slide
+elif count_mode == 'cum':
+    residules_all_cum = np.concatenate(list_residules, axis=-1)
+    residules_all_cum[:, :, ts_sample_guide<=0.050] = np.nan
+    residules_all = residules_all_cum
 
+##
+residules_all_mod = residules_all+0.5
+
+var_prop_by_image = residules_all_mod[:, 1, :] / residules_all_mod[:, 0, :]
+var_prop_by_noise = residules_all_mod[:, 2, :] / residules_all_mod[:, 0, :]
+
+entropy_all = np.log(residules_all_mod * np.sqrt(2*np.pi*np.exp(1)))
+entropy_red_image = entropy_all[:, 0, :] -  entropy_all[:, 1, :]
+entropy_red_noise = entropy_all[:, 0, :] -  entropy_all[:, 2, :]
+
+
+keep_mode = 'V4'
+# keep_mode = 'IT'
+# keep_mode = 'IT_Dante'
+# keep_mode = 'IT_Thor'
+# keep_mode = 'IT_Gr'
+# keep_mode = 'IT_sGr'
+# keep_mode = 'IT_iGr'
+
+yn_keep_signal = signal_filter(keep_mode)
+
+# var_by = 'image_prop'
+# var_by = 'noise_prop'
+var_by = 'image_entr'
+# var_by = 'noise_entr'
+
+if var_by == 'image_prop':
+    var_prop = var_prop_by_image
+    ylim = [0.825, 1.0]
+elif var_by == 'noise_prop':
+    var_prop = var_prop_by_noise
+    ylim = [0.95, 1.0]
+elif var_by == 'image_entr':
+    var_prop = entropy_red_image
+    ylim = [0.00, 0.20]
+elif var_by == 'noise_entr':
+    var_prop = entropy_red_noise
+    ylim = [0.00, 0.05]
+else:
+    raise Exception('invalid var_by')
+
+colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9, style='continuous', cm='rainbow'),
+                    pnp.gen_distinct_colors(3, luminance=0.7, style='continuous', cm='rainbow')])
+linestyles = ['--', '--', '--', '-', '-', '-']
+cdtn_name = ['nov, 00', 'nov, 50', 'nov, 70', 'fam, 00', 'fam, 50', 'fam, 70']
+
+plot_highlight = dict()
+plot_highlight['all'] = {'trace': [1,1,1,1,1,1], 'compare': [0,0,0,1,0]}
+plot_highlight['nov'] = {'trace': [1,1,1,0,0,0], 'compare': [0,0,0,1,0]}
+plot_highlight['fam'] = {'trace': [0,0,0,1,1,1], 'compare': [0,0,0,0,1]}
+plot_highlight['00']  = {'trace': [1,0,0,1,0,0], 'compare': [1,0,0,0,0]}
+plot_highlight['50']  = {'trace': [0,1,0,0,1,0], 'compare': [0,1,0,0,0]}
+plot_highlight['70']  = {'trace': [0,0,1,0,0,1], 'compare': [0,0,1,0,0]}
+
+h_fig, h_axes = plt.subplots(2, 3, figsize=(12,8), sharex='all', sharey='all')
+h_axes = np.ravel(h_axes)
+for i, highlight in enumerate(plot_highlight):
+    plt.axes(h_axes[i])
+    plt.title(highlight)
+    for c in range(len(cdtn_name)):
+        trace_N = np.sum(yn_keep_signal)
+        trace_mean = var_prop[c][:, yn_keep_signal].mean(axis=1)
+        trace_se = var_prop[c][:, yn_keep_signal].std(axis=1)/np.sqrt(trace_N)
+        plt.fill_between(ts_sample_guide, trace_mean-2*trace_se, trace_mean+2*trace_se,
+                 color=colors[c], linestyle=linestyles[c],
+                 alpha=plot_highlight[highlight]['trace'][c]*0.25)
+        plt.plot(ts_sample_guide, trace_mean,
+                 color=colors[c], linestyle=linestyles[c],
+                 alpha=plot_highlight[highlight]['trace'][c])
+
+        # plt.plot(ts_sample_guide, var_prop[c][:, yn_keep_signal].mean(axis=1),
+        #          color=colors[c], linestyle=linestyles[c],
+        #          alpha=plot_highlight[highlight]['trace'][c])
+    if i==0:
+        plt.legend(cdtn_name)
+plt.ylim(ylim)
+plt.xlim([-0.050, 0.450])
+plt.savefig(os.path.join(path_to_fig, 'single_neuron_inf_{}_{}_{}.pdf'.format(var_by, count_mode, keep_mode)))
+plt.savefig(os.path.join(path_to_fig, 'single_neuron_inf_{}_{}_{}.png'.format(var_by, count_mode, keep_mode)))
 
 
 

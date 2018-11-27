@@ -402,8 +402,7 @@ def normalize_across_signals(data, axis_signal=-1, axis_t=-2, method='soft',
 
 """ ===== decoding related ===== """
 
-
-def decode_over_time(data, label, limit_tr=None, limit_ch=None, ts=None, ts_win_train=None):
+def decode_over_time(data, label, limit_tr=None, limit_ch=None, ts=None, return_p=True):
     """ decoding realted, temporary """
     data = np.array(data)
     label = np.array(label)
@@ -430,18 +429,39 @@ def decode_over_time(data, label, limit_tr=None, limit_ch=None, ts=None, ts_win_
     y = label[limit_tr]
 
     """ classification model """
-    clf = linear_model.LogisticRegression(solver='lbfgs', warm_start=True, multi_class='multinomial', fit_intercept=False)
+    clf = linear_model.LogisticRegression(solver='lbfgs', warm_start=True, multi_class='multinomial',
+                                          fit_intercept=False, n_jobs=4)
 
     """ classification over every time point """
     clf_score = np.zeros(N_ts)
     clf_score_std = np.zeros(N_ts)
-    if ts_win_train is None:
+
+    if return_p:
+
+        def get_score_p(clf, X, Y):
+            dict_label2indx = dict(zip(clf.classes_, np.arange(len(clf.classes_))))
+            Y_indx = np.array([dict_label2indx[y] for y in Y])
+            proba_all = clf.predict_proba(X)
+            proba_target = proba_all[np.arange(len(Y)), Y_indx]
+            return np.mean(proba_target)
+
+
+        object_cv = model_selection.StratifiedKFold(n_splits=4)
+        score_cv = []
+        for t in range(N_ts):
+            X_cur = X[:, t, :]
+            score_all_fold = []
+            for indx_train, indx_test in object_cv.split(X_cur, y):
+                clf.fit(X_cur[indx_train, :], y[indx_train])
+                score_all_fold.append(get_score_p(clf, X_cur[indx_test], y[indx_test]))
+            clf_score[t] = np.mean(score_all_fold)
+
+    else:
         for t in range(N_ts):
             cfl_scores = model_selection.cross_val_score(clf, X[:, t, :], y, cv=5)
             clf_score[t] = np.mean(cfl_scores)
             clf_score_std[t] = np.std(cfl_scores)
-    else:
-        pass
+
     return clf_score
 
 

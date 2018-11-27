@@ -319,7 +319,7 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tlim=None, tf_scr_c
 
     return fr_2D
 
-def CreateSubplotFromGroupby(df_groupby_ord, figsize=None, tf_title=True):
+def CreateSubplotFromGroupby(df_groupby_ord, figsize=None, tf_title=True, nrow=None, ncol=None):
     """
     creates subplots according to the structure defined in df_ana.dfGropuby
 
@@ -334,7 +334,7 @@ def CreateSubplotFromGroupby(df_groupby_ord, figsize=None, tf_title=True):
         raise Exception('input dictionary can not be empty')
     elif isinstance(list(df_groupby_ord.values())[0], int):  # input is {str/num: int}, e.g. {'a': 0, 'b': 1}
         N = max(df_groupby_ord.values())+1
-        num_r, num_c = AutoRowCol(N)
+        num_r, num_c = AutoRowCol(N, nrow=nrow, ncol=ncol)
         h_fig, h_axes = plt.subplots(num_r, num_c, sharex='all', sharey='all', squeeze=False, figsize=figsize)
         h_axes = np.ravel(h_axes)
         h_axes = {key: h_axes[val] for key, val in df_groupby_ord.items()}
@@ -605,7 +605,8 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
 
 def PsthPlotMultiPanel(data_neuro=None, index_signal=0,
                        data2D=None, ts=None, data_df=None,
-                       limit=None, groupby_subplots='', aggregate_subplots=False, linearize_subplots=False,
+                       limit=None, groupby_subplots='', aggregate_subplots=False,
+                       linearize_subplots=False, nrow=None, ncol=None,
                        groupby_panel='', sk_std=None, subpanel='auto', color_style='discrete',
                        tf_legend=True, xlabel=None, ylabel=None, figsize=(12, 9), signal_name=''):
     """
@@ -646,7 +647,7 @@ def PsthPlotMultiPanel(data_neuro=None, index_signal=0,
 
     df_grpby = df_ana.DfGroupby(data_df, groupby=groupby_subplots, limit=limit,
                                 tf_aggregate=aggregate_subplots, tf_linearize=linearize_subplots)
-    h_fig, h_axes = CreateSubplotFromGroupby(df_grpby['order'], figsize=figsize)
+    h_fig, h_axes = CreateSubplotFromGroupby(df_grpby['order'], figsize=figsize, nrow=nrow, ncol=ncol)
     for cdtn in df_grpby['idx']:
         plt.axes(h_axes[cdtn])
         idx_trials = df_grpby['idx'][cdtn]
