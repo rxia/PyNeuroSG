@@ -30,7 +30,7 @@ list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keywor
 list_name_tanks = sorted(list_name_tanks)
 
 # ----- filename (blockname) to use
-block_type = 'feature_reverse'
+block_type = 'featureMTS'
 
 if block_type == 'featureMTS' or block_type == 'feature_reverse':
     t_plot = [-0.600, 1.600]
@@ -98,8 +98,8 @@ for tankname in list_name_tanks:
 
 
 ## Single days
-[date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay('Thor_GM32-180915','.*_.*featureMTS.*')
+[date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay('Thor_GM32-181008','.*_.*featureMTS.*')
 SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, '/shared/homes/rxia/data/all_data_thor_featureMTS.hdf5')
 
-[date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay('Thor_GM32-180911','.*_.*feature_reverse.*')
+[date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay('Thor_GM32-180917','.*_.*feature_reverse.*')
 SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, '/shared/homes/rxia/data/all_data_thor_feature_reverse.hdf5')

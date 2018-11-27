@@ -17,11 +17,12 @@ import store_hdf5
 import df_ana
 import misc_tools
 
-
+animal_to_show = 'Thor'
 # set path to data
-path_to_hdf5_data_Dante = '../support_data/data_neuro_Dante_GM32_U16_all.hdf5'
-path_to_hdf5_data_Thor = '../support_data/data_neuro_Thor_U16_all.hdf5'
-path_to_fig = './temp_figs/final_Dante_Thor'
+path_to_hdf5_data_Dante = '/shared/homes/sguan/Coding_Projects/support_data/data_neuro_Dante_GM32_U16_all.hdf5'
+# path_to_hdf5_data_Thor = '/shared/homes/sguan/Coding_Projects/support_data/data_neuro_Thor_U16_all.hdf5'
+path_to_hdf5_data_Thor = '/shared/homes/rxia/data/all_data_thor_srv_mask.hdf5'
+path_to_fig = './temp_figs/test'
 
 
 path_to_U_probe_loc = './script/U16_location_Dante_Thor.csv'
@@ -32,11 +33,13 @@ path_to_U_probe_loc = './script/U16_location_Dante_Thor.csv'
 loc_U16 = pd.read_csv(path_to_U_probe_loc)
 loc_U16['date'] = loc_U16['date'].astype('str')
 
-def sinal_extend_loc_info(signal_all):
+def signal_extend_loc_info(signal_all):
     signal_extend = pd.merge(signal_all, loc_U16, 'left', on='date')
 
     signal_extend['channel_index_U16'] = signal_extend['channel_index'] - 32*(signal_extend['animal']=='Dante')
     signal_extend['area'] = np.where((signal_extend['animal']=='Dante') & (signal_extend['channel_index']<=32),
+                                     ['V4']*len(signal_extend), signal_extend['area'])
+    signal_extend['area'] = np.where((signal_extend['animal']=='Thor') & (signal_extend['date']>'180700') & (signal_extend['channel_index']<=32),
                                      ['V4']*len(signal_extend), signal_extend['area'])
 
     signal_extend['depth'] = 0
@@ -49,7 +52,7 @@ def sinal_extend_loc_info(signal_all):
 
 
 def load_data_of_day(datecode):
-    if datecode <= '180000':
+    if datecode <= '180000' and (animal_to_show=='Dante' or animal_to_show=='all'):
         animal = 'Dante'
         path_to_hdf5_data = path_to_hdf5_data_Dante
     else:
@@ -117,7 +120,7 @@ signal_all = set_signal_id(signal_all)
 
 signal_all_spk = signal_all
 
-signal_all_spk = sinal_extend_loc_info(signal_all_spk)
+signal_all_spk = signal_extend_loc_info(signal_all_spk)
 
 data_group_mean_norm = pna.normalize_across_signals(data_group_mean, ts=ts, t_window=[0.050, 0.300])
 
@@ -129,6 +132,9 @@ print(np.sum(temp & (signal_all_spk['sort_code']==1)))
 
 temp = (signal_all_spk['valid']==1) & (signal_all_spk['animal']=='Dante') & (signal_all_spk['area']!='V4')
 print(np.sum(temp))
+print(np.sum(temp & (signal_all_spk['sort_code']==1)))
+
+temp = (signal_all_spk['valid']==1) & (signal_all_spk['animal']=='Thor') & (signal_all_spk['area']=='V4')
 print(np.sum(temp & (signal_all_spk['sort_code']==1)))
 
 temp = (signal_all_spk['valid']==1) & (signal_all_spk['animal']=='Thor') & (signal_all_spk['area']!='V4')
@@ -694,7 +700,7 @@ psth_rank_norm = pna.normalize_across_signals(psth_rank_all, ts=ts, t_window=[0.
 
 ##
 
-keep_mode = 'V4'
+keep_mode = 'IT'
 # keep_mode = 'IT'
 # keep_mode = 'IT_Dante'
 # keep_mode = 'IT_Thor'
@@ -744,7 +750,7 @@ elif t_mode == 'full':
 else:
     raise Exception('t_mode invalid')
 
-keep_mode = 'V4'
+keep_mode = 'IT'
 # keep_mode = 'IT'
 # keep_mode = 'IT_Dante'
 # keep_mode = 'IT_Thor'
@@ -863,7 +869,7 @@ sc_std_all = np.concatenate(list_psth_group_std_by_img_noise, axis=-1)
 
 ##
 
-keep_mode = 'V4'
+keep_mode = 'IT'
 # keep_mode = 'IT'
 # keep_mode = 'IT_Dante'
 # keep_mode = 'IT_Thor'
