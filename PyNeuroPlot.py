@@ -319,6 +319,7 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tlim=None, tf_scr_c
 
     return fr_2D
 
+
 def CreateSubplotFromGroupby(df_groupby_ord, figsize=None, tf_title=True, nrow=None, ncol=None):
     """
     creates subplots according to the structure defined in df_ana.dfGropuby
@@ -1156,10 +1157,8 @@ def EmbedTracePlot(loc_embed, traces=None, labels=None, labels_interactive=None,
 """ ========== ========= tool functions ========== ========== """
 
 
-
 def get_unique_elements(labels):
     return sorted(list(set(labels)))
-
 
 
 def add_axes_on_top(h_axes, r=0.25):
@@ -1256,6 +1255,57 @@ def add_sub_axes(h_axes=None, loc='top', size=0.25, gap=0.02, sub_rect=None):
     return h_subaxes
 
 
+def my_hist(data, yn_mean=True, yn_median=True, yn_points=True, color='k', alpha=0.5,
+            kwargs_hist=None, kwargs_mean=None, kwargs_median=None, kwargs_points=None):
+    """
+    customized histogram plot, with mean, median and individual data points
+
+    :param data: 1D array of data points
+    :param yn_mean: True/False to plot mean
+    :param yn_median: True/False to plot median
+    :param yn_scatter: True/False to plot every data point
+    :param color: color
+    :param alpha:
+    :param kwargs_hist: dict keyword arguments for plt.hist
+    :param kwargs_mean: dict keyword arguments for plt.plot, (for mean, a vertical line)
+    :param kwargs_median: dict keyword arguments for plt.plot, (for median, a vertical line)
+    :param kwargs_points: dict keyword arguments for plt.scatter, (for individual data points)
+    :return:
+    """
+    data = np.array(data)
+    data = data[np.isfinite(data)]
+
+    kwargs_hist_base_hist = {'color': color, 'alpha': alpha}
+    kwargs_hist_base_other = {'color': color, 'alpha': alpha*0.3+0.7, 'linewidth': 2}
+
+    if kwargs_hist is None:
+        kwargs_hist = {}
+    if kwargs_mean is None:
+        kwargs_mean = {}
+    if kwargs_median is None:
+        kwargs_median = {}
+    if kwargs_points is None:
+        kwargs_points = {}
+
+    count, bins, _ = plt.hist(data, **{**kwargs_hist_base_hist, **kwargs_hist})
+    count_max = np.max(count)
+    if yn_mean:
+        data_mean = np.mean(data)
+        plt.plot([data_mean, data_mean], [0, count_max/3],
+                 **{**kwargs_hist_base_other, **kwargs_mean})
+    if yn_median:
+        data_median = np.median(data)
+        plt.plot([data_median, data_median], [0, count_max / 3],
+                 **{**kwargs_hist_base_other, **{'ls': '--'}, **kwargs_median})
+    if yn_points:
+        plt.scatter(data, np.random.rand(len(data))*count_max/10,
+                 **{**kwargs_hist_base_other, **{'marker': '+', 'linewidth': 0.5}, **kwargs_points})
+
+    plt.gca().set_ylim(bottom=0)
+
+    return plt.gca()
+
+
 def scatter_hist(x, y, h_axes=None, kwargs_scatter=None, kwargs_hist=None):
     """
     scatter hist plot
@@ -1297,13 +1347,14 @@ def scatter_hist(x, y, h_axes=None, kwargs_scatter=None, kwargs_hist=None):
     return h_main, h_top, h_right
 
 
-def create_array_layout_subplots(array_layout, tf_linear_indx=True, tf_text_ch=False):
+def create_array_layout_subplots(array_layout, tf_linear_indx=True, tf_text_ch=False, **kwargs):
     """
     create the subplots based on the electrode array's spatial layout
 
     :param array_layout:   electrode array's spatial layout, a dict, {chan: (row, column)}
     :param tf_linear_indx: True/False the returned subplot axis is a 1D array, indexed in the channel orders, default to True
     :param tf_text_ch:     True/False show the channel index for every axes
+    :param **kwargs:       parameters for plt.subplots
     :return: [h_fig, h_axes],as the plt.subplots
     """
     [ch, r, c] = zip(*sorted([[ch, r, c] for ch, (r, c) in array_layout.items()]))
@@ -1311,7 +1362,7 @@ def create_array_layout_subplots(array_layout, tf_linear_indx=True, tf_text_ch=F
     max_c = max(c)
 
     # create subplots
-    [h_fig, h_axes] = plt.subplots(max_r+1, max_c+1, sharex=True, sharey=True)
+    [h_fig, h_axes] = plt.subplots(max_r+1, max_c+1, sharex='all', sharey='all', **kwargs)
     h_axes = np.array(h_axes, ndmin=2)
 
     # set all axes off
@@ -1570,8 +1621,6 @@ def DataFastSubplot(data_list, layout=None, data_type=None, gap=0.05, tf_axis=Tr
                         plt.text(indx_in_canvas(col, 'col', 'start'), indx_in_canvas(row, 'row', 'start')-0.5, subplot_label[i])
 
 
-
-
 def center2edge(centers):
     # tool function to get edges from centers for plt.pcolormesh
     centers = np.array(centers,dtype='float')
@@ -1677,6 +1726,7 @@ def isSingle(x):
     else:
         return True
 
+
 def share_clim(h_ax, c_lim=None, cmap=None):
     """
     tool funciton to share clim (make sure c_lim of given axes are the same), call after plotting all images
@@ -1700,7 +1750,6 @@ def share_clim(h_ax, c_lim=None, cmap=None):
             if cmap is not None:
                 plt.set_cmap(cmap)
     return c_lim
-
 
 
 def auto_tick(data_range, max_tick=10, tf_inside=False):
