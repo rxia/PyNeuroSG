@@ -846,8 +846,8 @@ sc_std_all = np.concatenate(list_psth_group_std_by_img_noise, axis=-1)
 
 ##
 
-keep_mode = 'V4'
-# keep_mode = 'IT'
+# keep_mode = 'V4'
+keep_mode = 'IT'
 # keep_mode = 'IT_Dante'
 # keep_mode = 'IT_Thor'
 # keep_mode = 'IT_Gr'

@@ -964,10 +964,12 @@ for i_t, t_interest in enumerate(ts_fano):
             plt.scatter(x, y, c='k', s=5, alpha=0.1)
             plt.plot([0, 10], [b, 10*k+b], 'k')
             plt.title('{:.2f}'.format(k))
+            plt.plot([0, 20], [0, 20], ls='--', color='gray', alpha=0.5)
     plt.xlim(0, 20)
     plt.ylim(0, 20)
-    plt.savefig(os.path.join(path_to_fig, 'fano_{}_{}_{:.0f}.png'.format(count_mode, keep_mode, 1000*t_interest)))
-    plt.savefig(os.path.join(path_to_fig, 'fano_{}_{}_{:.0f}.pdf'.format(count_mode, keep_mode, 1000*t_interest)))
+    plt.xticks(np.arange(0, 20 + 1, 5))
+    plt.yticks(np.arange(0, 20 + 1, 5))
+    save_fig_all_format('fano_{}_{}_{:.0f}'.format(count_mode, keep_mode, 1000*t_interest))
     plt.close()
 
 
@@ -988,7 +990,7 @@ colors = np.vstack([pnp.gen_distinct_colors(3, luminance=0.9, style='continuous'
 linestyles = ['--', '--', '--', '-', '-', '-']
 cdtn_name = ['nov, 00', 'nov, 50', 'nov, 70', 'fam, 00', 'fam, 50', 'fam, 70']
 
-plt.figure()
+plt.figure(figsize=(6,4))
 for i in range(6):
     plt.plot(ts_fano, fano_reshape[i], color=colors[i], linestyle=linestyles[i], label=cdtn_name[i])
 
@@ -1000,10 +1002,7 @@ plt.xlabel('time')
 plt.ylabel('fano factor')
 plt.title('fano_over_time_{}.png'.format(keep_mode))
 plt.legend()
-plt.savefig(os.path.join(path_to_fig, 'fano_over_time_{}_{}.png'.format(count_mode, keep_mode)))
-plt.savefig(os.path.join(path_to_fig, 'fano_over_time_{}_{}.pdf'.format(count_mode, keep_mode)))
-
-
+save_fig_all_format(fig_name='fano_over_time_{}_{}'.format(count_mode, keep_mode))
 
 
 
