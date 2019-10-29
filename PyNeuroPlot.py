@@ -89,7 +89,7 @@ def SpkWfPlot(seg, sortcode_min =1, sortcode_max =100, ncols=None):
     return fig
 
 
-def ErpPlot_singlePanel(erp, ts=None, tf_inverse_color=False, cmap='coolwarm', c_lim_style='diverge', trace_scale=1):
+def ErpPlot_singlePanel(erp, ts=None, tf_inverse_color=False, tf_inverse_updown=True, cmap='coolwarm', c_lim_style='diverge', trace_scale=1):
     """
     ERP plot in a single panel, where trace and color plot are superimposed. ideal for ERP recorded with linear probe
 
@@ -120,10 +120,17 @@ def ErpPlot_singlePanel(erp, ts=None, tf_inverse_color=False, cmap='coolwarm', c
     else:
         erp_plot = erp
     plt.pcolormesh(center2edge(ts), center2edge(range(N)), erp_plot, cmap=cmap, vmin=c_min, vmax=c_max)
-    plt.plot(ts, ( -(erp-center_signal)/scale_signal/2*trace_scale+np.expand_dims(np.arange(N), axis=1)).transpose(), 'k', alpha=0.2)  # add "-" because we later invert y axis
-    ax = plt.gca()
-    # ax.set_ylim(sorted(ax.get_ylim(), reverse=True))
-    ax.set_ylim([N-0.5, -0.5])
+    if tf_inverse_updown:
+        plt.plot(ts, ( -(erp-center_signal)/scale_signal/2*trace_scale+np.expand_dims(np.arange(N), axis=1)).transpose(), 'k', alpha=0.2)  # add "-" because we later invert y axis
+        ax = plt.gca()
+        # ax.set_ylim(sorted(ax.get_ylim(), reverse=True))
+        ax.set_ylim([N-0.5, -0.5])
+    else:
+        plt.plot(ts, ((erp - center_signal) / scale_signal / 2 * trace_scale + np.expand_dims(np.arange(N), axis=1)).transpose(), 'k', alpha=0.2)  # add "-" because we later invert y axis
+        ax = plt.gca()
+        # ax.set_ylim(sorted(ax.get_ylim(), reverse=True))
+        ax.set_ylim([N - 0.5, -0.5])
+        ax.invert_yaxis()
 
 
 def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
