@@ -18,28 +18,21 @@ import data_load_DLSH       # package specific for DLSH lab data
 """ ========== set parameters ========== """
 
 # ----- data directory
-dir_data_save = '/shared/homes/rxia/data'
+dir_data_save = '/shared/homes/rxia/labdata'
 dir_tdt_tank = '/shared/lab/projects/encounter/data/TDT/'
 dir_dg = '/shared/lab/projects/analysis/ruobing/data_dg'
 
 # ----- tank names to use
 list_name_tanks = os.listdir(dir_tdt_tank)
 keyword_tank = '.*Thor.*GM32'
-# keyword_tank = '.*Dexter.*GM32'
 list_name_tanks = [name_tank for name_tank in list_name_tanks if re.match(keyword_tank, name_tank) is not None]
 list_name_tanks = sorted(list_name_tanks)
 
 # ----- filename (blockname) to use
-block_type = 'featureMTS'
+block_type = 'bold5000'
 
-if block_type == 'featureMTS' or block_type == 'feature_reverse':
-    t_plot = [-0.600, 1.600]
-elif block_type == 'image':
-    t_plot = [-0.500, 0.800]
-elif block_type == 'spot':
-    t_plot = [-0.300, 0.500]
-elif block_type == 'movies':
-    t_plot = [-0.300, 2.300]
+if block_type == 'bold5000':
+    t_plot = [-0.300, 0.600]
 block_name_filter = '.*_.*{}.*'.format(block_type)
 
 h5_filepath = '{}/all_data_thor_{}.hdf5'.format(dir_data_save, block_type)
@@ -55,14 +48,6 @@ def LoadDataOneDay(tankname, block_name_filter=block_name_filter):
                                                                tf_interactive=False,
                                                                dir_tdt_tank=dir_tdt_tank,
                                                                dir_dg=dir_dg)
-
-    filename_common = misc_tools.str_common(name_tdt_blocks)
-    data_df = data_load_DLSH.standardize_data_df(data_df, filename_common)
-    blk = data_load_DLSH.standardize_blk(blk)
-
-    """ Get StimOn time stamps in neo time frame """
-    ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
-
     """ some settings for saving figures  """
     filename_common = misc_tools.str_common(name_tdt_blocks)
 
@@ -70,8 +55,12 @@ def LoadDataOneDay(tankname, block_name_filter=block_name_filter):
     data_df = data_load_DLSH.standardize_data_df(data_df, filename_common)
     blk = data_load_DLSH.standardize_blk(blk)
 
+    """ Get StimOn time stamps in neo time frame """
+    ts_StimOn = data_load_DLSH.get_ts_align(blk, data_df, dg_tos_align='stimon')
+
+
     data_neuro_lfp = pnd.blk_align_to_evt(blk, ts_StimOn, t_plot,
-                                          type_filter='ana.*', name_filter='LFPs.*')
+                                          type_filter='ana.*', name_filter='LFP.*')
 
     data_neuro_spk = pnd.blk_align_to_evt(blk, ts_StimOn, t_plot,
                                           type_filter='spiketrains.*', name_filter='.*Code[1-9]$',
@@ -84,22 +73,14 @@ def LoadDataOneDay(tankname, block_name_filter=block_name_filter):
 
 
 def SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, h5_filepath=h5_filepath):
-
+    print('save data to disk')
     store_hdf5.SaveToH5(data_neuro_spk, h5_filepath=h5_filepath, h5_groups=[date_code, block_type, 'spk'])
     store_hdf5.SaveToH5(data_neuro_lfp, h5_filepath=h5_filepath, h5_groups=[date_code, block_type, 'lfp'])
 
 
 for tankname in list_name_tanks:
     try:
-        [date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay(tankname,block_name_filter)
+        [date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay(tankname)
         SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, h5_filepath)
     except:
         warnings.warn('tank {} cannot be processed'.format(tankname))
-
-
-## Single days
-[date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay('Thor_GM32-181008','.*_.*featureMTS.*')
-SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, '/shared/homes/rxia/data/all_data_thor_featureMTS.hdf5')
-
-[date_code, data_neuro_spk, data_neuro_lfp, data_df] = LoadDataOneDay('Thor_GM32-180917','.*_.*feature_reverse.*')
-SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, '/shared/homes/rxia/data/all_data_thor_feature_reverse.hdf5')

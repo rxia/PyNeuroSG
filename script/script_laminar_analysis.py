@@ -29,15 +29,12 @@ from GM32_layout import layout_GM32
 plt.ion()
 
 """ load data: (1) neural data: TDT blocks -> neo format; (2)behaverial data: stim dg -> pandas DataFrame """
-# tankname = '.*GM32.*U16.*161125.*'
-tankname = '.*GM32.*U16.*161206.*'
-tankname = '.*GM32.*U16.*161029.*'
-tankname = '.*GM32.*U16.*161118.*'
+tankname = '.*GM32.*U16.*180803.*'
 block_type = 'srv_mask'
-block_type = 'matchnot'
-[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('d_.*{}.*'.format(block_type), tankname, tf_interactive=True,
-                                                               dir_tdt_tank='/shared/homes/sguan/neuro_data/tdt_tank',
-                                                               dir_dg='/shared/homes/sguan/neuro_data/stim_dg')
+# block_type = 'matchnot'
+[blk, data_df, name_tdt_blocks] = data_load_DLSH.load_data('h_.*{}.*'.format(block_type), tankname, tf_interactive=True,
+                                                               dir_tdt_tank='/shared/lab/projects/encounter/data/TDT',
+                                                               dir_dg='/shared/lab/projects/analysis/ruobing/data_dg')
 
 
 """ Get StimOn time stamps in neo time frame """

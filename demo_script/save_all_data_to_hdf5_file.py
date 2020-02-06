@@ -61,15 +61,13 @@ elif scenario=='Dante':
     list_name_tanks = sorted(list_name_tanks_0) + sorted(list_name_tanks_1)
 
     # ----- filename (blockname) to use
-    block_type = 'srv_mask'
-    # block_type = 'matchnot'
     if block_type == 'matchnot':
         t_plot = [-0.200, 1.200]
     else:
         t_plot = [-0.200, 0.600]
     block_name_filter = 'd_.*{}.*'.format(block_type)
 
-    h5filepath = '{}/all_data_dante_{}.hdf5'.format(dir_data_save, block_type)
+    h5_filepath = '{}/data_neuro_Dante_GM32_U16_all.hdf5'.format(dir_data_save, block_type)
 
 
 """ ========== define functions ========== """
@@ -122,3 +120,6 @@ for tankname in list_name_tanks:
         SaveDataOneDay(date_code, data_neuro_spk, data_neuro_lfp, h5_filepath)
     except:
         warnings.warn('tank {} cannot be processed'.format(tankname))
+
+store_hdf5.ShowH5(h5_filepath=h5_filepath)
+

@@ -139,8 +139,10 @@ for i in range(14):
     plt.axes(ax[i])
     if deduct_baseline:
         t_baseline = (power_mt.times>-0.5)&(power_mt.times<-0.1)
-        mean_match = np.mean(10*np.log10(power_mt.data[limit_match[0],i,:,:][:,f_selected,:]) - 10*np.log10(np.median(power_mt.data[limit_match[0],i,:,:][:,f_selected,:][:,:,t_baseline],axis=2)[:,:,None]),axis=0)
-        mean_nonmatch = np.mean(10*np.log10(power_mt.data[limit_nonmatch[0],i,:,:][:,f_selected,:]) - 10*np.log10(np.median(power_mt.data[limit_nonmatch[0],i,:,:][:,f_selected,:][:,:,t_baseline],axis=2)[:,:,None]),axis=0)
+        mean_match = np.mean(10*np.log10(power_mt.data[limit_match[0],i,:,:][:,f_selected,:]) -
+                             10*np.log10(np.median(power_mt.data[limit_match[0],i,:,:][:,f_selected,:][:,:,t_baseline],axis=2)[:,:,None]),axis=0)
+        mean_nonmatch = np.mean(10*np.log10(power_mt.data[limit_nonmatch[0],i,:,:][:,f_selected,:]) -
+                                10*np.log10(np.median(power_mt.data[limit_nonmatch[0],i,:,:][:,f_selected,:][:,:,t_baseline],axis=2)[:,:,None]),axis=0)
     else:
         mean_match = 10*np.log10(np.mean(power_mt.data[limit_match[0],i,:,:][:,f_selected,:],axis=0))
         mean_nonmatch = 10*np.log10(np.mean(power_mt.data[limit_nonmatch[0],i,:,:][:,f_selected,:],axis=0))
@@ -196,13 +198,17 @@ spctrm, times, freqs = group_ave_spctrm(power_mt,channel='all',trials=trials,fli
 limit_orien = [data_lfp_att[i]['trial_info']['FeatureType']==0 for i in data_lfp_att.keys()]
 limit_color = [data_lfp_att[i]['trial_info']['FeatureType']==1 for i in data_lfp_att.keys()]
 conn_orien_delay, freqs_conn, times_delay, n_epochs_orien, n_tapers_conn = \
-    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_orien[0]], method='coh', sfreq=fs, mode='multitaper', fmin=3, fmax=50, tmin=1.0, tmax=1.4, block_size=256, n_jobs=10)
+    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_orien[0]], method='coh', sfreq=fs, mode='multitaper',
+                                           fmin=3, fmax=50, tmin=1.0, tmax=1.4, block_size=256, n_jobs=10)
 conn_color_delay, freqs_conn, times_delay, n_epochs_color, n_tapers_conn = \
-    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_color[0]], method='coh', sfreq=fs, mode='multitaper', fmin=3, fmax=50, tmin=1.0, tmax=1.4, block_size=256, n_jobs=10)
+    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_color[0]], method='coh', sfreq=fs, mode='multitaper',
+                                           fmin=3, fmax=50, tmin=1.0, tmax=1.4, block_size=256, n_jobs=10)
 conn_orien_visual, freqs_conn, times_visual, n_epochs_orien, n_tapers_conn = \
-    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_orien[0]], method='coh', sfreq=fs, mode='multitaper', fmin=3, fmax=50, tmin=1.5, tmax=1.9, block_size=256, n_jobs=10)
+    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_orien[0]], method='coh', sfreq=fs, mode='multitaper',
+                                           fmin=3, fmax=50, tmin=1.5, tmax=1.9, block_size=256, n_jobs=10)
 conn_color_visual, freqs_conn, times_visual, n_epochs_color, n_tapers_conn = \
-    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_color[0]], method='coh', sfreq=fs, mode='multitaper', fmin=3, fmax=50, tmin=1.5, tmax=1.9, block_size=256, n_jobs=10)
+    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_color[0]], method='coh', sfreq=fs, mode='multitaper',
+                                           fmin=3, fmax=50, tmin=1.5, tmax=1.9, block_size=256, n_jobs=10)
 ##
 _, ax = plt.subplots(14,14,sharey=True)
 for i in range(14):
@@ -224,13 +230,17 @@ for i in range(14):
 limit_nonmatch = [data_lfp_att[i]['trial_info']['status']==0 for i in data_lfp_att.keys()]
 limit_match = [data_lfp_att[i]['trial_info']['status']==1 for i in data_lfp_att.keys()]
 conn_nonmatch_visual, freqs_conn, times_visual, n_epochs_orien, n_tapers_conn = \
-    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_nonmatch[0]], method='coh', sfreq=fs, mode='multitaper', fmin=3, fmax=50, tmin=1.5, tmax=1.9, block_size=256, n_jobs=10)
+    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_nonmatch[0]], method='coh', sfreq=fs, mode='multitaper',
+                                           fmin=3, fmax=50, tmin=1.5, tmax=1.9, block_size=256, n_jobs=10)
 conn_match_visual, freqs_conn, times_visual, n_epochs_color, n_tapers_conn = \
-    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_match[0]], method='coh', sfreq=fs, mode='multitaper', fmin=3, fmax=50, tmin=1.5, tmax=1.9, block_size=256, n_jobs=10)
+    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_match[0]], method='coh', sfreq=fs, mode='multitaper',
+                                           fmin=3, fmax=50, tmin=1.5, tmax=1.9, block_size=256, n_jobs=10)
 conn_nonmatch_visual2, freqs_conn, times_visual2, n_epochs_orien, n_tapers_conn = \
-    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_nonmatch[0]], method='coh', sfreq=fs, mode='multitaper', fmin=3, fmax=50, tmin=1.7, tmax=2.1, block_size=256, n_jobs=10)
+    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_nonmatch[0]], method='coh', sfreq=fs, mode='multitaper',
+                                           fmin=3, fmax=50, tmin=1.7, tmax=2.1, block_size=256, n_jobs=10)
 conn_match_visual2, freqs_conn, times_visual2, n_epochs_color, n_tapers_conn = \
-    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_match[0]], method='coh', sfreq=fs, mode='multitaper', fmin=3, fmax=50, tmin=1.7, tmax=2.1, block_size=256, n_jobs=10)
+    mne.connectivity.spectral_connectivity(epochs.get_data()[limit_match[0]], method='coh', sfreq=fs, mode='multitaper',
+                                           fmin=3, fmax=50, tmin=1.7, tmax=2.1, block_size=256, n_jobs=10)
 ##
 _, ax = plt.subplots(14,14,sharey=True)
 for i in range(14):

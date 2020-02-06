@@ -5,10 +5,12 @@ data generating part requires neo format for neuropysiologicla data; data stroag
 """
 
 import numpy as np
-import quantities as pq
-import neo
 import warnings
 import re
+import pandas as pd
+import quantities as pq
+import neo
+
 
 """ ==================== functions to generate data_neuro, data structure ==================== """
 
@@ -219,6 +221,7 @@ def blk_align_to_evt(blk, blk_evt_align_ts, window_offset, type_filter='.*', nam
         data_neuro_list.append(data_neuro)
         """ to be worked on """
     data_neuro = data_concatenate(data_neuro_list)
+    data_neuro['signal_info'] = pd.DataFrame(data_neuro['signal_info'])
     return data_neuro
 
 
@@ -318,7 +321,7 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
         try:
             if name_filter is not None:
                 for i in range(N_signal):
-                    cur_name = data_neuro['signal_info'][i]['name']
+                    cur_name = list(data_neuro['signal_info']['name'])[i]
                     if re.match(name_filter, cur_name) is None:
                         indx[i] = False
         except:
@@ -326,7 +329,7 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
         try:
             if chan_filter is not None:
                 for i in range(N_signal):
-                    cur_chan = data_neuro['signal_info'][i]['channel_index']
+                    cur_chan = list(data_neuro['signal_info']['channel_index'])[i]
                     if cur_chan not in chan_filter:
                         indx[i] = False
         except:
@@ -334,7 +337,7 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
         try:
             if sortcode_filter is not None:
                 for i in range(N_signal):
-                    cur_sortcode = data_neuro['signal_info'][i]['sort_code']
+                    cur_sortcode = list(data_neuro['signal_info']['sort_code'])[i]
                     if cur_sortcode not in sortcode_filter:
                         indx[i] = False
         except:
@@ -343,9 +346,15 @@ def select_signal(data_neuro, indx=None, name_filter=None, chan_filter=None, sor
     data_neuro_new = dict(data_neuro)
     data_neuro_new['data'] = data_neuro['data'][:, :, indx]
     if 'signal_info' in data_neuro_new.keys():
-        data_neuro_new['signal_info'] = data_neuro['signal_info'][indx]
-    if 'signal_id' in data_neuro_new.keys():
-        data_neuro_new['signal_id'] = data_neuro['signal_id'][indx]
+        if isinstance(data_neuro['signal_info'], np.ndarray):
+            data_neuro_new['signal_info'] = data_neuro['signal_info'][indx]
+        else:
+            data_neuro_new['signal_info'] = data_neuro['signal_info'].iloc[indx]
+    # if 'signal_id' in data_neuro_new.keys():
+    #     if isinstance(data_neuro['signal_info'], np.ndarray):
+    #         data_neuro_new['signal_id'] = data_neuro['signal_id'][indx]
+    #     else:
+    #         data_neuro_new['signal_id'] = data_neuro['signal_id'].iloc[indx]
 
     return data_neuro_new
 
@@ -362,7 +371,7 @@ def include_trial_info(data_neuro, data_df):
     return data_neuro
 
 
-def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}):
+def neuro_sort(tlbl=None, grpby=[], fltr=[], neuro={}):
     """
     funciton to sort a table arrording to some columns, returns the index of each condition
 
@@ -374,6 +383,8 @@ def neuro_sort(tlbl, grpby=[], fltr=[], neuro={}):
     """
 
     # process inputs
+    if (tlbl is None) and (neuro is not None) and ('trial_info' in neuro):
+        tlbl = neuro['trial_info']
     if grpby is None:
         grpby = []
     if fltr is None:

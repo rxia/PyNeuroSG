@@ -133,7 +133,7 @@ def ErpPlot_singlePanel(erp, ts=None, tf_inverse_color=False, tf_inverse_updown=
         ax.invert_yaxis()
 
 
-def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
+def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP", tlim=None):
     """
     ERP (event-evoked potential) plot
 
@@ -143,7 +143,9 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
 
                           * if None, assume linear layout,
                           * otherwise, use the the give array_layout in the format: {chan: (row, col)}
-    :param depth_linear:   a list of depth
+    :param depth_linear:  a list of depth
+    :param title:         a string of title
+    :tlim:                None (by default using the full data length) or a list of two elements
     :return:              figure handle
     """
     if type(data) is np.ndarray:
@@ -151,10 +153,7 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
         ch_list = np.arange(0,array_erp.shape[0])
     else:
         array_erp = np.mean(data['data'],axis=0).transpose()
-        if data['signal_info'][0][1] == 'spiketrains':
-            ch_list = [int(data['signal_info'][i][0][4:6]) for i in range(len(data['signal_info']))]
-        elif data['signal_info'][0][1] == 'analogsignals':
-            ch_list = [int(data['signal_info'][i][0][5:7]) for i in range(len(data['signal_info']))]
+        ch_list = list(data['signal_info']['channel_index'])
     [N_chan, N_ts] = array_erp.shape
     if ts is None:
         ts = np.arange(N_ts)
@@ -186,7 +185,10 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
                 h_axes_top.set_axis_bgcolor([0.95, 0.95, 0.95])
         except:
             pass
-        plt.xlim(ts[0],ts[-1])
+        if tlim is None:
+            plt.xlim(ts[0], ts[-1])
+        else:
+            plt.xlim(tlim[0],tlim[1])
         # plt.ylim( -(N_chan+2)*offset_plot_chan, -(0-3)*offset_plot_chan,  )
         plt.title(title)
         plt.xlabel('time from event onset (s)')
@@ -196,7 +198,10 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
         plt.pcolormesh(center2edge(ts), center2edge(np.arange(N_chan)+1) , np.array(array_erp), cmap=plt.get_cmap('coolwarm'))
         color_max = np.max(np.abs(np.array(array_erp)))
         plt.clim(-color_max, color_max)
-        plt.xlim(ts[0], ts[-1])
+        if tlim is None:
+            plt.xlim(ts[0], ts[-1])
+        else:
+            plt.xlim(tlim[0],tlim[1])
         plt.ylim( center2edge(np.arange(N_chan)+1)[0], center2edge(np.arange(N_chan)+1)[-1]  )
         plt.gca().invert_yaxis()
         plt.title(title)
@@ -213,7 +218,10 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
             plt.axes(h_axes[array_layout[ch_list[ch]]])
             plt.plot(ts, array_erp[ch, :], linewidth=2, color='dimgray')
             plt.text(0.1, 0.8, 'C{}'.format(ch_list[ch]), transform=plt.gca().transAxes, fontsize=10, bbox=text_props)
-        plt.xlim(ts[0], ts[-1])
+        if tlim is None:
+            plt.xlim(ts[0], ts[-1])
+        else:
+            plt.xlim(tlim[0],tlim[1])
 
         # axis appearance
         if False:
@@ -244,7 +252,7 @@ def ErpPlot(data, ts=None, array_layout=None, depth_linear=None, title="ERP"):
     return h_fig, h_axes
 
 
-def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
+def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tlim=None, tf_scr_ctr=False,
            psth_overlay=True, t_scale=None, fr_scale=None, sk_std=None ):
     """
     plot RF using one single plot
@@ -253,6 +261,7 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
     :param indx_sgnl:   index of signal, i.e. the data_neuro['cdtn'][:,:,indx_sgnl] would be used for plotting
     :param data:        if not None, use the data instead of data_neuro['data'][:,:,indx_sgnl], a 2D array of shape [N_trials, N_ts]
     :param t_focus:     duration of time used to plot heatmap, e.g. [0.050, 0.200]
+    :param tlim:        duration of time used to plot psth overlay, e.g. [0.050, 0.200]
     :param tf_scr_ctr:  True/False, plot [0.0] point of screen
     :param psth_overlay:True/False overlay psth
     :param t_scale:     for psth overlay, duration of time (ts) to be mapped to unit 1 of space
@@ -273,13 +282,17 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
     if t_focus is None:
         t_focus = ts[[0,-1]]
 
+    if tlim is not None:
+        data = data[:,np.logical_and(ts>=tlim[0],ts<tlim[1])]
+        ts = ts[np.logical_and(ts>=tlim[0],ts<tlim[1])]
+
     # get x and y values
     x_grid = np.unique(np.array(data_neuro['cdtn'])[:,0])
     y_grid = np.unique(np.array(data_neuro['cdtn'])[:,1])
     x_spacing = np.mean(np.diff(x_grid))
     y_spacing = np.mean(np.diff(y_grid))
     if t_scale is None:
-        t_scale = ( data_neuro['ts'][-1] - data_neuro['ts'][0] )/x_spacing*1.1
+        t_scale = ( ts[-1] - ts[0] )/x_spacing*1.1
 
     fr_2D = np.zeros([len(x_grid),len(y_grid)])
     for i, xy in enumerate(data_neuro['cdtn']):
@@ -293,7 +306,7 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
 
     if psth_overlay:
         # plt.figure()
-        plt.title(data_neuro['signal_info'][indx_sgnl]['name'])
+        plt.title(data_neuro['signal_info']['name'][indx_sgnl])
         plt.pcolormesh( center2edge(x_grid), center2edge(y_grid), fr_2D.transpose(), cmap='inferno')
 
         for i, xy in enumerate(data_neuro['cdtn']):
@@ -311,8 +324,10 @@ def RfPlot(data_neuro, indx_sgnl=0, data=None, t_focus=None, tf_scr_ctr=False,
         plt.plot(x_grid[[0,-1]], [0,0], 'w-', Linewidth=0.5)
         plt.plot([0,0], y_grid[[0,-1]], 'w-', Linewidth=0.5)
 
+    return fr_2D
 
-def CreateSubplotFromGroupby(df_groupby_ord, figsize=None, tf_title=True):
+
+def CreateSubplotFromGroupby(df_groupby_ord, figsize=None, tf_title=True, nrow=None, ncol=None):
     """
     creates subplots according to the structure defined in df_ana.dfGropuby
 
@@ -327,7 +342,7 @@ def CreateSubplotFromGroupby(df_groupby_ord, figsize=None, tf_title=True):
         raise Exception('input dictionary can not be empty')
     elif isinstance(list(df_groupby_ord.values())[0], int):  # input is {str/num: int}, e.g. {'a': 0, 'b': 1}
         N = max(df_groupby_ord.values())+1
-        num_r, num_c = AutoRowCol(N)
+        num_r, num_c = AutoRowCol(N, nrow=nrow, ncol=ncol)
         h_fig, h_axes = plt.subplots(num_r, num_c, sharex='all', sharey='all', squeeze=False, figsize=figsize)
         h_axes = np.ravel(h_axes)
         h_axes = {key: h_axes[val] for key, val in df_groupby_ord.items()}
@@ -457,7 +472,7 @@ def SmartSubplot(data_neuro, functionPlot=None, dataPlot=None, suptitle='', tf_c
 
 
 def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto', color_style='discrete',
-             tf_legend=False, xlabel=None, ylabel=None, legend_title=None):
+             colors=None, linestyles=None, tf_legend=False, xlabel=None, ylabel=None, legend_title=None):
     """
     funciton to plot psth with a raster panel on top of PSTH, works for both spike data and LFP data
 
@@ -477,6 +492,8 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
                         * if 'auto' : use data format to decide which plot to use
                         * if ''     : does not create subpanel
     :param color_style: 'discrete' or 'continuous'
+    :param colors:
+    :param linestyles:
     :param tf_legend:   boolean, true/false to plot legend
     :param x_label:     string
     :param y_label:     string
@@ -544,12 +561,16 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
         for k in range(M):
             psth_cdtn[k, :] = np.convolve(psth_cdtn[k, :], smooth_kernel, 'same')
 
-    colors = gen_distinct_colors(M, luminance=0.7, alpha=0.8, style=color_style)
+    if colors is None:
+        colors = gen_distinct_colors(M, luminance=0.7, alpha=0.8, style=color_style)
 
     """ ========== plot psth ========== """
     hl_lines = []
     for k, cdtn_k in enumerate(cdtn_unq):
-        hl_line, = plt.plot(ts, psth_cdtn[k, :], c=colors[k])
+        if linestyles is None:
+            hl_line, = plt.plot(ts, psth_cdtn[k, :], c=colors[k])
+        else:
+            hl_line, = plt.plot(ts, psth_cdtn[k, :], c=colors[k], linestyle=linestyles[k])
         hl_lines.append(hl_line)
 
     textprops = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
@@ -592,7 +613,8 @@ def PsthPlot(data, ts=None, cdtn=None, limit=None, sk_std=None, subpanel='auto',
 
 def PsthPlotMultiPanel(data_neuro=None, index_signal=0,
                        data2D=None, ts=None, data_df=None,
-                       limit=None, groupby_subplots='', aggregate_subplots=False, linearize_subplots=False,
+                       limit=None, groupby_subplots='', aggregate_subplots=False,
+                       linearize_subplots=False, nrow=None, ncol=None,
                        groupby_panel='', sk_std=None, subpanel='auto', color_style='discrete',
                        tf_legend=True, xlabel=None, ylabel=None, figsize=(12, 9), signal_name=''):
     """
@@ -633,7 +655,7 @@ def PsthPlotMultiPanel(data_neuro=None, index_signal=0,
 
     df_grpby = df_ana.DfGroupby(data_df, groupby=groupby_subplots, limit=limit,
                                 tf_aggregate=aggregate_subplots, tf_linearize=linearize_subplots)
-    h_fig, h_axes = CreateSubplotFromGroupby(df_grpby['order'], figsize=figsize)
+    h_fig, h_axes = CreateSubplotFromGroupby(df_grpby['order'], figsize=figsize, nrow=nrow, ncol=ncol)
     for cdtn in df_grpby['idx']:
         plt.axes(h_axes[cdtn])
         idx_trials = df_grpby['idx'][cdtn]
@@ -815,9 +837,9 @@ def SpectrogramPlot(spcg, spcg_t=None, spcg_f=None, limit_trial = None,
     """
     plot power spectrogram or coherence-gram, input spcg could be [ N_t * N*f ] or [ N_trial * N_t * N*f ], real or complex
 
-    :param spcg:          2D numpy array, [ N_t * N*f ] or 3D numpy array [ N_trial * N_t * N*f ], either real or complex:
+    :param spcg:          2D numpy array, [ N_f * N_t ] or 3D numpy array [ N_trial * N_f * N*t ], either real or complex:
 
-                            * if [ N_trial * N_t * N*f ], average over trial and get [ N_t * N*f ]
+                            * if [ N_trial * N_f * N*t ], average over trial and get [ N_f * N*t ]
                             * if complex, plot spectrogram using its abs value, and plot quiver using the complex value
     :param spcg_t:        tick of time, length N_t
     :param spcg_f:        tick of frequency, length N_f
@@ -1017,7 +1039,7 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, max_trial=None, limit_gap
     if indx_chan is None:
         indx_chan = range(0, N_chan, limit_gap)
     data = np.take( data_neuro['data'], indx_chan,  axis=2)
-    signal_info = data_neuro['signal_info'][indx_chan]
+    signal_info = data_neuro['signal_info'].iloc[indx_chan]
     N_plot = len(indx_chan)
 
     # use only a subset of trials to speedup the function
@@ -1025,7 +1047,7 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, max_trial=None, limit_gap
         if max_trial < data.shape[0]:
             data = np.take( data, np.random.choice(range(data.shape[0]),max_trial, replace=False),  axis=0)
 
-    fs = data_neuro['signal_info'][0][2]
+    fs = data_neuro['signal_info']['sampling_rate'][0]
     t_ini = np.array(data_neuro['ts'][0])
 
     # compute spectrogram
@@ -1045,7 +1067,7 @@ def SpectrogramAllPairPlot(data_neuro, indx_chan=None, max_trial=None, limit_gap
                 plt.axes(h_ax[indx_row, indx_col])
                 h_plot_pow = SpectrogramPlot(spcg_all[indx_row], spcg_t, spcg_f, tf_log=True, f_lim=f_lim, time_baseline=None,
                                     rate_interp=8)
-                plt.text(0.03, 0.85, '{}'.format(signal_info[indx_row][0]), transform=plt.gca().transAxes, bbox=text_props)
+                plt.text(0.03, 0.85, '{}'.format(signal_info['name'][indx_row]), transform=plt.gca().transAxes, bbox=text_props)
             elif indx_row<indx_col:             # coherence on off diagonal panels
                 # compute coherence
                 [cohg, _, _] = pna.ComputeCoherogram(data[:, :, indx_row], data[:, :, indx_col], fs=fs, t_ini=t_ini, t_bin=t_bin, t_step=t_step, f_lim=f_lim,
@@ -1142,10 +1164,8 @@ def EmbedTracePlot(loc_embed, traces=None, labels=None, labels_interactive=None,
 """ ========== ========= tool functions ========== ========== """
 
 
-
 def get_unique_elements(labels):
     return sorted(list(set(labels)))
-
 
 
 def add_axes_on_top(h_axes, r=0.25):
@@ -1175,7 +1195,7 @@ def add_axes_on_top(h_axes, r=0.25):
     return h_axes_top
 
 
-def add_sub_axes(h_axes=None, loc='top', size=0.25, gap=0.02, sub_rect = None):
+def add_sub_axes(h_axes=None, loc='top', size=0.25, gap=0.02, sub_rect=None):
     """
     tool funciton to add an axes around the existing axis
 
@@ -1242,17 +1262,106 @@ def add_sub_axes(h_axes=None, loc='top', size=0.25, gap=0.02, sub_rect = None):
     return h_subaxes
 
 
+def my_hist(data, yn_mean=True, yn_median=True, yn_points=True, color='k', alpha=0.5,
+            kwargs_hist=None, kwargs_mean=None, kwargs_median=None, kwargs_points=None):
+    """
+    customized histogram plot, with mean, median and individual data points
+
+    :param data: 1D array of data points
+    :param yn_mean: True/False to plot mean
+    :param yn_median: True/False to plot median
+    :param yn_scatter: True/False to plot every data point
+    :param color: color
+    :param alpha:
+    :param kwargs_hist: dict keyword arguments for plt.hist
+    :param kwargs_mean: dict keyword arguments for plt.plot, (for mean, a vertical line)
+    :param kwargs_median: dict keyword arguments for plt.plot, (for median, a vertical line)
+    :param kwargs_points: dict keyword arguments for plt.scatter, (for individual data points)
+    :return:
+    """
+    data = np.array(data)
+    data = data[np.isfinite(data)]
+
+    kwargs_hist_base_hist = {'color': color, 'alpha': alpha}
+    kwargs_hist_base_other = {'color': color, 'alpha': alpha*0.3+0.7, 'linewidth': 2}
+
+    if kwargs_hist is None:
+        kwargs_hist = {}
+    if kwargs_mean is None:
+        kwargs_mean = {}
+    if kwargs_median is None:
+        kwargs_median = {}
+    if kwargs_points is None:
+        kwargs_points = {}
+
+    count, bins, _ = plt.hist(data, **{**kwargs_hist_base_hist, **kwargs_hist})
+    count_max = np.max(count)
+    if yn_mean:
+        data_mean = np.mean(data)
+        plt.plot([data_mean, data_mean], [0, count_max/3],
+                 **{**kwargs_hist_base_other, **kwargs_mean})
+    if yn_median:
+        data_median = np.median(data)
+        plt.plot([data_median, data_median], [0, count_max / 3],
+                 **{**kwargs_hist_base_other, **{'ls': '--'}, **kwargs_median})
+    if yn_points:
+        plt.scatter(data, np.random.rand(len(data))*count_max/10,
+                 **{**kwargs_hist_base_other, **{'marker': '+', 'linewidth': 0.5}, **kwargs_points})
+
+    plt.gca().set_ylim(bottom=0)
+
+    return plt.gca()
 
 
+def scatter_hist(x, y, h_axes=None, kwargs_scatter=None, kwargs_hist=None):
+    """
+    scatter hist plot
+
+    :param x:       data x
+    :param y:       data y
+    :param h_axes:  main axis, default to plt.gca()
+    :param kwargs_scatter: dict, key-word arguments passed for scatter plot
+    :param kwargs_hist:    dict, key-word arguments passed for hist plot
+    :return:        axes handles, (h_main, h_top, h_right)
+    """
+
+    if h_axes is None:
+        h_main = plt.gca()
+    else:
+        h_main = h_axes
+
+    if kwargs_scatter is None:
+        kwargs_scatter = dict()
+
+    if kwargs_hist is None:
+        kwargs_hist = dict()
+
+    h_top = add_sub_axes(h_main, 'top')
+    h_right = add_sub_axes(h_main, 'right')
+    box_top = h_top.get_position()
+    box_main = h_main.get_position()
+    h_top.set_position([box_top.x0, box_top.y0, box_main.width, box_top.height])
+
+    plt.axes(h_top)
+    plt.hist(x, **kwargs_hist)
+
+    plt.axes(h_right)
+    plt.hist(y, orientation='horizontal', **kwargs_hist)
+
+    plt.axes(h_main)
+    plt.scatter(x, y, **kwargs_scatter)
+
+    return h_main, h_top, h_right
 
 
-def create_array_layout_subplots(array_layout, tf_linear_indx=True, tf_text_ch=False):
+def create_array_layout_subplots(array_layout, tf_linear_indx=True, tf_text_ch=False, **kwargs):
     """
     create the subplots based on the electrode array's spatial layout
 
     :param array_layout:   electrode array's spatial layout, a dict, {chan: (row, column)}
     :param tf_linear_indx: True/False the returned subplot axis is a 1D array, indexed in the channel orders, default to True
     :param tf_text_ch:     True/False show the channel index for every axes
+    :param **kwargs:       parameters for plt.subplots
     :return: [h_fig, h_axes],as the plt.subplots
     """
     [ch, r, c] = zip(*sorted([[ch, r, c] for ch, (r, c) in array_layout.items()]))
@@ -1260,7 +1369,7 @@ def create_array_layout_subplots(array_layout, tf_linear_indx=True, tf_text_ch=F
     max_c = max(c)
 
     # create subplots
-    [h_fig, h_axes] = plt.subplots(max_r+1, max_c+1, sharex=True, sharey=True)
+    [h_fig, h_axes] = plt.subplots(max_r+1, max_c+1, sharex='all', sharey='all', **kwargs)
     h_axes = np.array(h_axes, ndmin=2)
 
     # set all axes off
@@ -1519,8 +1628,6 @@ def DataFastSubplot(data_list, layout=None, data_type=None, gap=0.05, tf_axis=Tr
                         plt.text(indx_in_canvas(col, 'col', 'start'), indx_in_canvas(row, 'row', 'start')-0.5, subplot_label[i])
 
 
-
-
 def center2edge(centers):
     # tool function to get edges from centers for plt.pcolormesh
     centers = np.array(centers,dtype='float')
@@ -1559,7 +1666,7 @@ def prettyfloat(input, precision=2):
     return output
 
 
-def gen_distinct_colors(n, luminance=0.9, alpha=0.8, style='discrete'):
+def gen_distinct_colors(n, luminance=0.9, alpha=0.8, style='discrete', cm='rainbow'):
     """
     tool funciton to generate n distinct colors for plotting
 
@@ -1567,19 +1674,19 @@ def gen_distinct_colors(n, luminance=0.9, alpha=0.8, style='discrete'):
     :param luminance:  num between [0,1]
     :param alhpa:      num between [0,1]
     :param style:      sting, 'discrete', or 'continuous'
+    :param cm:      sting, 'discrete', or 'continuous'
     :return:           n*4 rgba color matrix
     """
 
+    assert style in ('discrete', 'continuous')
+    colormap = getattr(plt.cm, cm)
     if style == 'discrete':
         magic_number = 0.618  # from the golden ratio, to make colors evely distributed
         initial_number = 0.25
-        colors_ini = plt.cm.rainbow((initial_number + np.arange(n)) * magic_number % 1)
-    elif style == 'continuous':
-        colors_ini = plt.cm.rainbow( 1.0*np.arange(n)/n )
-    else:
-        magic_number = 0.618  # from the golden ratio, to make colors evely distributed
-        initial_number = 0.25
-        colors_ini = plt.cm.rainbow((initial_number + np.arange(n)) * magic_number % 1)
+        colors_ini = colormap((initial_number + np.arange(n)) * magic_number % 1)
+    else:    # style == 'continuous':
+        colors_ini = colormap( 1.0*np.arange(n)/(n-0.5) )
+
     return colors_ini* np.array([[luminance, luminance, luminance, alpha]])
 
 
@@ -1626,7 +1733,8 @@ def isSingle(x):
     else:
         return True
 
-def share_clim(h_ax, c_lim=None):
+
+def share_clim(h_ax, c_lim=None, cmap=None):
     """
     tool funciton to share clim (make sure c_lim of given axes are the same), call after plotting all images
 
@@ -1646,8 +1754,9 @@ def share_clim(h_ax, c_lim=None):
         plt.axes(ax)
         if plt.gci() is not None:
             plt.clim(c_lim)
+            if cmap is not None:
+                plt.set_cmap(cmap)
     return c_lim
-
 
 
 def auto_tick(data_range, max_tick=10, tf_inside=False):
@@ -1678,6 +1787,14 @@ def auto_tick(data_range, max_tick=10, tf_inside=False):
 
     return ticks
 
+
+def plot_diagonal_line(x, y=None, **kwargs):
+    """" plot a diagonal line spans over the range of data x and data y, to compare the size of x and y """
+    if y is None:
+        y=x
+    value_min = min(np.nanmin(x), np.nanmin(y))
+    value_max = max(np.nanmax(x), np.nanmax(y))
+    plt.plot([value_min, value_max], [value_min, value_max], **kwargs)
 
 
 """ ========== ========== obsolete function ========== ========== """

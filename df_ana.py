@@ -185,7 +185,8 @@ def GroupPlot(values, x=None, c=None, p=None, limit=None, plot_type=None, tf_leg
                     medianprops = dict(linestyle='-', linewidth=4, color=current_color)
                     meanpointprops = dict(marker='x', markeredgecolor=current_color, markersize=10, markeredgewidth=2)
                     flierprops = dict(marker='.', markersize=5)
-                    h_box = plt.boxplot(values_by_x, positions=x_loc, widths=bar_width, showmeans=True,
+                    values_by_x_not_nan = [values[np.isfinite(values)] for values in values_by_x]
+                    h_box = plt.boxplot(values_by_x_not_nan, positions=x_loc, widths=bar_width, showmeans=True,
                                 medianprops=medianprops, meanprops=meanpointprops, flierprops=flierprops)
                     if tf_legend and (p_i==0):
                         legend_obj.append(h_box['medians'][0])
@@ -359,3 +360,32 @@ def DfGroupby(data_df, groupby='', limit=None, tf_aggregate=False, tf_linearize=
 
     return {'idx': idx_by_grp, 'order': ord_by_grp}
 
+
+def GroupDataNeuro(data_neuro, data_df=None, groupby='', limit=None, tf_aggregate=False, tf_linearize=False):
+    """
+    group data_neuro using DfGroupby(), place field ('cdtn', 'cdtn_indx', cdtn_order, 'grpby', 'limit') to data_neuro,
+    achieve similar functionality with PyNeuroData.NeuroSort
+
+    :param data_df:      pandas DataFrame
+    :param groupby:      column name(s) to group the data_df, either a str or a list of strings
+    :param limit:        a filter on the indexes, either a boolean array or an index array
+    :param tf_aggregate: True/False to add a aggregation group (not grouped) for every column
+    :param tf_linearize: True/False to linearize the order of groups, ie., turn (3,0) to 4
+    :return:             data_neuro with fields ('cdtn', 'cdtn_indx', cdtn_order, 'grpby', 'limit')
+    """
+
+    if data_df is None:
+        if (data_neuro is not None) and ('trial_info' in data_neuro):
+            data_df = data_neuro['trial_info']
+        else:
+            raise Exception('data_neuro (containing data_df in field "trial_info") or data_df has to be given')
+    DfGroupbyResult = DfGroupby(data_df, groupby=groupby, limit=limit,
+              tf_aggregate=tf_aggregate, tf_linearize=tf_linearize)
+
+    data_neuro['grpby'] = groupby
+    data_neuro['fltr'] = limit
+    data_neuro['cdtn'] = sorted(list(DfGroupbyResult['idx'].keys()))
+    data_neuro['cdtn_indx'] = DfGroupbyResult['idx']
+    data_neuro['cdtn_order'] = DfGroupbyResult['order']
+
+    return data_neuro
